@@ -15,7 +15,7 @@ import MissionsPanel from './components/MissionsPanel';
 import UpgradeShop from './components/UpgradeShop';
 import CosmeticShop from './components/CosmeticShop';
 import WeeklyLeaderboard from './components/WeeklyLeaderboard';
-import SpaceScene from './components/SpaceScene';
+import SpaceScene3D from './components/SpaceScene3D';
 
 type Screen = 'connect' | 'game' | 'playing';
 type Tab = 'launch' | 'missions' | 'upgrades' | 'cosmetics' | 'leaderboard' | 'history';
@@ -264,7 +264,7 @@ export default function App() {
       <div className="relative min-h-screen">
         <div className="fixed inset-0 z-0">
           <Suspense fallback={<div className="w-full h-full bg-gradient-to-b from-[#0a0a1a] to-[#1a0a2e]" />}>
-            <SpaceScene />
+            <SpaceScene3D />
           </Suspense>
         </div>
         <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
@@ -308,7 +308,7 @@ export default function App() {
     <div className="relative min-h-screen">
       <div className="fixed inset-0 z-0">
         <Suspense fallback={<div className="w-full h-full bg-gradient-to-b from-[#0a0a1a] to-[#1a0a2e]" />}>
-          <SpaceScene />
+          <SpaceScene3D />
         </Suspense>
       </div>
       
