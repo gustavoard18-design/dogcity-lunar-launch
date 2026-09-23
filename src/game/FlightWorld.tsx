@@ -11,7 +11,8 @@ import Rocket, { RocketLook, trailStartColor } from '../three/Rocket';
 import Planet from '../three/Planet';
 import Particles, { ParticleApi } from '../three/Particles';
 import { SkyBackground, SpeedStreaks, StudioEnvironment } from '../three/SpaceBits';
-import { getTexture } from '../three/textures';
+import { makeRockGeometry } from '../three/rocks';
+import { DeepField, DriftingSatellite, ROCK_TINT } from '../three/DeepSpace';
 
 export interface FlightInput {
   pointerX: number;
@@ -78,27 +79,17 @@ function spawnFrom(pool: Body[]): Body | null {
   return pool.find(b => !b.active) ?? null;
 }
 
-/** Geometria de rocha irregular: icosaedro com vértices deslocados. */
-function useRockGeometry() {
-  return useMemo(() => {
-    const g = new THREE.IcosahedronGeometry(1, 2);
-    const pos = g.attributes.position as THREE.BufferAttribute;
-    const v = new THREE.Vector3();
-    const seen = new Map<string, number>();
-    for (let i = 0; i < pos.count; i++) {
-      v.fromBufferAttribute(pos, i);
-      const key = `${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`;
-      let k = seen.get(key);
-      if (k === undefined) {
-        k = 0.75 + Math.random() * 0.4 + Math.sin(v.x * 3) * 0.08;
-        seen.set(key, k);
-      }
-      v.multiplyScalar(k);
-      pos.setXYZ(i, v.x, v.y, v.z);
-    }
-    g.computeVertexNormals();
-    return g;
-  }, []);
+/** Formatos de asteroide (cada um vira um InstancedMesh). */
+const ROCK_SHAPES = 3;
+function useRockGeometries() {
+  return useMemo(
+    () => [
+      makeRockGeometry({ seed: 5, detail: 2, rough: 0.65, squash: 0.8, craters: 6 }),
+      makeRockGeometry({ seed: 13, detail: 2, rough: 0.55, squash: 0.65, craters: 4 }),
+      makeRockGeometry({ seed: 29, detail: 2, rough: 0.75, squash: 0.9, craters: 7 }),
+    ],
+    []
+  );
 }
 
 export default function FlightWorld({ route, tuning, look, startShield, inputRef, abortRef, onHud, onEvent, onDone }: FlightWorldProps) {
@@ -116,17 +107,16 @@ export default function FlightWorld({ route, tuning, look, startShield, inputRef
   const speedRef = useRef(tuning.worldSpeed);
   const skyZoom = useRef(0);
   const fx = useRef<ParticleApi>(null);
-  const asteroidMesh = useRef<THREE.InstancedMesh>(null);
+  const asteroidMeshes = useRef<(THREE.InstancedMesh | null)[]>([]);
   const orbMesh = useRef<THREE.InstancedMesh>(null);
   const ringMeshes = useRef<(THREE.Group | null)[]>([]);
   const shieldPickups = useRef<(THREE.Group | null)[]>([]);
   const planetGroup = useRef<THREE.Group>(null);
   const chroma = useMemo(
-    () => new ChromaticAberrationEffect({ offset: new THREE.Vector2(0.0006, 0.0006), radialModulation: false, modulationOffset: 0 }),
+    () => new ChromaticAberrationEffect({ offset: new THREE.Vector2(0, 0), radialModulation: false, modulationOffset: 0 }),
     []
   );
-  const rockGeo = useRockGeometry();
-  const rockMap = useMemo(() => getTexture('rock'), []);
+  const rockGeos = useRockGeometries();
 
   const sim = useRef({
     t: 0,
@@ -290,9 +280,10 @@ export default function FlightWorld({ route, tuning, look, startShield, inputRef
     const mult = () => 1 + Math.min(4, Math.floor(s.combo / 6));
 
     // ---------- Asteroides ----------
-    if (asteroidMesh.current) {
-      let idx = 0;
-      for (const a of s.asteroids) {
+    if (asteroidMeshes.current.every(Boolean)) {
+      const idx = [0, 0, 0];
+      for (let ai = 0; ai < s.asteroids.length; ai++) {
+        const a = s.asteroids[ai];
         if (!a.active) continue;
         a.p.z += dz;
         a.rot.x += a.spin.x * dt;
@@ -330,12 +321,16 @@ export default function FlightWorld({ route, tuning, look, startShield, inputRef
         }
         dummy.position.copy(a.p);
         dummy.rotation.copy(a.rot);
-        dummy.scale.setScalar(a.s);
+        // Surge crescendo lá longe (sem névoa, que deixava silhuetas pretas).
+        dummy.scale.setScalar(a.s * THREE.MathUtils.smoothstep(a.p.z, SPAWN_Z - 25, SPAWN_Z + 70));
         dummy.updateMatrix();
-        asteroidMesh.current.setMatrixAt(idx++, dummy.matrix);
+        const k = ai % ROCK_SHAPES;
+        asteroidMeshes.current[k]!.setMatrixAt(idx[k]++, dummy.matrix);
       }
-      asteroidMesh.current.count = idx;
-      asteroidMesh.current.instanceMatrix.needsUpdate = true;
+      asteroidMeshes.current.forEach((m, k) => {
+        m!.count = idx[k];
+        m!.instanceMatrix.needsUpdate = true;
+      });
     }
 
     // ---------- Orbes ----------
@@ -470,7 +465,7 @@ export default function FlightWorld({ route, tuning, look, startShield, inputRef
     const fov = baseFov + (s.boost > 0 ? 14 : 0);
     camera.fov = THREE.MathUtils.lerp(camera.fov, fov, 1 - Math.exp(-4 * dt));
     camera.updateProjectionMatrix();
-    chroma.offset.set(0.0006 + s.chroma * 0.012, 0.0006 + s.chroma * 0.006);
+    chroma.offset.set(s.chroma * 0.012, s.chroma * 0.006);
 
     // ---------- Fim ----------
     if (!s.finished && !s.crashed && s.progress >= 1 && s.asteroids.every(a => !a.active || a.p.z > 0)) {
@@ -523,6 +518,8 @@ export default function FlightWorld({ route, tuning, look, startShield, inputRef
       <StudioEnvironment />
       <Stars radius={300} depth={80} count={6000} factor={6} saturation={0.3} fade speed={0.6} />
       <SpeedStreaks speedRef={speedRef} />
+      <DeepField speedRef={speedRef} kind={route.destination} count={route.destination === 'ceres' ? 110 : 60} />
+      <DriftingSatellite speedRef={speedRef} />
 
       <group ref={planetGroup}>
         <Planet kind={route.destination} radius={70} spin={0.03} tilt={0.2} fog={false} />
@@ -538,9 +535,11 @@ export default function FlightWorld({ route, tuning, look, startShield, inputRef
         <meshStandardMaterial color="#5ff3ff" emissive="#22c8ff" emissiveIntensity={1.5} transparent opacity={0.2} wireframe toneMapped={false} />
       </mesh>
 
-      <instancedMesh ref={asteroidMesh} args={[rockGeo, undefined, MAX_ASTEROIDS]} frustumCulled={false}>
-        <meshStandardMaterial map={rockMap} bumpMap={rockMap} bumpScale={0.08} color="#e8d9c8" roughness={0.9} metalness={0.05} flatShading emissive="#3a1a0a" emissiveIntensity={0.35} />
-      </instancedMesh>
+      {rockGeos.map((g, k) => (
+        <instancedMesh key={k} ref={el => (asteroidMeshes.current[k] = el)} args={[g, undefined, Math.ceil(MAX_ASTEROIDS / ROCK_SHAPES)]} frustumCulled={false}>
+          <meshStandardMaterial color={ROCK_TINT[route.destination]} roughness={0.9} metalness={0.05} vertexColors flatShading emissive="#3a1a0a" emissiveIntensity={0.3} fog={false} />
+        </instancedMesh>
+      ))}
       <instancedMesh ref={orbMesh} args={[undefined, undefined, MAX_ORBS]} frustumCulled={false}>
         <octahedronGeometry args={[1, 0]} />
         <meshStandardMaterial color="#ffd35a" emissive="#ffb020" emissiveIntensity={1.8} toneMapped={false} metalness={0.6} roughness={0.2} />

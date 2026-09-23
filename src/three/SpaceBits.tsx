@@ -17,11 +17,19 @@ export function StudioEnvironment() {
 }
 
 /** Traços de velocidade que passam pela câmera durante o voo. */
-export function SpeedStreaks({ speedRef, count = 320, color = '#a9c8ff' }: { speedRef: React.MutableRefObject<number>; count?: number; color?: string }) {
+export function SpeedStreaks({ speedRef, count = 220, color = '#a9c8ff' }: { speedRef: React.MutableRefObject<number>; count?: number; color?: string }) {
   const { geometry, data } = useMemo(() => {
     const geometry = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 6);
     const data = new Float32Array(count * 3);
+    // Cabeça clara e cauda apagada (mistura aditiva: preto = transparente).
+    const col = new Float32Array(count * 6);
+    const c = new THREE.Color(color);
+    for (let i = 0; i < count; i++) {
+      const k = 0.5 + Math.random() * 0.5;
+      col.set([c.r * k, c.g * k, c.b * k, 0, 0, 0], i * 6);
+    }
+    geometry.setAttribute('color', new THREE.BufferAttribute(col, 3));
     for (let i = 0; i < count; i++) {
       const a = Math.random() * Math.PI * 2;
       const r = 6 + Math.random() * 40;
@@ -58,7 +66,7 @@ export function SpeedStreaks({ speedRef, count = 320, color = '#a9c8ff' }: { spe
 
   return (
     <lineSegments geometry={geometry} frustumCulled={false}>
-      <lineBasicMaterial color={color} transparent opacity={0.45} blending={THREE.AdditiveBlending} depthWrite={false} />
+      <lineBasicMaterial vertexColors transparent opacity={0.7} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
     </lineSegments>
   );
 }
