@@ -19,7 +19,7 @@ function Portrait({ src, label, tier, highlight }: { src: string; label: string;
     <div className="flex flex-col items-center">
       <div
         className={`relative w-full max-w-[190px] aspect-[220/302] rounded-xl overflow-hidden border transition-shadow ${
-          highlight ? 'border-fuchsia-400/60 shadow-[0_0_30px_rgba(217,70,239,0.35)]' : 'border-white/10'
+          highlight ? 'border-sky-300/70 shadow-[0_0_30px_rgba(56,189,248,0.35)]' : 'border-white/10'
         }`}
       >
         <AnimatePresence mode="popLayout">
@@ -59,7 +59,7 @@ function EvolutionStrip({ tiers, progress, art, unit }: { tiers: Tier[]; progres
               <div className="flex flex-col items-center flex-1 min-w-0">
                 <div
                   className={`w-full max-w-[56px] aspect-[220/302] rounded-lg overflow-hidden border ${
-                    current ? 'border-fuchsia-400 ring-2 ring-fuchsia-400/40' : reached ? 'border-white/20' : 'border-white/5'
+                    current ? 'border-sky-300 ring-2 ring-sky-400/40' : reached ? 'border-white/20' : 'border-white/5'
                   }`}
                 >
                   <img src={art(t)} alt={t.name} className={`w-full h-full object-cover ${reached ? '' : 'grayscale opacity-35'}`} draggable={false} />
@@ -74,7 +74,7 @@ function EvolutionStrip({ tiers, progress, art, unit }: { tiers: Tier[]; progres
         })}
       </div>
       <div className="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
-        <div className="h-full rounded-full bg-gradient-to-r from-sky-400 to-fuchsia-400 transition-all duration-700" style={{ width: `${pct}%` }} />
+        <div className="h-full rounded-full bg-gradient-to-r from-sky-400 to-amber-400 transition-all duration-700" style={{ width: `${pct}%` }} />
       </div>
       <div className="mt-1 text-[10px] text-slate-400">
         {next ? (
@@ -82,7 +82,7 @@ function EvolutionStrip({ tiers, progress, art, unit }: { tiers: Tier[]; progres
             Faltam <b className="text-white">{next.min - points}</b> {unit} para <b className={next.accent}>{next.name}</b>
           </>
         ) : (
-          <span className="text-fuchsia-300">Fase máxima alcançada</span>
+          <span className="text-amber-300">Fase máxima alcançada</span>
         )}
       </div>
     </div>

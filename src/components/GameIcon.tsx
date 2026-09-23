@@ -1,4 +1,4 @@
-import type { DailyMission, PlanetKind, Stat } from '../types';
+import type { DailyMission, PlanetKind, Stat, Tier } from '../types';
 import { getRoute } from '../lib/economy';
 import { STAT_ICON } from '../lib/evolution';
 
@@ -124,11 +124,11 @@ export function missionIcon(def: DailyMission): IconName {
     case 'perfect': return 'medal';
     case 'flawless': return 'escudo';
     case 'route': return routeIcon(def.routeId ?? '');
-    case 'stardust': return 'gem';
+    case 'stardust': return 'orb';
   }
 }
 
-/** Cadeado desenhado em SVG (substitui o 🔒). */
+/** Cadeado desenhado em SVG. */
 export function LockIcon({ size = 16, className = '' }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden>
@@ -145,3 +145,117 @@ export function LockIcon({ size = 16, className = '' }: { size?: number; classNa
     </svg>
   );
 }
+
+type GlyphProps = { size?: number | string; className?: string };
+const svgProps = (size: number | string, className: string) => ({
+  width: size,
+  height: size,
+  viewBox: '0 0 24 24',
+  className: `inline-block shrink-0 align-[-0.15em] ${className}`,
+  'aria-hidden': true,
+});
+
+/** Coração do casco, com brilho. `empty` = casco perdido. */
+export function HeartIcon({ size = 20, className = '', empty = false }: GlyphProps & { empty?: boolean }) {
+  return (
+    <svg {...svgProps(size, className)} style={empty ? undefined : { filter: 'drop-shadow(0 0 4px rgba(248,113,113,0.7))' }}>
+      <defs>
+        <linearGradient id="heartg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ff8a8a" />
+          <stop offset="1" stopColor="#dc2626" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.9 4.5 6.6 4.5c2.1 0 3.6 1.2 5.4 3.2 1.8-2 3.3-3.2 5.4-3.2 3.7 0 5.7 3.9 4.2 7.3C19.5 16.4 12 21 12 21z"
+        fill={empty ? 'rgba(148,163,184,0.18)' : 'url(#heartg)'}
+        stroke={empty ? 'rgba(148,163,184,0.4)' : '#7f1d1d'}
+        strokeWidth="0.8"
+      />
+      {!empty && <ellipse cx="8" cy="8.5" rx="2" ry="1.3" fill="#fff" opacity="0.55" transform="rotate(-30 8 8.5)" />}
+    </svg>
+  );
+}
+
+/** Estrela dourada (resultado, dificuldade). */
+export function StarIcon({ size = 20, className = '', empty = false }: GlyphProps & { empty?: boolean }) {
+  return (
+    <svg {...svgProps(size, className)} style={empty ? undefined : { filter: 'drop-shadow(0 0 5px rgba(253,224,71,0.6))' }}>
+      <defs>
+        <linearGradient id="starg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff3b0" />
+          <stop offset="1" stopColor="#f59e0b" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6L2.5 9.3l6.6-.8z"
+        fill={empty ? 'rgba(148,163,184,0.18)' : 'url(#starg)'}
+        stroke={empty ? 'rgba(148,163,184,0.35)' : '#b45309'}
+        strokeWidth="0.7"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** Dificuldade em 4 estrelas pequenas. */
+export function Difficulty({ level, size = 11 }: { level: number; size?: number }) {
+  return (
+    <span className="inline-flex gap-px align-[-0.1em]" aria-label={`Dificuldade ${level} de 4`}>
+      {[0, 1, 2, 3].map(i => (
+        <StarIcon key={i} size={size} empty={i >= level} />
+      ))}
+    </span>
+  );
+}
+
+export function SpeakerIcon({ size = 16, className = '', muted = false }: GlyphProps & { muted?: boolean }) {
+  return (
+    <svg {...svgProps(size, className)} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor" stroke="none" />
+      {muted ? (
+        <path d="M16 9.5l5 5M21 9.5l-5 5" />
+      ) : (
+        <>
+          <path d="M15.5 9a4 4 0 0 1 0 6" />
+          <path d="M18 6.5a7.5 7.5 0 0 1 0 11" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+export function RefreshIcon({ size = 14, className = '' }: GlyphProps) {
+  return (
+    <svg {...svgProps(size, className)} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 11a8 8 0 0 0-14.6-4.5M4 13a8 8 0 0 0 14.6 4.5" />
+      <path d="M5 3v4h4M19 21v-4h-4" />
+    </svg>
+  );
+}
+
+export function EjectIcon({ size = 14, className = '' }: GlyphProps) {
+  return (
+    <svg {...svgProps(size, className)} fill="currentColor">
+      <path d="M12 4l8 9H4z" />
+      <rect x="4" y="16" width="16" height="3" rx="1" />
+    </svg>
+  );
+}
+
+export function EyeIcon({ size = 13, className = '' }: GlyphProps) {
+  return (
+    <svg {...svgProps(size, className)} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Patentes do piloto (valores salvos continuam em inglês; o texto exibido é em português). */
+export const TIER_INFO: Record<Tier, { label: string; icon: IconName }> = {
+  Legend: { label: 'Lenda', icon: 'trophy' },
+  Commander: { label: 'Comandante', icon: 'medal' },
+  Pioneer: { label: 'Pioneiro', icon: 'rocket' },
+  Explorer: { label: 'Explorador', icon: 'radar' },
+  Stray: { label: 'Recruta', icon: 'escudo' },
+};

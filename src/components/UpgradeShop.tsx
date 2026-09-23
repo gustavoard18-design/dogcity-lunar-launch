@@ -4,7 +4,7 @@ import { getNextUpgrade } from '../lib/shop';
 import { STAT_ICON, iconArt } from '../lib/evolution';
 import { MAX_STAT_LEVEL, STAT_INFO, UPGRADE_VISUALS } from '../lib/stats';
 import Showcase from './Showcase';
-import { LockIcon, Stardust } from './GameIcon';
+import { EyeIcon, LockIcon, Stardust } from './GameIcon';
 
 interface UpgradeShopProps {
   profile: PlayerProfile;
@@ -29,10 +29,10 @@ export default function UpgradeShop({ profile, onPurchase }: UpgradeShopProps) {
       <Showcase
         dog={dog}
         focus="rocket"
-        badge={preview ? <>🔭 Prévia: {STAT_INFO[preview].label} nv {previewLevel}</> : <>Configuração atual</>}
+        badge={preview ? <span className="inline-flex items-center gap-1"><EyeIcon /> Prévia: {STAT_INFO[preview].label} nv {previewLevel}</span> : <>Configuração atual</>}
         footer={
           <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-            <span className="text-slate-400 mr-1">Peças instaladas:</span>
+            <span className="text-slate-400 mr-1">Peças instaladas (aparecem no foguete em voo):</span>
             {installed.length === 0 ? (
               <span className="text-slate-500">nenhuma ainda — suba os atributos para equipar o foguete</span>
             ) : (
@@ -60,7 +60,7 @@ export default function UpgradeShop({ profile, onPurchase }: UpgradeShopProps) {
               onMouseEnter={() => next && setPreview(stat)}
               onMouseLeave={() => setPreview(p => (p === stat ? null : p))}
               onClick={() => next && setPreview(active ? null : stat)}
-              className={`p-4 rounded-2xl bg-white/[0.04] border transition-colors cursor-default ${active ? 'border-fuchsia-400/50' : 'border-white/10'}`}
+              className={`p-4 rounded-2xl bg-white/[0.04] border transition-colors cursor-default ${active ? 'border-sky-300/60' : 'border-white/10'}`}
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">

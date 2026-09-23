@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { LaunchSummary, Route } from '../types';
 import { cutoutArt } from '../lib/evolution';
-import GameIcon, { IconName, LunarDust, PLANET_ICON, Stardust } from '../components/GameIcon';
+import GameIcon, { IconName, LunarDust, PLANET_ICON, Stardust, StarIcon } from '../components/GameIcon';
 
 interface ResultScreenProps {
   route: Route;
@@ -66,16 +66,15 @@ export default function ResultScreen({ route, summary, canRetry, onRetry, onExit
         </div>
         <h2 className={`font-display text-2xl sm:text-4xl mb-2 ${outcome.success ? 'text-emerald-300' : 'text-red-400'}`}>{title}</h2>
 
-        <div className="flex justify-center gap-2 mb-1 text-3xl">
+        <div className="flex justify-center gap-2 mb-1">
           {[0, 1, 2].map(i => (
             <motion.span
               key={i}
               initial={{ scale: 0, rotate: -90 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ delay: 0.4 + i * 0.2, type: 'spring', stiffness: 300 }}
-              className={i < stars ? 'drop-shadow-[0_0_12px_rgba(253,224,71,0.9)]' : 'opacity-20 grayscale'}
-            >
-              ⭐
+              >
+              <StarIcon size={40} empty={i >= stars} />
             </motion.span>
           ))}
         </div>
@@ -84,7 +83,7 @@ export default function ResultScreen({ route, summary, canRetry, onRetry, onExit
         <div className="text-xs text-slate-400 mt-1 mb-1">
           de {route.maxScore} pts · {Math.round(summary.quality * 100)}%
         </div>
-        {summary.newBest && <div className="text-xs font-bold text-amber-300 mb-2">🏆 NOVO RECORDE PESSOAL</div>}
+        {summary.newBest && <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 mb-2"><GameIcon name="trophy" size={18} /> NOVO RECORDE PESSOAL</div>}
 
         <div className="my-3 space-y-1 text-sm">
           {rows.map(([icon, label, value, cls]) => (
@@ -100,8 +99,8 @@ export default function ResultScreen({ route, summary, canRetry, onRetry, onExit
             <div className="text-amber-300 font-display text-lg"><Stardust value={summary.stardustEarned} sign="+" size={20} /></div>
             <div className="text-[10px] text-slate-400">Stardust</div>
           </div>
-          <div className="rounded-xl bg-fuchsia-500/10 border border-fuchsia-400/30 py-3">
-            <div className="text-fuchsia-300 font-display text-lg">+{summary.xpGained}</div>
+          <div className="rounded-xl bg-sky-500/10 border border-sky-400/30 py-3">
+            <div className="text-sky-300 font-display text-lg">+{summary.xpGained}</div>
             <div className="text-[10px] text-slate-400">XP</div>
           </div>
           <div className="rounded-xl bg-violet-500/10 border border-violet-400/30 py-3">
@@ -115,9 +114,9 @@ export default function ResultScreen({ route, summary, canRetry, onRetry, onExit
             initial={{ scale: 0 }}
             animate={{ scale: [0, 1.15, 1] }}
             transition={{ delay: 1 }}
-            className="mb-5 rounded-xl bg-gradient-to-r from-fuchsia-600/40 to-amber-500/40 border border-amber-300/50 py-3 font-display text-lg text-white"
+            className="mb-5 rounded-xl bg-gradient-to-r from-sky-600/40 to-amber-500/40 border border-amber-300/50 py-3 font-display text-lg text-white"
           >
-            🎉 NÍVEL {summary.newLevel}!
+            <span className="inline-flex items-center gap-2"><GameIcon name="medal" size={28} className="-my-1" /> NÍVEL {summary.newLevel}!</span>
           </motion.div>
         )}
 

@@ -9,11 +9,11 @@ export interface DogStats {
   speed: number;
 }
 
-export const STAT_INFO: Record<Stat, { label: string; emoji: string; color: string; effect: string }> = {
-  power: { label: 'Potência', emoji: '🔥', color: 'text-orange-400', effect: 'Medidores mais lentos e casco extra (nv 4 e 8)' },
-  accuracy: { label: 'Precisão', emoji: '🎯', color: 'text-sky-400', effect: 'Zonas ideais de ângulo e força mais largas' },
-  luck: { label: 'Sorte', emoji: '🍀', color: 'text-emerald-400', effect: 'Mais Stardust, escudos e ímã de coleta' },
-  speed: { label: 'Manobra', emoji: '💨', color: 'text-cyan-400', effect: 'Nave responde mais rápido aos comandos' },
+export const STAT_INFO: Record<Stat, { label: string; color: string; effect: string }> = {
+  power: { label: 'Potência', color: 'text-orange-400', effect: 'Medidores mais lentos e casco extra (nv 4 e 8)' },
+  accuracy: { label: 'Precisão', color: 'text-sky-400', effect: 'Zonas ideais de ângulo e força mais largas' },
+  luck: { label: 'Sorte', color: 'text-emerald-400', effect: 'Mais Stardust, escudos e ímã de coleta' },
+  speed: { label: 'Manobra', color: 'text-cyan-400', effect: 'Nave responde mais rápido aos comandos' },
 };
 
 /** Peças que cada atributo instala no foguete, por nível. */

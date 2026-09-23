@@ -56,7 +56,7 @@ export interface PlayerProfile {
 
 export interface LaunchRecord {
   id: string;
-  route: Pick<Route, 'id' | 'name' | 'emoji'>;
+  route: Pick<Route, 'id' | 'name'>;
   score: number;
   stardustEarned: number;
   stardustCost: number;
@@ -72,7 +72,6 @@ export interface Route {
   difficulty: number;
   maxScore: number;
   rewardMultiplier: number;
-  emoji: string;
   unlockLevel: number;
   destination: PlanetKind;
   /** Duração do voo em segundos (sem boost). */
@@ -143,7 +142,6 @@ export interface DailyMission {
     xp: number;
     lunarDust?: number;
   };
-  emoji: string;
 }
 
 export interface DailyMissionState {
@@ -160,7 +158,6 @@ export interface Upgrade {
   stat: Stat;
   level: number;
   cost: number;
-  emoji: string;
 }
 
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
@@ -171,7 +168,6 @@ export interface Cosmetic {
   type: 'skin' | 'helmet' | 'trail';
   cost: number;
   currency: 'stardust' | 'lunarDust';
-  emoji: string;
   description: string;
   rarity: Rarity;
   /** Cor usada na renderização 3D ('solar' = chama laranja/dourada animada). */

@@ -75,7 +75,7 @@ export function migrateProfile(raw: Partial<PlayerProfile>): PlayerProfile {
     },
     launches: (raw.launches ?? []).map(l => ({
       ...l,
-      route: { id: l.route.id, name: l.route.name, emoji: l.route.emoji },
+      route: { id: l.route.id, name: l.route.name },
     })),
     totalScore: raw.totalScore ?? 0,
     bestScore: raw.bestScore ?? 0,

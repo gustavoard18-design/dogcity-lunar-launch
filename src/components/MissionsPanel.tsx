@@ -1,7 +1,7 @@
 import { PlayerProfile } from '../types';
 import { REROLL_COST, canReroll, getMissionDef } from '../lib/missions';
 import { getDayKey } from '../lib/economy';
-import GameIcon, { LunarDust, Stardust, missionIcon } from './GameIcon';
+import GameIcon, { LunarDust, RefreshIcon, Stardust, missionIcon } from './GameIcon';
 
 interface MissionsPanelProps {
   profile: PlayerProfile;
@@ -33,7 +33,7 @@ export default function MissionsPanel({ profile, onClaimReward, onReroll }: Miss
           className="btn-ghost text-xs px-3 py-2 disabled:opacity-40 disabled:cursor-not-allowed"
           title={rerollUsed ? 'Troca já usada hoje' : `Troca as missões não resgatadas por ${REROLL_COST} Stardust`}
         >
-          {rerollUsed ? '🔄 Troca usada' : <span className="inline-flex items-center gap-1">🔄 Trocar <Stardust value={REROLL_COST} /></span>}
+          <span className="inline-flex items-center gap-1.5"><RefreshIcon />{rerollUsed ? 'Troca usada' : <>Trocar <Stardust value={REROLL_COST} /></>}</span>
         </button>
       </div>
 
@@ -65,7 +65,7 @@ export default function MissionsPanel({ profile, onClaimReward, onReroll }: Miss
                 </div>
                 <div className="text-right text-xs shrink-0">
                   <div className="text-amber-300"><Stardust value={def.reward.stardust} sign="+" /></div>
-                  <div className="text-fuchsia-300">+{def.reward.xp} XP</div>
+                  <div className="text-sky-300">+{def.reward.xp} XP</div>
                   {def.reward.lunarDust && <div className="text-violet-300"><LunarDust value={def.reward.lunarDust} sign="+" /></div>}
                 </div>
               </div>

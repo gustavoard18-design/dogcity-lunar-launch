@@ -1,8 +1,8 @@
 import { PlayerProfile, Stat } from '../types';
-import { getTierColor, getTierBadge } from '../lib/economy';
+import { getTierColor } from '../lib/economy';
 import { MAX_STAT_LEVEL, STAT_INFO } from '../lib/stats';
 import { astronautArt, astronautTier } from '../lib/evolution';
-import GameIcon, { LunarDust, Stardust, statIcon } from './GameIcon';
+import GameIcon, { LunarDust, Stardust, TIER_INFO, statIcon } from './GameIcon';
 
 interface PlayerProfileProps {
   profile: PlayerProfile;
@@ -28,7 +28,8 @@ export default function PlayerProfileCard({ profile }: PlayerProfileProps) {
           <h2 className="font-display text-xl sm:text-2xl text-white leading-tight truncate">{dog.name}</h2>
           <p className="text-xs text-slate-400">{dog.breed}</p>
           <div className={`text-sm font-bold mt-1 ${getTierColor(profile.tier)}`}>
-            {getTierBadge(profile.tier)} {profile.tier}
+            <GameIcon name={TIER_INFO[profile.tier].icon} size={18} className="mr-1" />
+            {TIER_INFO[profile.tier].label}
           </div>
           <p className="text-[10px] text-slate-500 font-mono" title={profile.address}>
             {profile.address.slice(0, 8)}…{profile.address.slice(-5)}

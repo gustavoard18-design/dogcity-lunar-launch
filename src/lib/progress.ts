@@ -63,7 +63,7 @@ export function applyLaunchResult(
     launches: [
       {
         id: `launch_${now.getTime()}`,
-        route: { id: route.id, name: route.name, emoji: route.emoji },
+        route: { id: route.id, name: route.name },
         score,
         stardustEarned,
         stardustCost: paidCost,

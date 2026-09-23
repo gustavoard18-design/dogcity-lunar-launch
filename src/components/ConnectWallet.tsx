@@ -76,7 +76,7 @@ export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
           LAUNCH
         </h1>
         <p className="text-slate-300 mb-8 text-base sm:text-lg max-w-sm">
-          Mire, lance e pilote seu cão astronauta entre asteroides até a Lua, Ceres e Marte.
+          Da Base Lunar DogCity, mire, lance e pilote seu cão astronauta até a órbita da Terra, o Mar da Tranquilidade, Ceres e Marte.
         </p>
 
         <div className="panel space-y-3">
@@ -95,7 +95,7 @@ export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
             className="btn-ghost w-full py-3 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
             title={unisat ? 'Conectar carteira UniSat' : 'Extensão UniSat não detectada'}
           >
-            {connecting === 'unisat' ? 'Aguardando UniSat…' : unisat ? '🔗 Conectar UniSat' : '🔗 UniSat não detectada'}
+            {connecting === 'unisat' ? 'Aguardando UniSat…' : unisat ? 'Conectar carteira UniSat' : 'Carteira UniSat não detectada'}
           </button>
           {error && <p className="text-xs text-red-400">{error}</p>}
           <p className="text-[11px] text-slate-500 leading-relaxed">

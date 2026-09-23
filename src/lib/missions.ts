@@ -5,19 +5,19 @@ export const MISSIONS_PER_DAY = 3;
 export const REROLL_COST = 25;
 
 export const MISSION_POOL: DailyMission[] = [
-  { id: 'launch_3', title: 'Explorador Espacial', description: 'Realize 3 lançamentos', type: 'launches', target: 3, reward: { stardust: 30, xp: 20 }, emoji: '🚀' },
-  { id: 'launch_6', title: 'Rotina de Hangar', description: 'Realize 6 lançamentos', type: 'launches', target: 6, minLevel: 3, reward: { stardust: 60, xp: 45 }, emoji: '🛠️' },
-  { id: 'success_2', title: 'Piloto Confiável', description: 'Complete 2 voos com sucesso', type: 'success', target: 2, reward: { stardust: 40, xp: 25 }, emoji: '✅' },
-  { id: 'quality_70', title: 'Precisão Lunar', description: 'Faça 70% do score máximo de uma rota', type: 'quality', target: 70, reward: { stardust: 50, xp: 35, lunarDust: 2 }, emoji: '🎯' },
-  { id: 'orbs_40', title: 'Coletor de Poeira', description: 'Colete 40 orbes de Stardust', type: 'orbs', target: 40, reward: { stardust: 35, xp: 25 }, emoji: '✨' },
-  { id: 'orbs_120', title: 'Aspirador Cósmico', description: 'Colete 120 orbes de Stardust', type: 'orbs', target: 120, minLevel: 3, reward: { stardust: 80, xp: 50, lunarDust: 3 }, emoji: '🌠' },
-  { id: 'rings_8', title: 'Acrobata', description: 'Atravesse 8 anéis de impulso', type: 'rings', target: 8, reward: { stardust: 40, xp: 30 }, emoji: '💫' },
-  { id: 'perfect_1', title: 'Decolagem Perfeita', description: 'Faça um lançamento PERFEITO', type: 'perfect', target: 1, reward: { stardust: 45, xp: 30, lunarDust: 2 }, emoji: '🏅' },
-  { id: 'flawless_1', title: 'Sem Arranhões', description: 'Complete um voo sem sofrer dano', type: 'flawless', target: 1, reward: { stardust: 60, xp: 40, lunarDust: 2 }, emoji: '🛡️' },
-  { id: 'moon_1', title: 'Pegada na Lua', description: 'Chegue ao Mar da Tranquilidade', type: 'route', routeId: 'sea-of-tranquility', target: 1, minLevel: 2, reward: { stardust: 70, xp: 50, lunarDust: 3 }, emoji: '🌙' },
-  { id: 'belt_1', title: 'Entre Rochas', description: 'Atravesse o Cinturão de Asteroides', type: 'route', routeId: 'asteroid-belt', target: 1, minLevel: 4, reward: { stardust: 120, xp: 80, lunarDust: 5 }, emoji: '☄️' },
-  { id: 'mars_1', title: 'Bandeira Vermelha', description: 'Chegue à Colônia de Marte', type: 'route', routeId: 'mars-colony', target: 1, minLevel: 7, reward: { stardust: 250, xp: 150, lunarDust: 8 }, emoji: '🔴' },
-  { id: 'earn_250', title: 'Economia Estelar', description: 'Ganhe 250 Stardust em voos', type: 'stardust', target: 250, minLevel: 2, reward: { stardust: 50, xp: 30 }, emoji: '💰' },
+  { id: 'launch_3', title: 'Explorador Espacial', description: 'Realize 3 lançamentos', type: 'launches', target: 3, reward: { stardust: 30, xp: 20 } },
+  { id: 'launch_6', title: 'Rotina de Hangar', description: 'Realize 6 lançamentos', type: 'launches', target: 6, minLevel: 3, reward: { stardust: 60, xp: 45 } },
+  { id: 'success_2', title: 'Piloto Confiável', description: 'Complete 2 voos com sucesso', type: 'success', target: 2, reward: { stardust: 40, xp: 25 } },
+  { id: 'quality_70', title: 'Precisão Lunar', description: 'Conclua um voo com 70% do score máximo', type: 'quality', target: 70, reward: { stardust: 50, xp: 35, lunarDust: 2 } },
+  { id: 'orbs_40', title: 'Coletor de Poeira', description: 'Colete 40 orbes de Stardust', type: 'orbs', target: 40, reward: { stardust: 35, xp: 25 } },
+  { id: 'orbs_120', title: 'Aspirador Cósmico', description: 'Colete 120 orbes de Stardust', type: 'orbs', target: 120, minLevel: 3, reward: { stardust: 80, xp: 50, lunarDust: 3 } },
+  { id: 'rings_8', title: 'Acrobata', description: 'Atravesse 8 anéis de impulso', type: 'rings', target: 8, reward: { stardust: 40, xp: 30 } },
+  { id: 'perfect_1', title: 'Decolagem Perfeita', description: 'Faça um lançamento PERFEITO', type: 'perfect', target: 1, reward: { stardust: 45, xp: 30, lunarDust: 2 } },
+  { id: 'flawless_1', title: 'Sem Arranhões', description: 'Complete um voo sem sofrer dano', type: 'flawless', target: 1, reward: { stardust: 60, xp: 40, lunarDust: 2 } },
+  { id: 'moon_1', title: 'Pegada na Lua', description: 'Chegue ao Mar da Tranquilidade', type: 'route', routeId: 'sea-of-tranquility', target: 1, minLevel: 2, reward: { stardust: 70, xp: 50, lunarDust: 3 } },
+  { id: 'belt_1', title: 'Entre Rochas', description: 'Atravesse o Cinturão de Asteroides', type: 'route', routeId: 'asteroid-belt', target: 1, minLevel: 4, reward: { stardust: 120, xp: 80, lunarDust: 5 } },
+  { id: 'mars_1', title: 'Bandeira Vermelha', description: 'Chegue à Colônia de Marte', type: 'route', routeId: 'mars-colony', target: 1, minLevel: 7, reward: { stardust: 250, xp: 150, lunarDust: 8 } },
+  { id: 'earn_250', title: 'Economia Estelar', description: 'Ganhe 250 Stardust em voos', type: 'stardust', target: 250, minLevel: 2, reward: { stardust: 50, xp: 30 } },
 ];
 
 export function getMissionDef(id: string): DailyMission | undefined {

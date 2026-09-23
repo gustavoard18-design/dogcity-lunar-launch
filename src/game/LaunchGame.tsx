@@ -11,7 +11,7 @@ import PadScene, { AimState, PadPhase } from './PadScene';
 import FlightWorld, { FlightEvent, FlightHud, FlightInput } from './FlightWorld';
 import type { FlightResult } from '../lib/scoring';
 import ResultScreen from './ResultScreen';
-import GameIcon, { PLANET_ICON, Stardust } from '../components/GameIcon';
+import GameIcon, { Difficulty, EjectIcon, HeartIcon, PLANET_ICON, Stardust } from '../components/GameIcon';
 
 type Phase = PadPhase | 'flight' | 'result';
 
@@ -290,8 +290,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
             {route.name.toUpperCase()}
           </div>
           <div className="text-[11px] text-slate-400 mt-0.5">
-            {paidCost === 0 ? 'Treino gratuito' : <>Custo <Stardust value={paidCost} size="1em" /></>} · Máx {route.maxScore} pts · {'★'.repeat(route.difficulty)}
-            {'☆'.repeat(4 - route.difficulty)}
+            {paidCost === 0 ? 'Treino gratuito' : <>Custo <Stardust value={paidCost} size="1em" /></>} · Máx {route.maxScore} pts · <Difficulty level={route.difficulty} size={10} />
           </div>
         </div>
         {preLaunch && (
@@ -306,7 +305,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
             }}
             className="pointer-events-auto hud-panel px-4 py-2 text-xs text-red-300 hover:text-red-200"
           >
-            ⏏ Abortar
+            <span className="inline-flex items-center gap-1.5"><EjectIcon /> Abortar</span>
           </button>
         )}
       </div>
@@ -336,7 +335,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
                 <li><b className="text-sky-300">3. Voo</b> — pilote com mouse/toque ou WASD/setas. Pegue orbes <GameIcon name="orb" size="1.2em" />, atravesse anéis <GameIcon name="ring" size="1.2em" />, desvie de asteroides <GameIcon name="asteroid" size="1.2em" />.</li>
               </ol>
               <p className="text-xs text-slate-500 mb-4">
-                Mira e força perfeitas dão um escudo inicial. Casco: {tuning.hull} ❤️ · Espaço/Enter/clique para travar.
+                Mira e força perfeitas dão um escudo inicial. Casco: {tuning.hull} <HeartIcon size={12} /> · Espaço/Enter/clique para travar.
               </p>
               <button onClick={act} className="btn-primary w-full py-4 text-lg">
                 Iniciar sequência ▶
@@ -392,7 +391,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
           </div>
 
           <button onClick={act} className="btn-primary px-6 sm:px-8 py-4 sm:py-5 text-base sm:text-xl">
-            {phase === 'angle' ? '🎯 TRAVAR' : '🔥 TRAVAR'}
+            <span className="inline-flex items-center gap-2"><GameIcon name={phase === 'angle' ? 'radar' : 'propulsores'} size={30} className="-my-2 rounded-md" /> TRAVAR</span>
           </button>
           </div>
         </div>
@@ -433,7 +432,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
         <div className="absolute bottom-6 inset-x-0 flex justify-center pointer-events-none">
           <div className="hud-panel px-5 py-2 text-sm text-slate-200">
             Qualidade do lançamento: <b className="font-display text-white">{Math.round(launchRef.current.quality * 100)}%</b>
-            {launchRef.current.perfect && <span className="ml-2 text-cyan-300">+ escudo 🛡️</span>}
+            {launchRef.current.perfect && <span className="ml-2 inline-flex items-center gap-1 text-cyan-300">+ escudo <GameIcon name="escudo" size={18} /></span>}
           </div>
         </div>
       )}
@@ -443,23 +442,21 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
         <>
           <div className="absolute top-20 sm:top-4 left-1/2 -translate-x-1/2 w-[min(520px,70vw)] pointer-events-none">
             <div className="flex justify-between text-[11px] text-slate-300 mb-1">
-              <GameIcon name="planet-earth" size={18} />
+              <GameIcon name="planet-moon" size={18} />
               <span className="font-display">{Math.round(hud.progress * 100)}%</span>
               <GameIcon name={PLANET_ICON[route.destination]} size={18} />
             </div>
             <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-              <div className="h-full rounded-full bg-gradient-to-r from-sky-400 via-fuchsia-400 to-amber-300" style={{ width: `${hud.progress * 100}%` }} />
+              <div className="h-full rounded-full bg-gradient-to-r from-sky-400 to-amber-300" style={{ width: `${hud.progress * 100}%` }} />
             </div>
           </div>
           <div className="absolute bottom-4 left-4 hud-panel px-4 py-3 pointer-events-none">
             <div className="text-[10px] tracking-widest text-slate-400 mb-1">CASCO</div>
             <div className="flex gap-1 text-xl">
               {Array.from({ length: hud.hullMax }, (_, i) => (
-                <span key={i} className={i < hud.hull ? '' : 'opacity-20 grayscale'}>
-                  ❤️
-                </span>
+                <HeartIcon key={i} size={22} empty={i >= hud.hull} />
               ))}
-              {hud.shield && <span className="ml-1 animate-pulse">🛡️</span>}
+              {hud.shield && <GameIcon name="escudo" size={22} className="ml-1 animate-pulse" />}
             </div>
           </div>
           <div className="absolute bottom-4 right-4 hud-panel px-4 py-3 text-right pointer-events-none">
@@ -483,7 +480,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
                 exit={{ opacity: 0 }}
                 className="absolute bottom-28 inset-x-0 flex justify-center pointer-events-none"
               >
-                <div className="hud-panel px-5 py-2 text-sm text-slate-200">🖱️ Mova o mouse / arraste o dedo · ⌨️ WASD ou setas</div>
+                <div className="hud-panel px-5 py-2 text-sm text-slate-200">Mova o mouse ou arraste o dedo · teclado: WASD ou setas</div>
               </motion.div>
             )}
           </AnimatePresence>

@@ -20,7 +20,7 @@ import CosmeticShop from './components/CosmeticShop';
 import WeeklyLeaderboard from './components/WeeklyLeaderboard';
 import LaunchHistory from './components/LaunchHistory';
 import SpaceBackdrop from './components/SpaceBackdrop';
-import GameIcon, { IconName, LunarDust, Stardust } from './components/GameIcon';
+import GameIcon, { IconName, LunarDust, SpeakerIcon, Stardust, statIcon } from './components/GameIcon';
 
 const LaunchGame = lazy(() => import('./game/LaunchGame'));
 
@@ -47,10 +47,10 @@ export default function App() {
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('launch');
-  const [notification, setNotification] = useState<{ text: string; key: number } | null>(null);
+  const [notification, setNotification] = useState<{ text: string; icon?: IconName; key: number } | null>(null);
   const [muted, setMutedState] = useState(isMuted());
 
-  const notify = useCallback((text: string) => setNotification({ text, key: Date.now() }), []);
+  const notify = useCallback((text: string, icon?: IconName) => setNotification({ text, icon, key: Date.now() }), []);
 
   useEffect(() => {
     if (!notification) return;
@@ -83,7 +83,7 @@ export default function App() {
       ? { ...existing, provider: wallet.provider }
       : createProfile(wallet.address, wallet.provider, getMockDogBalance(wallet.address));
     commit(next);
-    notify(existing ? `Bem-vindo de volta, ${next.dog.name}!` : `Seu piloto ${next.dog.name} está pronto!`);
+    notify(existing ? `Bem-vindo de volta, ${next.dog.name}!` : `Seu piloto ${next.dog.name} está pronto!`, 'astronaut');
   };
 
   const startRoute = (route: Route) => {
@@ -130,11 +130,11 @@ export default function App() {
     commit(result.profile);
     sfx.coin();
     const { reward } = result;
-    notify(`🎁 +${reward.stardust} Stardust · +${reward.xp} XP${reward.lunarDust ? ` · +${reward.lunarDust} Pó Lunar` : ''}`);
+    notify(`+${reward.stardust} Stardust · +${reward.xp} XP${reward.lunarDust ? ` · +${reward.lunarDust} Pó Lunar` : ''}`, 'orb');
     confetti({ particleCount: 40, spread: 50, origin: { y: 0.6 } });
     if (result.levelsGained > 0) {
       sfx.levelUp();
-      notify(`🎉 ${result.profile.dog.name} subiu para o nível ${result.profile.dog.level}!`);
+      notify(`${result.profile.dog.name} subiu para o nível ${result.profile.dog.level}!`, 'trophy');
     }
   };
 
@@ -144,7 +144,7 @@ export default function App() {
     if (!next) return;
     commit(next);
     sfx.click();
-    notify('🔄 Missões trocadas!');
+    notify('Missões trocadas!', 'medal');
   };
 
   const handleUpgrade = (upgradeId: string) => {
@@ -154,7 +154,7 @@ export default function App() {
     if (!next || !upgrade) return;
     commit(next);
     sfx.coin();
-    notify(`🔧 ${upgrade.name} instalado! ${STAT_INFO[upgrade.stat].label} ${upgrade.level}`);
+    notify(`${upgrade.name} instalado! ${STAT_INFO[upgrade.stat].label} ${upgrade.level}`, statIcon(upgrade.stat));
     confetti({ particleCount: 40, spread: 60, origin: { y: 0.6 } });
   };
 
@@ -165,7 +165,7 @@ export default function App() {
     const next = equipCosmetic(bought, id) ?? bought;
     commit(next);
     sfx.coin();
-    notify(`🎨 ${COSMETICS.find(c => c.id === id)?.name} desbloqueado e equipado!`);
+    notify(`${COSMETICS.find(c => c.id === id)?.name} desbloqueado e equipado!`, 'capacete');
     confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
   };
 
@@ -216,7 +216,10 @@ export default function App() {
             exit={{ opacity: 0, y: 40, x: '-50%' }}
             className="fixed bottom-6 left-1/2 z-50 max-w-[90vw]"
           >
-            <div className="hud-panel px-5 py-3 text-white text-sm">{notification.text}</div>
+            <div className="hud-panel flex items-center gap-2.5 px-5 py-3 text-white text-sm">
+              {notification.icon && <GameIcon name={notification.icon} size={26} />}
+              {notification.text}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -228,7 +231,7 @@ export default function App() {
           <header className="sticky top-0 z-20 border-b border-sky-400/15 bg-[#050d22]/70 backdrop-blur-xl shadow-[0_1px_20px_rgba(56,189,248,0.08)]">
             <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500/40 via-fuchsia-600/30 to-violet-700/40 ring-2 ring-sky-300/50 shadow-[0_0_18px_rgba(56,189,248,0.45)] overflow-hidden">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500/40 via-sky-700/30 to-blue-900/40 ring-2 ring-sky-300/50 shadow-[0_0_18px_rgba(56,189,248,0.45)] overflow-hidden">
                   <img src={`${import.meta.env.BASE_URL}dog-face.png`} alt="DOG" className="w-full h-full object-contain scale-110 translate-y-0.5" draggable={false} />
                 </div>
                 <h1 className="font-display text-lg bg-gradient-to-r from-sky-300 via-white to-amber-300 bg-clip-text text-transparent">DOGCITY</h1>
@@ -237,7 +240,7 @@ export default function App() {
                 <span className="text-amber-300 font-semibold"><Stardust value={profile.stardust} /></span>
                 <span className="text-violet-300 font-semibold"><LunarDust value={profile.lunarDust} /></span>
                 <button onClick={toggleMute} className="btn-ghost px-2.5 py-1.5 text-xs" aria-label={muted ? 'Ativar som' : 'Silenciar'}>
-                  {muted ? '🔇' : '🔊'}
+                  <SpeakerIcon muted={muted} />
                 </button>
                 <button onClick={() => setProfile(null)} className="btn-ghost px-3 py-1.5 text-xs">
                   Sair
@@ -289,7 +292,7 @@ export default function App() {
           </main>
 
           <footer className="relative z-10 mt-12 py-6 text-center text-xs text-slate-600">
-            DogCity Lunar Launch · {profile.provider} · saldo DOG simulado, sem transações on-chain
+            Base Lunar DogCity · {profile.provider} · saldo DOG simulado, sem transações on-chain
           </footer>
         </>
       )}

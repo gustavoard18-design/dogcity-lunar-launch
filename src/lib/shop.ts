@@ -20,7 +20,6 @@ export const UPGRADES: Upgrade[] = (Object.keys(UPGRADE_LINES) as Stat[]).flatMa
       stat,
       level,
       cost: Math.round(UPGRADE_LINES[stat].baseCost * Math.pow(1.45, level - 2)),
-      emoji: STAT_INFO[stat].emoji,
     };
   })
 );
@@ -33,18 +32,18 @@ export const DEFAULT_SKIN = { id: 'default', color: '#d9924f' };
 export const DEFAULT_TRAIL = { id: 'orange', color: '#ff7a1a' };
 
 export const COSMETICS: Cosmetic[] = [
-  { id: 'skin_husky', name: 'Pelo Husky', type: 'skin', cost: 90, currency: 'stardust', emoji: '🐺', description: 'Prata ártico', rarity: 'common', color: '#cfd6e2' },
-  { id: 'skin_golden', name: 'Pelo Dourado', type: 'skin', cost: 200, currency: 'stardust', emoji: '🟡', description: 'Brilha como uma estrela', rarity: 'rare', color: '#ffc93a' },
-  { id: 'skin_nebula', name: 'Pelo Nebular', type: 'skin', cost: 500, currency: 'stardust', emoji: '🟣', description: 'Cores de uma nebulosa', rarity: 'epic', color: '#a86bff' },
-  { id: 'skin_cosmic', name: 'Pelo Cósmico', type: 'skin', cost: 20, currency: 'lunarDust', emoji: '💠', description: 'Energia pura, emite luz', rarity: 'legendary', color: '#3ff0ff' },
-  { id: 'helmet_classic', name: 'Capacete Clássico', type: 'helmet', cost: 100, currency: 'stardust', emoji: '⛑️', description: 'Bolha de vidro retrô', rarity: 'common', color: '#e8f4ff' },
-  { id: 'helmet_neon', name: 'Capacete Neon', type: 'helmet', cost: 250, currency: 'stardust', emoji: '🥽', description: 'Anel de plasma ciano', rarity: 'rare', color: '#22e3ff' },
-  { id: 'helmet_gold', name: 'Capacete Dourado', type: 'helmet', cost: 400, currency: 'stardust', emoji: '👑', description: 'Para o rei do espaço', rarity: 'epic', color: '#ffc93a' },
-  { id: 'trail_blue', name: 'Rastro Azul', type: 'trail', cost: 80, currency: 'stardust', emoji: '🔵', description: 'Plasma azul', rarity: 'common', color: '#3cb8ff' },
-  { id: 'trail_green', name: 'Rastro Verde', type: 'trail', cost: 80, currency: 'stardust', emoji: '🟢', description: 'Aurora boreal', rarity: 'common', color: '#3dff8a' },
-  { id: 'trail_plasma', name: 'Rastro Plasma', type: 'trail', cost: 350, currency: 'stardust', emoji: '🩷', description: 'Magenta supercarregado', rarity: 'epic', color: '#ff3ce8' },
+  { id: 'skin_husky', name: 'Pelo Husky', type: 'skin', cost: 90, currency: 'stardust', description: 'Prata ártico', rarity: 'common', color: '#cfd6e2' },
+  { id: 'skin_golden', name: 'Pelo Dourado', type: 'skin', cost: 200, currency: 'stardust', description: 'Brilha como uma estrela', rarity: 'rare', color: '#ffc93a' },
+  { id: 'skin_nebula', name: 'Pelo Nebular', type: 'skin', cost: 500, currency: 'stardust', description: 'Cores de uma nebulosa', rarity: 'epic', color: '#a86bff' },
+  { id: 'skin_cosmic', name: 'Pelo Cósmico', type: 'skin', cost: 20, currency: 'lunarDust', description: 'Energia pura, emite luz', rarity: 'legendary', color: '#3ff0ff' },
+  { id: 'helmet_classic', name: 'Capacete Clássico', type: 'helmet', cost: 100, currency: 'stardust', description: 'Bolha de vidro retrô', rarity: 'common', color: '#e8f4ff' },
+  { id: 'helmet_neon', name: 'Capacete Neon', type: 'helmet', cost: 250, currency: 'stardust', description: 'Anel de plasma ciano', rarity: 'rare', color: '#22e3ff' },
+  { id: 'helmet_gold', name: 'Capacete Dourado', type: 'helmet', cost: 400, currency: 'stardust', description: 'Para o rei do espaço', rarity: 'epic', color: '#ffc93a' },
+  { id: 'trail_blue', name: 'Rastro Azul', type: 'trail', cost: 80, currency: 'stardust', description: 'Plasma azul', rarity: 'common', color: '#3cb8ff' },
+  { id: 'trail_green', name: 'Rastro Verde', type: 'trail', cost: 80, currency: 'stardust', description: 'Aurora boreal', rarity: 'common', color: '#3dff8a' },
+  { id: 'trail_plasma', name: 'Rastro Plasma', type: 'trail', cost: 350, currency: 'stardust', description: 'Magenta supercarregado', rarity: 'epic', color: '#ff3ce8' },
   // O id continua 'trail_rainbow' para manter os saves de quem já comprou.
-  { id: 'trail_rainbow', name: 'Rastro Solar', type: 'trail', cost: 15, currency: 'lunarDust', emoji: '🔥', description: 'Chama de uma estrela, laranja e dourada', rarity: 'legendary', color: 'solar' },
+  { id: 'trail_rainbow', name: 'Rastro Solar', type: 'trail', cost: 15, currency: 'lunarDust', description: 'Chama de uma estrela, laranja e dourada', rarity: 'legendary', color: 'solar' },
 ];
 
 export function getCosmetic(id: string): Cosmetic | undefined {

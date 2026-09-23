@@ -1,6 +1,8 @@
 # 🐕‍🦺🚀 DogCity Lunar Launch
 
-**Mire, lance e pilote um cão astronauta por órbitas, luas e cinturões de asteroides.**
+**Da Base Lunar DogCity, mire, lance e pilote um cão astronauta por órbitas, luas e cinturões de asteroides.**
+
+🎮 **Jogue agora:** https://gustavoard18-design.github.io/dogcity-lunar-launch/
 Jogo 3D no navegador, feito com React + Three.js, integrado ao ecossistema DogCity.
 
 ![React](https://img.shields.io/badge/React-18-blue?style=flat-square&logo=react)
@@ -30,12 +32,12 @@ Se a nave for perdida, o voo vale no máximo 60% do que foi feito até ali. Reco
 
 ### Rotas
 
-| Rota | Custo | Desbloqueio | Duração | Máx |
+| Rota | Custo (Stardust) | Desbloqueio | Duração | Máx |
 |------|------:|:-----------:|--------:|----:|
-| 🌍 Órbita Baixa | 10 ✨ | nível 1 | 24 s | 100 |
-| 🌙 Mar da Tranquilidade | 25 ✨ | nível 2 | 30 s | 250 |
-| ☄️ Cinturão de Asteroides | 50 ✨ | nível 4 | 36 s | 500 |
-| 🔴 Colônia de Marte | 100 ✨ | nível 7 | 42 s | 1000 |
+| Órbita da Terra (Órbita Baixa) | 10 | nível 1 | 24 s | 100 |
+| Mar da Tranquilidade | 25 | nível 2 | 30 s | 250 |
+| Cinturão de Asteroides | 50 | nível 4 | 36 s | 500 |
+| Colônia de Marte | 100 | nível 7 | 42 s | 1000 |
 
 O custo é debitado na entrada da missão e só volta se você cancelar **antes** da decolagem. Quem fica sem Stardust ganha **treino gratuito** na Órbita Baixa, então nunca trava.
 
@@ -47,7 +49,7 @@ O custo é debitado na entrada da missão e só volta se você cancelar **antes*
   - 🍀 Sorte: mais orbes e escudos, e ímã de coleta
   - 💨 Manobra: nave mais responsiva
 - **Missões diárias**: 3 por dia, sorteadas entre 13 conforme o seu nível. Renovam à meia-noite, e dá para trocar uma vez por dia por 25 ✨.
-- **Loja**: pelagens, capacetes e rastros do motor, que aparecem no foguete e no cão, no hangar e em voo.
+- **Loja**: pelagens, capacetes e rastros do motor. Itens mais raros evoluem a arte do astronauta; o rastro muda a cor da chama; pelagem e capacete aparecem no piloto do foguete em voo.
 - **Ranking semanal**: seu melhor voo concluído da semana.
 - **Evolução visual**: o astronauta tem 5 fases (Início → Exploração → Avançado → Especial → Lendário) conforme a raridade dos itens equipados na Loja (comum 1, raro 2, épico 3, lendário 4 pts). O foguete tem 5 fases (Básico → Aprimorado → Avançado → Especial → Lendário) conforme a soma dos níveis da Oficina.
 
@@ -64,6 +66,10 @@ npm run preview    # serve o build
 ```
 
 Requer Node 20+ e um navegador com WebGL 2.
+
+## 🌐 Publicação
+
+Cada push na branch `main` roda typecheck, testes e build no GitHub Actions e publica o jogo no GitHub Pages (branch `gh-pages`) em cerca de um minuto.
 
 ## 🔗 Carteira
 

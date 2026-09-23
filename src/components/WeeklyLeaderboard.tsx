@@ -1,5 +1,6 @@
 import { getLeaderboard } from '../lib/storage';
-import { getTierColor, getTierBadge } from '../lib/economy';
+import { getTierColor } from '../lib/economy';
+import GameIcon, { TIER_INFO } from './GameIcon';
 
 interface WeeklyLeaderboardProps {
   playerAddress?: string;
@@ -23,7 +24,7 @@ export default function WeeklyLeaderboard({ playerAddress }: WeeklyLeaderboardPr
             <div
               key={entry.address}
               className={`flex items-center gap-3 p-3 rounded-2xl ${
-                isPlayer ? 'bg-fuchsia-500/15 border border-fuchsia-400/50' : 'bg-white/[0.03] border border-white/5'
+                isPlayer ? 'bg-sky-500/15 border border-sky-300/50' : 'bg-white/[0.03] border border-white/5'
               }`}
             >
               <div className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-display ${medal ?? 'bg-white/5 text-slate-400'}`}>
@@ -32,12 +33,15 @@ export default function WeeklyLeaderboard({ playerAddress }: WeeklyLeaderboardPr
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-white text-sm font-semibold truncate">{entry.dogName}</span>
-                  <span className={`text-xs ${getTierColor(entry.tier)}`}>{getTierBadge(entry.tier)}</span>
-                  {isPlayer && <span className="text-[10px] text-fuchsia-300">você</span>}
+                  <span className={`inline-flex items-center gap-1 text-[10px] ${getTierColor(entry.tier)}`}>
+                    <GameIcon name={TIER_INFO[entry.tier].icon} size={14} />
+                    {TIER_INFO[entry.tier].label}
+                  </span>
+                  {isPlayer && <span className="text-[10px] text-sky-300">você</span>}
                   {entry.simulated && <span className="text-[10px] text-slate-600">bot</span>}
                 </div>
                 <div className="text-[10px] text-slate-500">
-                  {entry.totalLaunches} voos · recorde {entry.bestScore}
+                  {entry.totalLaunches} {entry.totalLaunches === 1 ? 'voo' : 'voos'} · recorde {entry.bestScore}
                 </div>
               </div>
               <div className="text-right">

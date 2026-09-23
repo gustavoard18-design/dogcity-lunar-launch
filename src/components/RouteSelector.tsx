@@ -1,7 +1,7 @@
 import { PlanetKind, PlayerProfile, Route } from '../types';
 import { ROUTES, getRouteCost, isFreeTraining, isRouteUnlocked } from '../lib/economy';
 import { cutoutArt } from '../lib/evolution';
-import GameIcon, { LockIcon, PLANET_ICON, Stardust } from './GameIcon';
+import GameIcon, { Difficulty, LockIcon, PLANET_ICON, Stardust } from './GameIcon';
 
 function PlanetBadge({ kind, locked }: { kind: PlanetKind; locked: boolean }) {
   return (
@@ -53,7 +53,7 @@ export default function RouteSelector({ profile, onSelectRoute }: RouteSelectorP
             className={`group relative w-full text-left p-4 rounded-2xl border overflow-hidden transition-all ${
               disabled
                 ? 'bg-white/[0.02] border-white/5 opacity-50 cursor-not-allowed'
-                : 'bg-white/[0.04] border-white/10 hover:border-fuchsia-400/50 hover:bg-white/[0.07] cursor-pointer hover:-translate-y-0.5'
+                : 'bg-white/[0.04] border-white/10 hover:border-sky-300/60 hover:bg-white/[0.07] cursor-pointer hover:-translate-y-0.5'
             }`}
           >
             <div
@@ -69,8 +69,7 @@ export default function RouteSelector({ profile, onSelectRoute }: RouteSelectorP
                     {unlocked ? route.description : `Desbloqueia no nível ${route.unlockLevel}`}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    {'★'.repeat(route.difficulty)}
-                    {'☆'.repeat(4 - route.difficulty)} · {route.flightSeconds}s · máx {route.maxScore}
+                    <Difficulty level={route.difficulty} /> · {route.flightSeconds}s · máx {route.maxScore}
                     {best > 0 && <span className="text-amber-300/80"> · recorde {best}</span>}
                   </p>
                 </div>

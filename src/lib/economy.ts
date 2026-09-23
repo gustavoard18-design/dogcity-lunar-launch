@@ -4,12 +4,11 @@ export const ROUTES: Route[] = [
   {
     id: 'low-orbit',
     name: 'Órbita Baixa',
-    description: 'Voo curto ao redor da Terra. Ideal para treinar.',
+    description: 'Voo de treino até a órbita da Terra.',
     cost: 10,
     difficulty: 1,
     maxScore: 100,
     rewardMultiplier: 1,
-    emoji: '🌍',
     unlockLevel: 1,
     destination: 'earth',
     flightSeconds: 24,
@@ -19,12 +18,11 @@ export const ROUTES: Route[] = [
   {
     id: 'sea-of-tranquility',
     name: 'Mar da Tranquilidade',
-    description: 'Pouso na Lua. Requer precisão e coragem.',
+    description: 'Salto até o Mar da Tranquilidade, do outro lado da Lua.',
     cost: 25,
     difficulty: 2,
     maxScore: 250,
     rewardMultiplier: 1.8,
-    emoji: '🌙',
     unlockLevel: 2,
     destination: 'moon',
     flightSeconds: 30,
@@ -39,7 +37,6 @@ export const ROUTES: Route[] = [
     difficulty: 3,
     maxScore: 500,
     rewardMultiplier: 3,
-    emoji: '☄️',
     unlockLevel: 4,
     destination: 'ceres',
     flightSeconds: 36,
@@ -54,7 +51,6 @@ export const ROUTES: Route[] = [
     difficulty: 4,
     maxScore: 1000,
     rewardMultiplier: 5,
-    emoji: '🔴',
     unlockLevel: 7,
     destination: 'mars',
     flightSeconds: 42,
@@ -97,16 +93,6 @@ export function getTierColor(tier: Tier): string {
     case 'Pioneer': return 'text-blue-400';
     case 'Explorer': return 'text-green-400';
     case 'Stray': return 'text-gray-400';
-  }
-}
-
-export function getTierBadge(tier: Tier): string {
-  switch (tier) {
-    case 'Legend': return '🏆';
-    case 'Commander': return '⭐';
-    case 'Pioneer': return '🚀';
-    case 'Explorer': return '🔭';
-    case 'Stray': return '🐕';
   }
 }
 

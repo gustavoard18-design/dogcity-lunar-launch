@@ -71,8 +71,6 @@ const base = () => (typeof import.meta !== 'undefined' && import.meta.env?.BASE_
 export const astronautArt = (tier: Tier) => `${base()}art/astro-${tier.index}.webp`;
 export const rocketArt = (tier: Tier) => `${base()}art/rocket-${tier.index}.webp`;
 export const iconArt = (name: string) => `${base()}art/icons/${name}.webp`;
-/** Artes principais (tela de login, carregamento). */
-export const heroArt = (kind: 'astronaut' | 'rocket') => `${base()}art/hero-${kind}.webp`;
 /** Céu do jogo (fundo do hangar e das cenas 3D). */
 export const spaceBackgroundArt = () => `${base()}art/space-bg.webp`;
 /** Artes recortadas, sem fundo. */
@@ -81,7 +79,6 @@ export const cutoutArt = (kind: 'astronaut' | 'rocket') => `${base()}art/cutout-
 /** Foguete sem chama, com o DOG pilotando na escotilha (plataforma de lançamento). */
 export const rocketSpriteArt = () => `${base()}art/sprite-rocket-dog.webp`;
 export const ROCKET_SPRITE = { aspect: 625 / 964, nozzleX: 0.49, nozzleY: 0.909 };
-export const ASTRONAUT_CUTOUT_ASPECT = 698 / 1024;
 /** Retrato do item da Loja (public/art/items/<id>.webp). */
 export const itemArt = (id: string) => `${base()}art/items/${id}.webp`;
 

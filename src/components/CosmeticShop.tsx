@@ -4,6 +4,7 @@ import { PlayerProfile, Cosmetic } from '../types';
 import { COSMETICS, getCosmetic, getRarityColor, getRarityLabel, getRarityText } from '../lib/shop';
 import Showcase from './Showcase';
 import { LunarDust, Stardust } from './GameIcon';
+import { EyeIcon } from './GameIcon';
 
 interface CosmeticShopProps {
   profile: PlayerProfile;
@@ -42,7 +43,7 @@ export default function CosmeticShop({ profile, onPurchase, onEquip }: CosmeticS
       <Showcase
         dog={dog}
         focus="astronaut"
-        badge={tried ? <>👀 Provando: {tried.name}</> : <>Equipado agora</>}
+        badge={tried ? <span className="inline-flex items-center gap-1"><EyeIcon /> Provando: {tried.name}</span> : <>Equipado agora</>}
         footer={
           <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400">
             <span>Toque em um item para provar. Itens mais raros evoluem o astronauta (comum 1 · raro 2 · épico 3 · lendário 4 pts).</span>
@@ -79,7 +80,7 @@ export default function CosmeticShop({ profile, onPurchase, onEquip }: CosmeticS
                   onClick={() => setTrying(isTrying ? null : item.id)}
                   onKeyDown={e => e.key === 'Enter' && setTrying(isTrying ? null : item.id)}
                   className={`p-3 rounded-2xl border cursor-pointer transition-all hover:-translate-y-0.5 ${getRarityColor(item.rarity)} ${
-                    equipped ? 'ring-2 ring-emerald-400/70' : isTrying ? 'ring-2 ring-fuchsia-400/80' : ''
+                    equipped ? 'ring-2 ring-emerald-400/70' : isTrying ? 'ring-2 ring-sky-300/80' : ''
                   }`}
                 >
                   <div className="flex items-center gap-3 mb-2">
@@ -94,7 +95,7 @@ export default function CosmeticShop({ profile, onPurchase, onEquip }: CosmeticS
                       <p className={`text-[11px] font-semibold ${getRarityText(item.rarity)}`}>
                         {getRarityLabel(item.rarity)} · +{RARITY_POINTS[item.rarity]} pt
                       </p>
-                      <p className="text-[10px] text-slate-400 leading-snug">{isTrying ? '👀 provando…' : item.description}</p>
+                      <p className="text-[10px] text-slate-400 leading-snug">{isTrying ? 'Provando…' : item.description}</p>
                     </div>
                   </div>
 

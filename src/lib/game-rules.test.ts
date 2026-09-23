@@ -248,7 +248,7 @@ describe('armazenamento', () => {
     expect(p.dog.level).toBe(3);
     expect(p.dog.xpToNext).toBe(getXpForLevel(3));
     expect(p.dog.speed).toBe(10);
-    expect(p.launches[0].route).toEqual({ id: 'low-orbit', name: 'Órbita Baixa', emoji: '🌍' });
+    expect(p.launches[0].route).toEqual({ id: 'low-orbit', name: 'Órbita Baixa' });
     saveProfile(p);
     const loaded = loadProfile('old')!;
     expect(loaded.dailyMissions.every(s => MISSION_POOL.some(m => m.id === s.missionId))).toBe(true);
