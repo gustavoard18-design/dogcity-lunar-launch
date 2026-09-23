@@ -1,8 +1,7 @@
 import { forwardRef, MutableRefObject, Suspense, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { RoundedBox } from '@react-three/drei';
-import { DogHead } from './DogAstronaut';
+import { RoundedBox, useTexture } from '@react-three/drei';
 import RocketModel from './RocketModel';
 import { getRocketDecalTexture } from './textures';
 import type { DogStats } from '../lib/stats';
@@ -315,6 +314,36 @@ function ProceduralHull({
   );
 }
 
+const FACE_URL = `${import.meta.env.BASE_URL || './'}dog-face.png`;
+const DEFAULT_FUR = '#d9924f';
+
+/**
+ * O DOG visto pela escotilha: a arte oficial do rosto recortada em círculo,
+ * levemente iluminada por dentro. Pelagens da Loja tingem a arte.
+ */
+function PilotPortrait({ skinColor }: { skinColor: string }) {
+  const tex = useTexture(FACE_URL);
+  const map = useMemo(() => {
+    const t = tex.clone();
+    t.colorSpace = THREE.SRGBColorSpace;
+    // Aproxima no rosto (a arte tem o capacete inteiro).
+    t.repeat.set(0.84, 0.84);
+    t.offset.set(0.1, 0.06);
+    t.anisotropy = 8;
+    t.needsUpdate = true;
+    return t;
+  }, [tex]);
+  const custom = skinColor.toLowerCase() !== DEFAULT_FUR;
+  const tint = useMemo(() => new THREE.Color('#ffffff').lerp(new THREE.Color(skinColor), custom ? 0.45 : 0), [skinColor, custom]);
+  const glow = skinColor.toLowerCase() === '#3ff0ff';
+  return (
+    <mesh>
+      <circleGeometry args={[0.35, 48]} />
+      <meshStandardMaterial map={map} color={tint} emissiveMap={map} emissive={glow ? '#3ff0ff' : '#ffffff'} emissiveIntensity={glow ? 0.7 : 0.35} roughness={0.8} />
+    </mesh>
+  );
+}
+
 const Rocket = forwardRef<THREE.Group, RocketProps>(function Rocket(
   { skinColor, helmet, trailColor, thrust = 1, thrustRef, nozzleRef, trailColorRef, pilotRef, upgrades = NO_UPGRADES },
   ref
@@ -367,7 +396,7 @@ const Rocket = forwardRef<THREE.Group, RocketProps>(function Rocket(
       <UpgradeParts upgrades={upgrades} fin={geo.fin} />
 
       {/* Escotilha grande de vidro escuro, com o piloto dentro */}
-      <group position={[0, 0.32, 0.66]}>
+      <group position={[0, 0.42, 0.86]}>
         <mesh>
           <torusGeometry args={[0.42, 0.08, 20, 56]} />
           <meshStandardMaterial color="#8f949c" metalness={0.9} roughness={0.25} />
@@ -380,12 +409,14 @@ const Rocket = forwardRef<THREE.Group, RocketProps>(function Rocket(
           <circleGeometry args={[0.36, 40]} />
           <meshStandardMaterial color="#070d1a" roughness={0.6} />
         </mesh>
-        <group ref={pilotRef} position={[0, -0.06, 0.04]} scale={0.4}>
-          <DogHead skinColor={skinColor} />
+        <group ref={pilotRef} position={[0, 0, 0.05]}>
+          <Suspense fallback={null}>
+            <PilotPortrait skinColor={skinColor} />
+          </Suspense>
         </group>
         <mesh position={[0, 0, 0.02]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 0.62, 1]}>
           <sphereGeometry args={[0.36, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2]} />
-          <meshPhysicalMaterial color={ring.tint} transparent opacity={0.55} roughness={0.04} metalness={0.3} clearcoat={1} depthWrite={false} />
+          <meshPhysicalMaterial color={ring.tint} transparent opacity={0.2} roughness={0.04} metalness={0.3} clearcoat={1} depthWrite={false} />
         </mesh>
         <mesh position={[-0.12, 0.14, 0.24]} rotation={[0.3, -0.3, 0.5]} scale={[1, 0.4, 1]}>
           <circleGeometry args={[0.08, 20]} />

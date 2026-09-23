@@ -1,7 +1,7 @@
 import { MutableRefObject, useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Stars } from '@react-three/drei';
-import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing';
+import { Bloom, EffectComposer, SMAA, Vignette } from '@react-three/postprocessing';
 import { ChromaticAberrationEffect } from 'postprocessing';
 import * as THREE from 'three';
 import type { Route } from '../types';
@@ -573,6 +573,7 @@ export default function FlightWorld({ route, tuning, look, startShield, inputRef
       <Particles ref={fx} capacity={3000} />
 
       <EffectComposer multisampling={0}>
+        <SMAA />
         <Bloom mipmapBlur intensity={1.1} luminanceThreshold={0.75} luminanceSmoothing={0.2} radius={0.7} />
         <primitive object={chroma} />
         <Vignette eskil={false} offset={0.2} darkness={0.75} />

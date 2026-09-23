@@ -247,7 +247,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
 
   return (
     <div className="fixed inset-0 bg-black select-none touch-none" onPointerMove={onPointerMove} onPointerDown={onPointerMove}>
-      <Canvas dpr={[1, 1.75]} gl={{ antialias: false, powerPreference: 'high-performance' }} camera={{ fov: 55, near: 0.1, far: 3000, position: [-8, 2, 12] }}>
+      <Canvas dpr={[1, 2]} gl={{ antialias: false, powerPreference: 'high-performance' }} camera={{ fov: 55, near: 0.1, far: 3000, position: [-8, 2, 12] }}>
         <Suspense fallback={null}>
         {phase === 'flight' || phase === 'result' ? (
           <FlightWorld
@@ -407,7 +407,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
             exit={{ opacity: 0, y: -30 }}
             transition={{ type: 'spring', stiffness: 400, damping: 18 }}
             onAnimationComplete={() => window.setTimeout(() => setPopup(p => (p?.key === popup.key ? null : p)), 700)}
-            className={`absolute top-1/3 inset-x-0 text-center font-display text-4xl sm:text-6xl drop-shadow-[0_0_20px_rgba(0,0,0,0.8)] pointer-events-none ${popup.cls}`}
+            className={`absolute top-[14%] sm:top-[16%] inset-x-0 text-center font-display text-4xl sm:text-6xl drop-shadow-[0_0_20px_rgba(0,0,0,0.8)] pointer-events-none ${popup.cls}`}
           >
             {popup.text}
           </motion.div>
@@ -415,13 +415,14 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
       </AnimatePresence>
 
       {/* Contagem */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {count !== null && (
           <motion.div
             key={count}
             initial={{ opacity: 0, scale: 2 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
+            exit={{ opacity: 0, scale: 0.6, transition: { duration: 0.12 } }}
+            transition={{ duration: 0.25 }}
             className="absolute inset-0 flex items-center justify-center pointer-events-none font-display text-8xl sm:text-9xl text-white drop-shadow-[0_0_30px_rgba(168,85,247,0.9)]"
           >
             {count === 0 ? 'IGNIÇÃO!' : count}

@@ -1,7 +1,7 @@
 import { MutableRefObject, Suspense, useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Stars } from '@react-three/drei';
-import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing';
+import { ContactShadows, Stars } from '@react-three/drei';
+import { Bloom, EffectComposer, SMAA, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import type { Route } from '../types';
 import Rocket, { RocketLook, trailStartColor } from '../three/Rocket';
@@ -412,6 +412,8 @@ export default function PadScene({ route, look, phaseRef, aimRef, onLiftoffDone 
       </group>
 
       <Platform />
+      {/* Sombra suave do foguete e do DOG no tampo da plataforma */}
+      <ContactShadows position={[0, BASE_Y - 0.03, 0]} scale={6} resolution={512} blur={2.4} opacity={0.55} far={4} color="#0b0a1e" />
       <PadDog phaseRef={phaseRef} pilotRef={pilot} />
       <group ref={pivot}>
         <PadRocket look={look} thrustRef={thrust} nozzleRef={nozzle} trailColorRef={trailColor} pilotRef={pilot} />
@@ -425,6 +427,7 @@ export default function PadScene({ route, look, phaseRef, aimRef, onLiftoffDone 
       <Particles ref={fire} capacity={1400} />
 
       <EffectComposer multisampling={0}>
+        <SMAA />
         <Bloom mipmapBlur intensity={1.1} luminanceThreshold={0.65} luminanceSmoothing={0.2} radius={0.7} />
         <Vignette eskil={false} offset={0.25} darkness={0.7} />
       </EffectComposer>
