@@ -165,7 +165,8 @@ export default function App() {
     const next = equipCosmetic(bought, id) ?? bought;
     commit(next);
     sfx.coin();
-    notify(`${COSMETICS.find(c => c.id === id)?.name} desbloqueado e equipado!`, 'capacete');
+    const item = COSMETICS.find(c => c.id === id);
+    notify(`${item?.name} desbloqueado e equipado!`, item?.type === 'trail' ? 'booster' : item?.type === 'skin' ? 'astronaut' : 'capacete');
     confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
   };
 
@@ -281,7 +282,9 @@ export default function App() {
                   <motion.div key={activeTab} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }} transition={{ duration: 0.2 }}>
                     {activeTab === 'launch' && <RouteSelector profile={profile} onSelectRoute={startRoute} />}
                     {activeTab === 'missions' && <MissionsPanel profile={profile} onClaimReward={handleClaimMission} onReroll={handleReroll} />}
-                    {activeTab === 'upgrades' && <UpgradeShop profile={profile} onPurchase={handleUpgrade} />}
+                    {activeTab === 'upgrades' && (
+                      <UpgradeShop profile={profile} onPurchase={handleUpgrade} onBuyTrail={handleBuyCosmetic} onEquipTrail={handleEquip} />
+                    )}
                     {activeTab === 'cosmetics' && <CosmeticShop profile={profile} onPurchase={handleBuyCosmetic} onEquip={handleEquip} />}
                     {activeTab === 'leaderboard' && <WeeklyLeaderboard playerAddress={profile.address} />}
                     {activeTab === 'history' && <LaunchHistory profile={profile} />}

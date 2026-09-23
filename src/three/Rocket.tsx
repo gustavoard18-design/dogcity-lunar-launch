@@ -37,7 +37,6 @@ function UpgradeParts({ upgrades, fin }: { upgrades: DogStats; fin: THREE.Buffer
   const hotBoosters = upgrades.power >= v.power[1].level;
   const antenna = upgrades.accuracy >= v.accuracy[0].level;
   const radar = upgrades.accuracy >= v.accuracy[1].level;
-  const goldTip = upgrades.luck >= v.luck[1].level;
   const canards = upgrades.speed >= v.speed[1].level;
   return (
     <>
@@ -96,16 +95,10 @@ function UpgradeParts({ upgrades, fin }: { upgrades: DogStats; fin: THREE.Buffer
           </mesh>
         </group>
       )}
-      {goldTip && (
-        <mesh position={[0, 1.72, 0]}>
-          <coneGeometry args={[0.33, 0.4, 32]} />
-          <meshStandardMaterial color={GOLD} metalness={1} roughness={0.2} emissive="#6a4200" emissiveIntensity={0.4} />
-        </mesh>
-      )}
       {canards &&
         [0, 1, 2].map(i => (
-          <group key={i} rotation={[0, (i * Math.PI * 2) / 3 + Math.PI / 3, 0]}>
-            <mesh geometry={fin} position={[0.52, 0.95, 0]} scale={[0.45, 0.35, 0.8]}>
+          <group key={i} rotation={[0, (i * Math.PI * 2) / 3 + Math.PI / 2, 0]}>
+            <mesh geometry={fin} position={[0.6, 0.95, 0]} scale={[0.45, 0.35, 0.8]}>
               <meshPhysicalMaterial color="#e63946" metalness={0.4} roughness={0.3} clearcoat={1} />
             </mesh>
           </group>
@@ -242,6 +235,7 @@ const Rocket = forwardRef<THREE.Group, RocketProps>(function Rocket(
   const ring = cockpitRing(helmet);
   const goldBands = upgrades.luck >= UPGRADE_VISUALS.luck[0].level;
   const bigFins = upgrades.speed >= UPGRADE_VISUALS.speed[0].level;
+  const goldNose = upgrades.luck >= UPGRADE_VISUALS.luck[1].level;
   const decal = useMemo(() => getRocketDecalTexture(), []);
   const hull = <meshPhysicalMaterial color="#ebe8e3" metalness={0.25} roughness={0.38} clearcoat={0.6} clearcoatRoughness={0.3} />;
   const red = <meshPhysicalMaterial color="#d7322b" metalness={0.3} roughness={0.32} clearcoat={1} clearcoatRoughness={0.15} />;
@@ -256,7 +250,14 @@ const Rocket = forwardRef<THREE.Group, RocketProps>(function Rocket(
       <mesh geometry={geo.body} castShadow>
         {hull}
       </mesh>
-      <mesh geometry={geo.nose}>{red}</mesh>
+      {/* Nariz vermelho, ou de ouro com Sorte nv 6 */}
+      <mesh geometry={geo.nose}>
+        {goldNose ? (
+          <meshPhysicalMaterial color={GOLD} metalness={1} roughness={0.18} clearcoat={1} emissive="#6a4200" emissiveIntensity={0.35} />
+        ) : (
+          red
+        )}
+      </mesh>
       {/* Emendas do casco (douradas com Sorte nv 3) */}
       {[
         [1.03, 0.59],
@@ -282,7 +283,7 @@ const Rocket = forwardRef<THREE.Group, RocketProps>(function Rocket(
         <meshStandardMaterial color="#ffb23a" emissive="#ff9a1a" emissiveIntensity={2.5} toneMapped={false} />
       </mesh>
       {[0, 1, 2].map(i => (
-        <group key={i} rotation={[0, (i * Math.PI * 2) / 3 + Math.PI / 6, 0]}>
+        <group key={i} rotation={[0, (i * Math.PI * 2) / 3 + Math.PI / 2, 0]}>
           <mesh geometry={geo.fin} position={[0.6, -0.2, 0]} scale={bigFins ? [1.3, 1.2, 1] : 1}>
             {red}
           </mesh>

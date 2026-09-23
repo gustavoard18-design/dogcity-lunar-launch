@@ -1,11 +1,10 @@
 import { MutableRefObject, useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Stars, useTexture } from '@react-three/drei';
+import { Stars } from '@react-three/drei';
 import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import type { Route } from '../types';
-import { EngineFlame, RocketLook, trailStartColor } from '../three/Rocket';
-import { ROCKET_SPRITE, rocketSpriteArt } from '../lib/evolution';
+import Rocket, { RocketLook, trailStartColor } from '../three/Rocket';
 import LaunchSite, { HoloTarget } from './LaunchSite';
 import Particles, { ParticleApi } from '../three/Particles';
 import { SkyBackground, StudioEnvironment } from '../three/SpaceBits';
@@ -33,7 +32,7 @@ const BASE_Y = -1.6;
 const GROUND_Y = BASE_Y - 0.9;
 const DOTS = 28;
 /** Altura do nariz do foguete parado (origem da linha de mira). */
-const NOSE_Y = BASE_Y + 3.45;
+const NOSE_Y = BASE_Y + (1.55 + 1.9) * 1.05;
 /** Distância do nariz ao planeta-alvo (a linha termina nele). */
 const AIM_REACH = 5.6;
 
@@ -178,17 +177,12 @@ function Platform() {
   );
 }
 
-function useArt(url: string) {
-  const tex = useTexture(url);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
-  return tex;
-}
+/** Escala do foguete 3D na plataforma e altura do bocal em relação à origem do modelo. */
+const ROCKET_SCALE = 1.05;
+const ROCKET_BASE = 1.55;
 
-const ROCKET_H = 3.7;
-
-/** Foguete das artes oficiais como sprite; a origem do grupo é o bocal. */
-function SpriteRocket({
+/** O mesmo foguete 3D do voo, com cosméticos e peças da Oficina; a origem do grupo é a base. */
+function PadRocket({
   look,
   thrustRef,
   nozzleRef,
@@ -199,17 +193,11 @@ function SpriteRocket({
   nozzleRef: MutableRefObject<THREE.Object3D | null>;
   trailColorRef: MutableRefObject<THREE.Color>;
 }) {
-  const tex = useArt(rocketSpriteArt());
-  const w = ROCKET_H * ROCKET_SPRITE.aspect;
   return (
-    <group position={[0, (1 - ROCKET_SPRITE.nozzleY) * ROCKET_H, 0]}>
-      {/* De frente para a câmera: a inclinação da mira fica no plano da tela */}
-      <mesh position={[(0.5 - ROCKET_SPRITE.nozzleX) * w, (ROCKET_SPRITE.nozzleY - 0.5) * ROCKET_H, 0.05]}>
-        <planeGeometry args={[w, ROCKET_H]} />
-        <meshBasicMaterial map={tex} transparent alphaTest={0.03} toneMapped={false} side={THREE.DoubleSide} />
-      </mesh>
-      <group scale={0.95}>
-        <EngineFlame trailColor={look.trailColor} thrustRef={thrustRef} nozzleRef={nozzleRef} trailColorRef={trailColorRef} />
+    <group position={[0, ROCKET_BASE * ROCKET_SCALE, 0]} scale={ROCKET_SCALE}>
+      {/* Três quartos: mostra a escotilha com o DOG e o adesivo lateral */}
+      <group rotation={[0, -0.25, 0]}>
+        <Rocket {...look} thrustRef={thrustRef} nozzleRef={nozzleRef} trailColorRef={trailColorRef} />
       </group>
     </group>
   );
@@ -379,7 +367,7 @@ export default function PadScene({ route, look, phaseRef, aimRef, onLiftoffDone 
 
       <Platform />
       <group ref={pivot}>
-        <SpriteRocket look={look} thrustRef={thrust} nozzleRef={nozzle} trailColorRef={trailColor} />
+        <PadRocket look={look} thrustRef={thrust} nozzleRef={nozzle} trailColorRef={trailColor} />
       </group>
 
       <points ref={dots} geometry={dotGeo}>
