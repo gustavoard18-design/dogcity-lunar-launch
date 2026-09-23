@@ -256,29 +256,25 @@ describe('armazenamento', () => {
 });
 
 describe('evolução dos avatares', () => {
-  it('astronauta evolui com a raridade da pelagem e do capacete', () => {
+  it('astronauta evolui com a raridade dos itens equipados', () => {
     const d = profile.dog;
     expect(astronautTier(d).tier.name).toBe('Início');
-    expect(astronautTier({ ...d, helmet: 'helmet_classic' }).tier.name).toBe('Exploração');
-    expect(astronautTier({ ...d, skin: 'skin_golden', helmet: 'helmet_classic' }).tier.name).toBe('Avançado');
-    expect(astronautTier({ ...d, skin: 'skin_nebula', helmet: 'helmet_neon' }).tier.name).toBe('Especial');
-    const max = astronautTier({ ...d, skin: 'skin_cosmic', helmet: 'helmet_gold' });
+    expect(astronautTier({ ...d, helmet: 'helmet_classic', trail: 'trail_blue' }).tier.name).toBe('Exploração');
+    expect(astronautTier({ ...d, skin: 'skin_golden', helmet: 'helmet_neon', trail: 'trail_blue' }).tier.name).toBe('Avançado');
+    expect(astronautTier({ ...d, skin: 'skin_nebula', helmet: 'helmet_gold', trail: 'trail_blue' }).tier.name).toBe('Avançado');
+    expect(astronautTier({ ...d, skin: 'skin_nebula', helmet: 'helmet_gold', trail: 'trail_plasma' }).tier.name).toBe('Especial');
+    const max = astronautTier({ ...d, skin: 'skin_cosmic', helmet: 'helmet_gold', trail: 'trail_rainbow' });
     expect(max.tier.name).toBe('Lendário');
     expect(max.next).toBeUndefined();
-    // O rastro agora pertence ao foguete: não muda o astronauta.
-    const withTrail = { ...d, trail: 'trail_rainbow' };
-    expect(astronautTier(withTrail).tier.name).toBe('Início');
   });
 
-  it('foguete evolui com a Oficina e com a raridade do rastro', () => {
-    const lv = (n: number, trail = 'orange') => ({ power: n, accuracy: n, luck: n, speed: n, trail });
+  it('foguete evolui com a soma dos níveis da Oficina', () => {
+    const lv = (n: number) => ({ power: n, accuracy: n, luck: n, speed: n });
     expect(rocketTier(lv(1)).tier.name).toBe('Básico');
     expect(rocketTier({ ...lv(1), power: 7 }).tier.name).toBe('Aprimorado');
     expect(rocketTier(lv(5)).tier.name).toBe('Avançado');
     expect(rocketTier(lv(7)).tier.name).toBe('Especial');
-    expect(rocketTier(lv(8)).tier.name).toBe('Especial');
-    expect(rocketTier(lv(8, 'trail_plasma')).tier.name).toBe('Lendário');
-    expect(rocketTier(lv(10, 'trail_rainbow')).next).toBeUndefined();
+    expect(rocketTier(lv(10)).tier.name).toBe('Lendário');
     expect(rocketTier(lv(1)).next?.min).toBe(10);
   });
 });

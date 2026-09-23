@@ -15,6 +15,7 @@ interface CosmeticShopProps {
 const GROUPS: { type: Cosmetic['type']; label: string; target: string; icon: string }[] = [
   { type: 'skin', label: 'Pelagem', target: 'astronauta', icon: 'traje' },
   { type: 'helmet', label: 'Capacetes', target: 'astronauta e cabine', icon: 'capacete' },
+  { type: 'trail', label: 'Rastros do motor', target: 'foguete', icon: 'booster' },
 ];
 
 export default function CosmeticShop({ profile, onPurchase, onEquip }: CosmeticShopProps) {
@@ -37,7 +38,7 @@ export default function CosmeticShop({ profile, onPurchase, onEquip }: CosmeticS
         badge={tried ? <span className="inline-flex items-center gap-1"><EyeIcon /> Provando: {tried.name}</span> : <>Equipado agora</>}
         footer={
           <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400">
-            <span>Toque em um item para provar. Pelagem e capacete mais raros evoluem o astronauta (comum 1 · raro 2 · épico 3 · lendário 4 pts). Os rastros do motor ficam na Oficina.</span>
+            <span>Toque em um item para provar. Itens mais raros evoluem o astronauta (comum 1 · raro 2 · épico 3 · lendário 4 pts).</span>
             {tried && (
               <button onClick={() => setTrying(null)} className="btn-ghost px-2.5 py-1 text-[11px]">
                 Tirar

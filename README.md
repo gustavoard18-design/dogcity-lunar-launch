@@ -49,11 +49,10 @@ O custo é debitado na entrada da missão e só volta se você cancelar **antes*
   - 🍀 Sorte: mais orbes e escudos, e ímã de coleta
   - 💨 Manobra: nave mais responsiva
 - **Missões diárias**: 3 por dia, sorteadas entre 13 conforme o seu nível. Renovam à meia-noite, e dá para trocar uma vez por dia por 25 ✨.
-- **Loja**: pelagens e capacetes do astronauta. Itens mais raros evoluem a arte do astronauta; pelagem e capacete aparecem no piloto, na janela do foguete.
-- **Oficina → Motor**: rastros do motor (cor da chama e das partículas). Rastros mais raros também evoluem o foguete.
+- **Loja**: pelagens, capacetes e rastros do motor. Itens mais raros evoluem a arte do astronauta; o rastro muda a cor da chama; pelagem e capacete aparecem no piloto do foguete em voo.
 - **Ranking semanal**: seu melhor voo concluído da semana.
-- **Evolução visual**: o astronauta tem 5 fases (Início → Exploração → Avançado → Especial → Lendário) conforme a raridade da pelagem e do capacete (comum 1, raro 2, épico 3, lendário 4 pts). O foguete tem 5 fases (Básico → Aprimorado → Avançado → Especial → Lendário) conforme a soma dos níveis da Oficina mais a raridade do rastro.
-- **Foguete 3D**: o mesmo modelo aparece na plataforma e no voo, com o DOG na janela e as peças da Oficina instaladas.
+- **Foguete 3D**: o mesmo modelo aparece na plataforma e no voo, com o DOG na janela, as peças da Oficina e a cor do rastro na chama.
+- **Evolução visual**: o astronauta tem 5 fases (Início → Exploração → Avançado → Especial → Lendário) conforme a raridade dos itens equipados na Loja (comum 1, raro 2, épico 3, lendário 4 pts). O foguete tem 5 fases (Básico → Aprimorado → Avançado → Especial → Lendário) conforme a soma dos níveis da Oficina.
 
 ---
 

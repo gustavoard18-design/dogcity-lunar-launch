@@ -282,9 +282,7 @@ export default function App() {
                   <motion.div key={activeTab} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }} transition={{ duration: 0.2 }}>
                     {activeTab === 'launch' && <RouteSelector profile={profile} onSelectRoute={startRoute} />}
                     {activeTab === 'missions' && <MissionsPanel profile={profile} onClaimReward={handleClaimMission} onReroll={handleReroll} />}
-                    {activeTab === 'upgrades' && (
-                      <UpgradeShop profile={profile} onPurchase={handleUpgrade} onBuyTrail={handleBuyCosmetic} onEquipTrail={handleEquip} />
-                    )}
+                    {activeTab === 'upgrades' && <UpgradeShop profile={profile} onPurchase={handleUpgrade} />}
                     {activeTab === 'cosmetics' && <CosmeticShop profile={profile} onPurchase={handleBuyCosmetic} onEquip={handleEquip} />}
                     {activeTab === 'leaderboard' && <WeeklyLeaderboard playerAddress={profile.address} />}
                     {activeTab === 'history' && <LaunchHistory profile={profile} />}

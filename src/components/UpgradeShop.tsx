@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { PlayerProfile, Stat } from '../types';
-import { COSMETICS, getCosmetic, getNextUpgrade } from '../lib/shop';
-import CosmeticCard from './CosmeticCard';
+import { getNextUpgrade } from '../lib/shop';
 import { STAT_ICON, iconArt } from '../lib/evolution';
 import { MAX_STAT_LEVEL, STAT_INFO, UPGRADE_VISUALS } from '../lib/stats';
 import Showcase from './Showcase';
@@ -10,19 +9,12 @@ import { EyeIcon, LockIcon, Stardust } from './GameIcon';
 interface UpgradeShopProps {
   profile: PlayerProfile;
   onPurchase: (upgradeId: string) => void;
-  onBuyTrail: (cosmeticId: string) => void;
-  onEquipTrail: (cosmeticId: string) => void;
 }
 
-export default function UpgradeShop({ profile, onPurchase, onBuyTrail, onEquipTrail }: UpgradeShopProps) {
+export default function UpgradeShop({ profile, onPurchase }: UpgradeShopProps) {
   const [preview, setPreview] = useState<Stat | null>(null);
-  const [tryTrail, setTryTrail] = useState<string | null>(null);
   const previewLevel = preview ? Math.min(MAX_STAT_LEVEL, profile.dog[preview] + 1) : 0;
-  const dog = useMemo(() => {
-    const d = preview ? { ...profile.dog, [preview]: previewLevel } : profile.dog;
-    return tryTrail ? { ...d, trail: tryTrail } : d;
-  }, [profile.dog, preview, previewLevel, tryTrail]);
-  const triedTrail = tryTrail ? getCosmetic(tryTrail) : undefined;
+  const dog = useMemo(() => (preview ? { ...profile.dog, [preview]: previewLevel } : profile.dog), [profile.dog, preview, previewLevel]);
   const installed = (Object.keys(UPGRADE_VISUALS) as Stat[]).flatMap(stat =>
     UPGRADE_VISUALS[stat].filter(v => profile.dog[stat] >= v.level).map(v => v.part)
   );
@@ -37,18 +29,10 @@ export default function UpgradeShop({ profile, onPurchase, onBuyTrail, onEquipTr
       <Showcase
         dog={dog}
         focus="rocket"
-        badge={
-          preview ? (
-            <span className="inline-flex items-center gap-1"><EyeIcon /> Prévia: {STAT_INFO[preview].label} nv {previewLevel}</span>
-          ) : triedTrail ? (
-            <span className="inline-flex items-center gap-1"><EyeIcon /> Provando: {triedTrail.name}</span>
-          ) : (
-            <>Configuração atual</>
-          )
-        }
+        badge={preview ? <span className="inline-flex items-center gap-1"><EyeIcon /> Prévia: {STAT_INFO[preview].label} nv {previewLevel}</span> : <>Configuração atual</>}
         footer={
           <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-            <span className="text-slate-400 mr-1">Peças instaladas:</span>
+            <span className="text-slate-400 mr-1">Peças instaladas (aparecem no foguete em voo):</span>
             {installed.length === 0 ? (
               <span className="text-slate-500">nenhuma ainda — suba os atributos para equipar o foguete</span>
             ) : (
@@ -139,36 +123,6 @@ export default function UpgradeShop({ profile, onPurchase, onBuyTrail, onEquipTr
             </div>
           );
         })}
-      </div>
-
-      {/* Motor: o rastro é uma peça do foguete */}
-      <div className="mt-5">
-        <div className="flex items-center gap-2 text-[10px] tracking-[0.3em] text-slate-500 mb-1">
-          <img src={iconArt('booster')} alt="" className="w-7 h-7 rounded-md object-cover border border-white/10" draggable={false} />
-          <span>
-            MOTOR <span className="tracking-normal text-slate-600">· cor da chama e do rastro</span>
-          </span>
-        </div>
-        <p className="text-[11px] text-slate-500 mb-2">Rastros mais raros também evoluem o foguete (comum 1 · raro 2 · épico 3 · lendário 4 pts).</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {COSMETICS.filter(c => c.type === 'trail').map(item => (
-            <CosmeticCard
-              key={item.id}
-              item={item}
-              profile={profile}
-              trying={tryTrail === item.id}
-              onTry={() => setTryTrail(tryTrail === item.id ? null : item.id)}
-              onPurchase={() => {
-                setTryTrail(null);
-                onBuyTrail(item.id);
-              }}
-              onEquip={() => {
-                setTryTrail(null);
-                onEquipTrail(item.id);
-              }}
-            />
-          ))}
-        </div>
       </div>
     </div>
   );

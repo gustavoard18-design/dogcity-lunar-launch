@@ -81,13 +81,13 @@ Todo o som é sintetizado com WebAudio: osciladores e ruído marrom filtrado. O 
 
 ## 9. Evolução visual (`lib/evolution.ts`)
 
-| Fase | Astronauta (raridade de pelagem + capacete, 0–7) | Foguete (4 atributos + raridade do rastro, 4–44) |
+| Fase | Astronauta (pts de raridade equipados, máx 12) | Foguete (soma dos 4 atributos, 4–40) |
 |---|---|---|
 | 1 | Início (0) | Básico (4) |
-| 2 | Exploração (1) | Aprimorado (10) |
-| 3 | Avançado (3) | Avançado (17) |
-| 4 | Especial (5) | Especial (25) |
-| 5 | Lendário (7) | Lendário (34) |
+| 2 | Exploração (2) | Aprimorado (10) |
+| 3 | Avançado (5) | Avançado (17) |
+| 4 | Especial (8) | Especial (25) |
+| 5 | Lendário (11) | Lendário (33) |
 
 As artes ficam em `public/art/astro-N.webp`, `public/art/rocket-N.webp` e `public/art/icons/*.webp`. A Loja funciona como provador (mostra a fase que o item daria) e a Oficina mostra a prévia do próximo nível.
 
