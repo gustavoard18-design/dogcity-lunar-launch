@@ -94,7 +94,7 @@ export default function PlayerProfileCard({ profile }: PlayerProfileProps) {
         </div>
       </div>
       <div className="flex items-center justify-between text-xs rounded-xl bg-orange-500/10 border border-orange-400/20 px-3 py-2">
-        <span className="text-slate-300">Saldo DOG <span className="text-slate-500">(simulado)</span></span>
+        <span className="text-slate-300">Saldo DOG <span className="text-slate-500">({profile.dogBalanceSource === 'real' ? 'on-chain' : 'simulado'})</span></span>
         <span className="text-orange-300 font-bold">{profile.dogBalance.toLocaleString('pt-BR')}</span>
       </div>
     </div>

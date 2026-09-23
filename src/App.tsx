@@ -4,7 +4,8 @@ import confetti from 'canvas-confetti';
 import { LaunchOutcome, LaunchSummary, PlayerProfile, Route } from './types';
 import { WalletConnection, getMockDogBalance } from './lib/wallet';
 import { loadProfile, createProfile, saveProfile } from './lib/storage';
-import { getRouteCost, isRouteUnlocked } from './lib/economy';
+import { getRouteCost, getTier, isRouteUnlocked } from './lib/economy';
+import { fetchDogBalance, submitScore } from './lib/online';
 import { claimMission, ensureDailyMissions, rerollMissions } from './lib/missions';
 import { applyLaunchResult, equipCosmetic, purchaseCosmetic, purchaseUpgrade } from './lib/progress';
 import { COSMETICS, UPGRADES } from './lib/shop';
@@ -84,6 +85,18 @@ export default function App() {
       : createProfile(wallet.address, wallet.provider, getMockDogBalance(wallet.address));
     commit(next);
     notify(existing ? `Bem-vindo de volta, ${next.dog.name}!` : `Seu piloto ${next.dog.name} está pronto!`, 'astronaut');
+    // Carteira real: busca o saldo DOG on-chain e recalcula a patente.
+    if (wallet.provider === 'UniSat') {
+      fetchDogBalance(wallet.address).then(balance => {
+        if (balance === null) return;
+        setProfile(p => {
+          if (!p || p.address !== wallet.address) return p;
+          const updated = { ...p, dogBalance: Math.floor(balance), dogBalanceSource: 'real' as const, tier: getTier(balance) };
+          saveProfile(updated);
+          return updated;
+        });
+      });
+    }
   };
 
   const startRoute = (route: Route) => {
@@ -107,6 +120,9 @@ export default function App() {
     if (!profile || !session || session.summary) return;
     const { profile: next, summary } = applyLaunchResult(profile, session.route, outcome, session.paidCost);
     commit(next);
+    if (outcome.success) {
+      void submitScore({ address: next.address, dogName: next.dog.name, tier: next.tier, routeId: session.route.id, score: outcome.score });
+    }
     setSession({ ...session, summary });
     if (summary.levelsGained > 0) {
       window.setTimeout(() => {
@@ -293,7 +309,7 @@ export default function App() {
           </main>
 
           <footer className="relative z-10 mt-12 py-6 text-center text-xs text-slate-600">
-            Base Lunar DogCity · {profile.provider} · saldo DOG simulado, sem transações on-chain
+            Base Lunar DogCity · {profile.provider} · {profile.dogBalanceSource === 'real' ? 'saldo DOG lido da blockchain' : 'saldo DOG simulado'}, sem transações on-chain
           </footer>
         </>
       )}

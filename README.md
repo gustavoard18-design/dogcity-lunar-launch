@@ -72,11 +72,18 @@ Requer Node 20+ e um navegador com WebGL 2.
 
 Cada push na branch `main` roda typecheck, testes e build no GitHub Actions e publica o jogo no GitHub Pages (branch `gh-pages`) em cerca de um minuto.
 
+## 🌍 Online (Supabase)
+
+- **Ranking semanal global**: voos concluídos são enviados para `submit_score`, que recusa score acima do máximo da rota e envios em sequência rápida; a tabela não é acessível direto pela API. Sem conexão, o jogo mostra o ranking local.
+- **Saldo DOG real**: para carteiras UniSat, a Edge Function `dog-balance` consulta a Rune DOG•GO•TO•THE•MOON (840000:3) na UniSat Open API, com cache de 10 min. A chave fica no segredo `UNISAT_API_KEY` do Supabase, nunca no site.
+- Código do backend em `supabase/` (migração SQL e função). A URL e a chave publicável ficam em `src/lib/online.ts` (ou `VITE_SUPABASE_URL` / `VITE_SUPABASE_KEY`, ver `.env.example`).
+- Limitação: o jogo roda no navegador, então as regras barram scores impossíveis, mas não impedem trapaça de quem altera o código.
+
 ## 🔗 Carteira
 
 - **Jogar agora** cria um piloto convidado com endereço único, salvo no navegador.
 - **UniSat**: se a extensão estiver instalada, conecta de verdade (`requestAccounts`).
-- O saldo **DOG é simulado** a partir do endereço (ainda não há leitura on-chain de Runes). Nenhuma transação é feita.
+- **Convidado**: saldo DOG simulado a partir do endereço. **UniSat**: saldo DOG real, lido da blockchain. Nenhuma transação é feita.
 
 ## 📁 Estrutura
 

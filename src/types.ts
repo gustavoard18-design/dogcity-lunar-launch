@@ -36,6 +36,8 @@ export interface PlayerProfile {
   address: string;
   provider: string;
   dogBalance: number;
+  /** 'real' = lido da blockchain via UniSat; senão é simulado a partir do endereço. */
+  dogBalanceSource?: 'real' | 'simulated';
   tier: Tier;
   stardust: number;
   lunarDust: number;

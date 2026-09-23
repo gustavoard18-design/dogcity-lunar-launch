@@ -99,7 +99,7 @@ export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
           </button>
           {error && <p className="text-xs text-red-400">{error}</p>}
           <p className="text-[11px] text-slate-500 leading-relaxed">
-            “Jogar agora” cria um piloto convidado salvo neste navegador. O saldo DOG é simulado — nenhuma transação é feita.
+            “Jogar agora” cria um piloto convidado salvo neste navegador, com saldo DOG simulado. Com a UniSat, o saldo DOG é lido da blockchain. Nenhuma transação é feita.
           </p>
         </div>
       </motion.div>
