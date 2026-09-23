@@ -261,7 +261,9 @@ describe('evolução dos avatares', () => {
     expect(astronautTier(d).tier.name).toBe('Início');
     expect(astronautTier({ ...d, helmet: 'helmet_classic', trail: 'trail_blue' }).tier.name).toBe('Exploração');
     expect(astronautTier({ ...d, skin: 'skin_golden', helmet: 'helmet_neon', trail: 'trail_blue' }).tier.name).toBe('Avançado');
-    expect(astronautTier({ ...d, skin: 'skin_nebula', helmet: 'helmet_gold', trail: 'trail_blue' }).tier.name).toBe('Avançado');
+    expect(astronautTier({ ...d, skin: 'skin_nebula', helmet: 'helmet_gold', trail: 'trail_green' }).tier.name).toBe('Avançado');
+    // Rastro Azul é raro (2 pts): a mesma combinação sobe de fase.
+    expect(astronautTier({ ...d, skin: 'skin_nebula', helmet: 'helmet_gold', trail: 'trail_blue' }).tier.name).toBe('Especial');
     expect(astronautTier({ ...d, skin: 'skin_nebula', helmet: 'helmet_gold', trail: 'trail_plasma' }).tier.name).toBe('Especial');
     const max = astronautTier({ ...d, skin: 'skin_cosmic', helmet: 'helmet_gold', trail: 'trail_rainbow' });
     expect(max.tier.name).toBe('Lendário');

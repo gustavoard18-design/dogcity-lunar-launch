@@ -4,10 +4,10 @@ import type { WalletConnection } from '../types';
 export type { WalletConnection };
 
 /**
- * Carteiras Bitcoin suportadas — as mesmas do DogData (Kray, Xverse, OKX)
- * e a UniSat. Só lemos o endereço: nada é assinado nem enviado.
+ * Carteiras Bitcoin suportadas — as mesmas do DogData (Kray, Xverse, OKX).
+ * Só lemos o endereço: nada é assinado nem enviado.
  */
-export type WalletId = 'kray' | 'xverse' | 'okx' | 'unisat';
+export type WalletId = 'kray' | 'xverse' | 'okx';
 
 export interface WalletInfo {
   id: WalletId;
@@ -20,14 +20,10 @@ export const WALLETS: WalletInfo[] = [
   { id: 'kray', name: 'Kray Wallet', installUrl: 'https://www.kray.space', note: 'L1 + L2' },
   { id: 'xverse', name: 'Xverse', installUrl: 'https://www.xverse.app/download' },
   { id: 'okx', name: 'OKX Wallet', installUrl: 'https://www.okx.com/web3' },
-  { id: 'unisat', name: 'UniSat', installUrl: 'https://unisat.io/download' },
 ];
 
 interface KrayProvider {
   requestAccounts(): Promise<{ success?: boolean; address?: string }>;
-}
-interface UniSatProvider {
-  requestAccounts(): Promise<string[]>;
 }
 interface OkxBitcoin {
   connect(): Promise<{ address: string }>;
@@ -36,7 +32,6 @@ interface OkxBitcoin {
 declare global {
   interface Window {
     krayWallet?: KrayProvider;
-    unisat?: UniSatProvider;
     okxwallet?: { bitcoin?: OkxBitcoin };
   }
 }
@@ -54,7 +49,6 @@ export function isWalletInstalled(id: WalletId): boolean {
   if (typeof window === 'undefined') return false;
   switch (id) {
     case 'kray': return !!window.krayWallet;
-    case 'unisat': return !!window.unisat;
     case 'xverse': return !!satsProvider('xverse') || !!window.XverseProviders?.BitcoinProvider;
     case 'okx': return !!satsProvider('okx') || !!window.okxwallet?.bitcoin;
   }
@@ -92,11 +86,6 @@ export async function connectWallet(id: WalletId): Promise<WalletConnection> {
     case 'okx':
       address = satsProvider('okx') ? await satsConnectAddress('okx', info.name) : (await window.okxwallet!.bitcoin!.connect()).address;
       break;
-    case 'unisat': {
-      const accounts = await window.unisat!.requestAccounts();
-      address = accounts[0] ?? '';
-      break;
-    }
   }
   if (!address) throw new Error(`${info.name} não retornou um endereço.`);
   return { address, connected: true, provider: info.name };

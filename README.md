@@ -75,16 +75,15 @@ Cada push na branch `main` roda typecheck, testes e build no GitHub Actions e pu
 ## 🌍 Online (Supabase)
 
 - **Ranking semanal global**: voos concluídos são enviados para `submit_score`, que recusa score acima do máximo da rota e envios em sequência rápida; a tabela não é acessível direto pela API. Sem conexão, o jogo mostra o ranking local.
-- **Dados DOG reais** (carteiras Kray, Xverse, OKX ou UniSat): a Edge Function `dog-balance` consulta as APIs públicas do [DogData](https://www.dogdata.xyz): saldo da Rune DOG•GO•TO•THE•MOON (840000:3), ranking de holder, selo Genesis e o **lote no DogCity** (snapshot do bloco 966.670: área, distrito, tipologia, link do mapa). Sem chave de API; cache de 10 min no Supabase.
+- **Dados DOG reais** (carteiras Kray, Xverse ou OKX): a Edge Function `dog-balance` consulta as APIs públicas do [DogData](https://www.dogdata.xyz): saldo da Rune DOG•GO•TO•THE•MOON (840000:3), ranking de holder, selo Genesis e o **lote no DogCity** (snapshot do bloco 966.670: área, distrito, tipologia, link do mapa). Sem chave de API; cache de 10 min no Supabase.
 - Código do backend em `supabase/` (migração SQL e função). A URL e a chave publicável ficam em `src/lib/online.ts` (ou `VITE_SUPABASE_URL` / `VITE_SUPABASE_KEY`, ver `.env.example`).
 - Limitação: o jogo roda no navegador, então as regras barram scores impossíveis, mas não impedem trapaça de quem altera o código.
 
 ## 🔗 Carteira
 
 - **Jogar agora** cria um piloto convidado com endereço único, salvo no navegador.
-- **UniSat**: se a extensão estiver instalada, conecta de verdade (`requestAccounts`).
 - **Convidado**: saldo DOG simulado a partir do endereço.
-- **Carteiras**: Kray, Xverse e OKX (as mesmas do DogData, via `window.krayWallet` e `@sats-connect/core`) e UniSat. Só o endereço Taproot/Ordinals é lido; nada é assinado nem enviado. A patente usa o saldo DOG real.
+- **Carteiras**: Kray, Xverse e OKX (as mesmas do DogData, via `window.krayWallet` e `@sats-connect/core`). Só o endereço Taproot/Ordinals é lido; nada é assinado nem enviado. A patente usa o saldo DOG real.
 
 ## 📁 Estrutura
 
@@ -114,7 +113,7 @@ src/
     ├── shop.ts           # upgrades e cosméticos
     ├── evolution.ts      # fases visuais do astronauta e do foguete
     ├── storage.ts        # localStorage + migração de perfis v1
-    ├── wallet.ts         # convidado / UniSat
+    ├── wallet.ts         # convidado / Kray, Xverse, OKX
     └── audio.ts          # efeitos sonoros sintetizados (WebAudio)
 ```
 

@@ -53,7 +53,7 @@ export interface PlayerProfile {
   address: string;
   provider: string;
   dogBalance: number;
-  /** 'real' = lido da blockchain via UniSat; senão é simulado a partir do endereço. */
+  /** 'real' = lido da blockchain (carteira conectada, dados do DogData); senão é simulado a partir do endereço. */
   dogBalanceSource?: 'real' | 'simulated';
   /** Ranking de holder e lote no DogCity (só carteiras reais). */
   dogOnchain?: DogOnchainInfo;

@@ -5,12 +5,7 @@ import { sfx } from '../lib/audio';
 import { cutoutArt } from '../lib/evolution';
 import GameIcon from './GameIcon';
 
-const WALLET_COLOR: Record<WalletId, string> = {
-  kray: '#7C3AED',
-  xverse: '#EE7A30',
-  okx: '#3f3f46',
-  unisat: '#c2410c',
-};
+const walletLogo = (id: WalletId) => `${import.meta.env.BASE_URL}art/wallets/${id}.webp`;
 
 interface ConnectWalletProps {
   onConnect: (wallet: WalletConnection) => void;
@@ -105,9 +100,7 @@ export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
                 const installed = isWalletInstalled(w.id);
                 return (
                   <div key={w.id} className="flex items-center gap-3 rounded-xl border border-sky-400/15 bg-[#0b1733]/70 px-3 py-2.5">
-                    <span className="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center font-display text-sm text-white" style={{ background: WALLET_COLOR[w.id] }}>
-                      {w.name[0]}
-                    </span>
+                    <img src={walletLogo(w.id)} alt={w.name} className="w-9 h-9 shrink-0 rounded-lg object-cover border border-white/10" draggable={false} />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-semibold text-white">
                         {w.name} {w.note && <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded border border-orange-400/40 text-orange-300">{w.note}</span>}
