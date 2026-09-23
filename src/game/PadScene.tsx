@@ -188,8 +188,10 @@ function PadRocket({
   thrustRef,
   nozzleRef,
   trailColorRef,
+  pilotRef,
 }: {
   look: RocketLook;
+  pilotRef: MutableRefObject<THREE.Group | null>;
   thrustRef: MutableRefObject<number>;
   nozzleRef: MutableRefObject<THREE.Object3D | null>;
   trailColorRef: MutableRefObject<THREE.Color>;
@@ -198,7 +200,7 @@ function PadRocket({
     <group position={[0, ROCKET_BASE * ROCKET_SCALE, 0]} scale={ROCKET_SCALE}>
       {/* Três quartos: mostra a escotilha com o DOG e o adesivo lateral */}
       <group rotation={[0, -0.25, 0]}>
-        <Rocket {...look} thrustRef={thrustRef} nozzleRef={nozzleRef} trailColorRef={trailColorRef} />
+        <Rocket {...look} thrustRef={thrustRef} nozzleRef={nozzleRef} trailColorRef={trailColorRef} pilotRef={pilotRef} />
       </group>
     </group>
   );
@@ -210,7 +212,7 @@ const DOG_SPOT = new THREE.Vector3(1.6, BASE_Y - 0.04, 1.15);
 const HATCH = new THREE.Vector3(0.15, BASE_Y + 2.6, 0.6);
 
 /** DOG astronauta 3D na plataforma: respira parado e embarca na contagem regressiva. */
-function PadDog({ phaseRef }: { phaseRef: MutableRefObject<PadPhase> }) {
+function PadDog({ phaseRef, pilotRef }: { phaseRef: MutableRefObject<PadPhase>; pilotRef: MutableRefObject<THREE.Group | null> }) {
   const group = useRef<THREE.Group>(null);
   const board = useRef(0);
   useFrame(({ clock }, rawDt) => {
@@ -222,6 +224,8 @@ function PadDog({ phaseRef }: { phaseRef: MutableRefObject<PadPhase> }) {
     const boarding = phase === 'countdown' || phase === 'liftoff';
     board.current = boarding ? Math.min(1, board.current + dt / 0.7) : 0;
     const b = board.current;
+    // A escotilha fica vazia enquanto o DOG está do lado de fora.
+    if (pilotRef.current) pilotRef.current.visible = b >= 0.9;
     if (b >= 1) {
       g.visible = false;
       return;
@@ -249,6 +253,7 @@ export default function PadScene({ route, look, phaseRef, aimRef, onLiftoffDone 
   const size = useThree(s => s.size);
   const pivot = useRef<THREE.Group>(null);
   const nozzle = useRef<THREE.Object3D | null>(null);
+  const pilot = useRef<THREE.Group | null>(null);
   const trailColor = useRef(new THREE.Color(trailStartColor(look.trailColor)));
   const thrust = useRef(0);
   const fire = useRef<ParticleApi>(null);
@@ -407,9 +412,9 @@ export default function PadScene({ route, look, phaseRef, aimRef, onLiftoffDone 
       </group>
 
       <Platform />
-      <PadDog phaseRef={phaseRef} />
+      <PadDog phaseRef={phaseRef} pilotRef={pilot} />
       <group ref={pivot}>
-        <PadRocket look={look} thrustRef={thrust} nozzleRef={nozzle} trailColorRef={trailColor} />
+        <PadRocket look={look} thrustRef={thrust} nozzleRef={nozzle} trailColorRef={trailColor} pilotRef={pilot} />
       </group>
 
       <points ref={dots} geometry={dotGeo}>

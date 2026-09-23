@@ -1,8 +1,9 @@
-import { forwardRef, MutableRefObject, useMemo, useRef } from 'react';
+import { forwardRef, MutableRefObject, Suspense, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { RoundedBox } from '@react-three/drei';
 import { DogHead } from './DogAstronaut';
+import RocketModel from './RocketModel';
 import { getRocketDecalTexture } from './textures';
 import type { DogStats } from '../lib/stats';
 import type { AstronautLook } from '../types';
@@ -18,6 +19,8 @@ interface RocketProps extends RocketLook {
   nozzleRef?: MutableRefObject<THREE.Object3D | null>;
   /** Cor atual do rastro (atualizada a cada frame; útil para rastro arco-íris). */
   trailColorRef?: MutableRefObject<THREE.Color>;
+  /** Rosto do DOG na escotilha (a plataforma o esconde até o embarque). */
+  pilotRef?: MutableRefObject<THREE.Group | null>;
 }
 
 export const SOLAR_A = '#ff6a00';
@@ -174,6 +177,8 @@ interface EngineFlameProps {
   thrustRef?: MutableRefObject<number>;
   nozzleRef?: MutableRefObject<THREE.Object3D | null>;
   trailColorRef?: MutableRefObject<THREE.Color>;
+  /** Rosto do DOG na escotilha (a plataforma o esconde até o embarque). */
+  pilotRef?: MutableRefObject<THREE.Group | null>;
 }
 
 // Cones com a base no bocal e a ponta para baixo: escalar em Y só alonga a chama.
@@ -227,26 +232,26 @@ export function EngineFlame({ trailColor, thrust = 1, thrustRef, nozzleRef, trai
   );
 }
 
-const Rocket = forwardRef<THREE.Group, RocketProps>(function Rocket(
-  { skinColor, helmet, trailColor, thrust = 1, thrustRef, nozzleRef, trailColorRef, upgrades = NO_UPGRADES },
-  ref
-) {
-  const geo = useRocketGeometry();
-  const ring = cockpitRing(helmet);
-  const goldBands = upgrades.luck >= UPGRADE_VISUALS.luck[0].level;
-  const bigFins = upgrades.speed >= UPGRADE_VISUALS.speed[0].level;
-  const goldNose = upgrades.luck >= UPGRADE_VISUALS.luck[1].level;
-  const decal = useMemo(() => getRocketDecalTexture(), []);
-  const hull = <meshPhysicalMaterial color="#ebe8e3" metalness={0.25} roughness={0.38} clearcoat={0.6} clearcoatRoughness={0.3} />;
-  const red = <meshPhysicalMaterial color="#d7322b" metalness={0.3} roughness={0.32} clearcoat={1} clearcoatRoughness={0.15} />;
-  const seam = goldBands ? (
-    <meshStandardMaterial color={GOLD} metalness={1} roughness={0.2} emissive="#6a4200" emissiveIntensity={0.4} />
-  ) : (
-    <meshStandardMaterial color="#4a4f58" metalness={0.7} roughness={0.4} />
-  );
-
+/** Casco montado em código (usado enquanto o modelo 3D carrega). */
+function ProceduralHull({
+  geo,
+  goldNose,
+  bigFins,
+  seam,
+  red,
+  hull,
+  decal,
+}: {
+  geo: ReturnType<typeof useRocketGeometry>;
+  goldNose: boolean;
+  bigFins: boolean;
+  seam: JSX.Element;
+  red: JSX.Element;
+  hull: JSX.Element;
+  decal: THREE.Texture;
+}) {
   return (
-    <group ref={ref}>
+    <>
       <mesh geometry={geo.body} castShadow>
         {hull}
       </mesh>
@@ -306,6 +311,59 @@ const Rocket = forwardRef<THREE.Group, RocketProps>(function Rocket(
         <meshStandardMaterial map={decal} transparent roughness={0.5} polygonOffset polygonOffsetFactor={-2} depthWrite={false} />
       </mesh>
 
+    </>
+  );
+}
+
+const Rocket = forwardRef<THREE.Group, RocketProps>(function Rocket(
+  { skinColor, helmet, trailColor, thrust = 1, thrustRef, nozzleRef, trailColorRef, pilotRef, upgrades = NO_UPGRADES },
+  ref
+) {
+  const geo = useRocketGeometry();
+  const ring = cockpitRing(helmet);
+  const goldBands = upgrades.luck >= UPGRADE_VISUALS.luck[0].level;
+  const bigFins = upgrades.speed >= UPGRADE_VISUALS.speed[0].level;
+  const goldNose = upgrades.luck >= UPGRADE_VISUALS.luck[1].level;
+  const decal = useMemo(() => getRocketDecalTexture(), []);
+  const hull = <meshPhysicalMaterial color="#ebe8e3" metalness={0.25} roughness={0.38} clearcoat={0.6} clearcoatRoughness={0.3} />;
+  const red = <meshPhysicalMaterial color="#d7322b" metalness={0.3} roughness={0.32} clearcoat={1} clearcoatRoughness={0.15} />;
+  const seam = goldBands ? (
+    <meshStandardMaterial color={GOLD} metalness={1} roughness={0.2} emissive="#6a4200" emissiveIntensity={0.4} />
+  ) : (
+    <meshStandardMaterial color="#4a4f58" metalness={0.7} roughness={0.4} />
+  );
+
+  return (
+    <group ref={ref}>
+      {/* Casco 3D gerado da arte oficial; o casco procedural aparece enquanto o modelo carrega. */}
+      <Suspense fallback={<ProceduralHull geo={geo} goldNose={goldNose} bigFins={bigFins} seam={seam} red={red} hull={hull} decal={decal} />}>
+        <RocketModel />
+        {/* Peças da Oficina que mudam o próprio casco, por cima do modelo */}
+        {goldNose && (
+          <mesh geometry={geo.nose} position={[0, -0.05, 0]} scale={[1.1, 1.02, 1.1]}>
+            <meshPhysicalMaterial color={GOLD} metalness={1} roughness={0.18} clearcoat={1} emissive="#6a4200" emissiveIntensity={0.35} />
+          </mesh>
+        )}
+        {goldBands &&
+          [
+            [0.93, 0.7],
+            [-0.93, 0.74],
+          ].map(([y, r]) => (
+            <mesh key={y} position={[0, y, 0]}>
+              <cylinderGeometry args={[r, r, 0.07, 64, 1, true]} />
+              {seam}
+            </mesh>
+          ))}
+        {bigFins &&
+          [0, Math.PI].map(r => (
+            <group key={r} rotation={[0, r, 0]}>
+              <mesh geometry={geo.fin} position={[0.72, -0.35, 0]} scale={[1.35, 1.25, 1]}>
+                {red}
+              </mesh>
+            </group>
+          ))}
+      </Suspense>
+
       <UpgradeParts upgrades={upgrades} fin={geo.fin} />
 
       {/* Escotilha grande de vidro escuro, com o piloto dentro */}
@@ -322,7 +380,7 @@ const Rocket = forwardRef<THREE.Group, RocketProps>(function Rocket(
           <circleGeometry args={[0.36, 40]} />
           <meshStandardMaterial color="#070d1a" roughness={0.6} />
         </mesh>
-        <group position={[0, -0.06, 0.04]} scale={0.4}>
+        <group ref={pilotRef} position={[0, -0.06, 0.04]} scale={0.4}>
           <DogHead skinColor={skinColor} />
         </group>
         <mesh position={[0, 0, 0.02]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 0.62, 1]}>
