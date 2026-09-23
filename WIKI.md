@@ -1,797 +1,104 @@
-# 🐕‍🦺🚀 DogCity Lunar Launch - Documentação Wiki
+# DogCity Lunar Launch: Wiki técnica
 
-## 📋 Índice
+Referência de design e implementação da v2. Para instalar e jogar, veja o [README](./README.md).
 
-1. [Visão Geral](#visão-geral)
-2. [Arquitetura](#arquitetura)
-3. [Tecnologias](#tecnologias)
-4. [Estrutura do Projeto](#estrutura-do-projeto)
-5. [Instalação e Configuração](#instalação-e-configuração)
-6. [Componentes](#componentes)
-7. [Sistema de Jogo](#sistema-de-jogo)
-8. [Economia e Mecânicas](#economia-e-mecânicas)
-9. [APIs e Integrações](#apis-e-integrações)
-10. [Desenvolvimento](#desenvolvimento)
-11. [Deploy](#deploy)
-12. [Roadmap](#roadmap)
-
----
-
-## 🎯 Visão Geral
-
-**DogCity Lunar Launch** é um jogo 3D baseado em blockchain Bitcoin, integrado ao ecossistema DogCity. Os jogadores controlam cães astronautas em missões de lançamento espacial, ganhando recompensas em Stardust e Pó Lunar.
-
-### Características Principais
-
-- 🎮 **Gráficos 3D profissionais** com Three.js e React Three Fiber
-- 🔗 **Integração Bitcoin** via carteiras (UniSat, Xverse, Leather)
-- 🐕 **Sistema de pets** com evolução e customização
-- 🏆 **Competição semanal** com leaderboards
-- 💎 **Economia dual** (Stardust + Pó Lunar)
-- 🎨 **Cosméticos** com sistema de raridade
-- 📋 **Missões diárias** renováveis
-- 🔧 **Sistema de upgrades** com 4 stats
-
-### Conceito
-
-O jogo é um módulo independente que pode ser integrado ao DogCity como:
-- Página interna
-- Iframe embeddable
-- Microfrontend
-- Componente standalone
-
----
-
-## 🏗️ Arquitetura
-
-### Camadas
+## 1. Fluxo de telas
 
 ```
-┌─────────────────────────────────────┐
-│         Frontend (React)            │
-│  - UI Components                    │
-│  - 3D Rendering (Three.js)          │
-│  - State Management (React Hooks)   │
-└─────────────────────────────────────┘
-                  ↓
-┌─────────────────────────────────────┐
-│         Business Logic              │
-│  - Game Mechanics                   │
-│  - Economy System                   │
-│  - Mission System                   │
-│  - Upgrade System                   │
-└─────────────────────────────────────┘
-                  ↓
-┌─────────────────────────────────────┐
-│         Data Layer                  │
-│  - LocalStorage (MVP)               │
-│  - Future: Backend API              │
-│  - Future: Blockchain Indexer       │
-└─────────────────────────────────────┘
-                  ↓
-┌─────────────────────────────────────┐
-│         External Services           │
-│  - Bitcoin Wallets                  │
-│  - DOG Token Indexer                │
-│  - DogCity Platform                 │
-└─────────────────────────────────────┘
+Conexão ──► Hangar ──► Missão (brief → mira → força → contagem → decolagem → voo → resultado)
+              ▲                                                                   │
+              └───────────────────────── Hangar / Voar de novo ◄─────────────────┘
 ```
 
-### Fluxo de Dados
+- O login e o hangar usam `SpaceBackdrop`: a arte `public/art/space-bg.webp` com deriva e parallax, mais estrelas cintilando, estrelas cadentes e poeira em canvas 2D (sem WebGL). A missão (`LaunchGame`) é carregada sob demanda (`React.lazy`), então o Three.js só baixa ao lançar.
+- Nas cenas 3D, `SkyBackground` usa a mesma arte como fundo (enquadramento "cover", escurecida para não competir com os objetos jogáveis); no voo ela se aproxima conforme o progresso.
+- Só existe **um** canvas WebGL por vez.
 
-1. **Conexão de Wallet**
-   - Usuário conecta carteira Bitcoin
-   - Sistema obtém endereço público
-   - Consulta saldo de DOG via indexer (mock no MVP)
-   - Calcula tier baseado no saldo
+## 2. Economia
 
-2. **Criação de Perfil**
-   - Gera cão astronauta aleatório
-   - Define stats iniciais
-   - Atribui 100 Stardust iniciais
-   - Salva no localStorage
+| Evento | Fórmula (`q = score / máx da rota`) |
+|---|---|
+| Recompensa, sucesso | `round(custo × (0.6 + 1.8q)) + 5` |
+| Recompensa, falha | `round(custo × 0.25q)` |
+| XP | `(10 + 40q) × multiplicador da rota`, e 30% disso na falha |
+| Pó Lunar | `dificuldade` se q ≥ 0.7, `2 × dificuldade` se q ≥ 0.85 (só no sucesso) |
+| Reputação | `2 + round(8q × dificuldade)`, ou −1 na falha (mínimo 0) |
+| XP por nível | `floor(50 × 1.5^(nível−1))` |
 
-3. **Gameplay Loop**
-   - Jogador seleciona rota
-   - Deduz custo em Stardust
-   - Executa minigame de lançamento
-   - Calcula score baseado em stats
-   - Determina sucesso/falha
-   - Atribui recompensas
-   - Atualiza perfil e missões
+Um voo mediano (q = 0.5) com sucesso sempre dá lucro. Jogador novo começa com **150 ✨**.
 
----
+**Custo:** debitado ao entrar na missão (`App.startRoute`). Cancelar antes da decolagem reembolsa. Abortar ou fechar a aba depois disso não reembolsa. Isso elimina o exploit da v1, em que dava para ver "Falha" e cancelar sem pagar.
 
-## 🛠️ Tecnologias
+## 3. Atributos → jogo (`lib/stats.ts`)
 
-### Core
+`lv = nível − 1` (0 a 9)
 
-| Tecnologia | Versão | Propósito |
-|------------|--------|-----------|
-| React | 18.3.1 | UI Framework |
-| TypeScript | 5.x | Type Safety |
-| Vite | 6.x | Build Tool |
-| Tailwind CSS | 4.x | Styling |
+| Parâmetro | Fórmula |
+|---|---|
+| Meia-zona do ângulo | `5 + 1.0·lv(precisão)` graus |
+| Meia-zona da força | `6 + 1.1·lv(precisão)` % |
+| Velocidade dos medidores | `(0.45 + 0.12·(dif−1)) / (1 + 0.09·lv(potência))` ciclos/s |
+| Casco | `3` (+1 com potência ≥ 4, +1 com potência ≥ 8) |
+| Resposta do controle | `4.5 + 1.0·lv(manobra)` |
+| Orbes/s | `2.4 × (1 + 0.06·lv(sorte))` |
+| Escudos/s | `0.035 + 0.012·lv(sorte)` |
+| Ímã | `1 + 0.07·lv(sorte)` |
 
-### 3D e Gráficos
+Upgrades custam `base × 1.45^(nível−2)` (bases: potência 40, precisão 45, sorte 55, manobra 40).
 
-| Tecnologia | Versão | Propósito |
-|------------|--------|-----------|
-| Three.js | 0.160.0 | 3D Rendering Engine |
-| React Three Fiber | 8.15.0 | React Renderer for Three.js |
-| React Three Drei | 9.92.0 | Helpers e componentes 3D |
-| React Three Postprocessing | 2.16.0 | Efeitos visuais avançados |
-| Postprocessing | 6.35.0 | Biblioteca de efeitos |
+## 4. Pontuação (`lib/scoring.ts`)
 
-### Animações e UI
+- **Lançamento**: média da qualidade dos dois medidores. Cada medidor vale 1 no centro, ~0.85 na borda da zona e cai a 0 em três meias-zonas. É *perfeito* dentro de 40% da meia-zona.
+- **Coleta**: `min(1, pontos / (pontos gerados × 1.6))`. Orbe = 1 × multiplicador, anel = 3 × multiplicador. O multiplicador sobe 1 a cada 6 orbes seguidos (máx. x5) e zera ao perder um orbe ou levar dano.
+- **Total**: `0.3·lançamento + 0.5·coleta + 0.2·(casco/casco máx)`.
+- **Nave perdida**: `(0.3·lançamento + 0.5·coleta) × progresso × 0.6`.
 
-| Tecnologia | Versão | Propósito |
-|------------|--------|-----------|
-| Framer Motion | 11.x | Animações declarativas |
-| Canvas Confetti | 1.9.x | Efeitos de celebração |
+## 5. Voo (`game/FlightWorld.tsx`)
 
-### Estado e Persistência
+- Toda a simulação roda em um único `useFrame`, com *pools* de objetos e `InstancedMesh` (até 110 asteroides e 180 orbes em 2 draw calls). O HUD React é atualizado a ~12 Hz.
+- Os asteroides aumentam ao longo do voo (`ramp = 0.6 + 0.8·progresso`). Uma fração deles mira a posição atual da nave (15% a 39% conforme a dificuldade).
+- Em telas em pé, a área jogável encolhe na horizontal, a densidade de asteroides é compensada e o FOV aumenta.
+- Efeitos: bloom, vinheta, aberração cromática pulsando ao levar dano, tremor de câmera, FOV kick no boost, traços de velocidade e partículas de exaustão com a cor do rastro equipado.
 
-| Tecnologia | Propósito |
-|------------|-----------|
-| React Hooks | State management |
-| LocalStorage | Persistência local (MVP) |
+## 6. Missões diárias (`lib/missions.ts`)
 
-### Futuras Integrações
+- São 13 missões no total, e 3 são sorteadas por dia com semente `dia|endereço`, filtradas por `minLevel`.
+- `ensureDailyMissions` renova quando o dia local muda. Roda ao carregar o perfil, a cada minuto e em cada resultado de voo.
+- Tipos: `launches`, `success`, `quality`, `orbs`, `rings`, `perfect`, `flawless`, `route`, `stardust`.
+- A troca custa 25 ✨, pode ser usada 1× por dia e só substitui missões não resgatadas.
+- O XP das missões passa por `applyXp`, então também sobe de nível.
 
-- **Prisma** - ORM para backend
-- **SQLite/PostgreSQL** - Banco de dados
-- **Next.js** - Framework fullstack
-- **Bitcoin Indexer** - Consulta de saldo DOG
-- **Wallet Connectors** - UniSat, Xverse, Leather
+## 7. Persistência (`lib/storage.ts`)
 
----
+- `localStorage['dogcity_game_state']`: perfis por endereço (`version: 2`).
+- `migrateProfile` aceita perfis da v1 ou corrompidos: completa campos, limita atributos a 1–10, recalcula `xpToNext` e troca missões inexistentes.
+- Ranking: `dogcity_leaderboard_v2` guarda os jogadores locais e é complementado por 5 pilotos simulados (marcados como "bot").
+- Toda leitura e escrita é protegida por `try/catch`. Com armazenamento bloqueado, o jogo continua em memória.
 
-## 📁 Estrutura do Projeto
+## 8. Áudio (`lib/audio.ts`)
 
-```
-dogcity-game/
-├── public/                    # Assets estáticos
-├── src/
-│   ├── components/           # Componentes React
-│   │   ├── ConnectWallet.tsx
-│   │   ├── PlayerProfile.tsx
-│   │   ├── RouteSelector.tsx
-│   │   ├── Game3D.tsx
-│   │   ├── SpaceScene3D.tsx
-│   │   ├── MissionsPanel.tsx
-│   │   ├── UpgradeShop.tsx
-│   │   ├── CosmeticShop.tsx
-│   │   └── WeeklyLeaderboard.tsx
-│   ├── lib/                  # Lógica de negócio
-│   │   ├── economy.ts        # Rotas, tiers, cálculos
-│   │   ├── missions.ts       # Sistema de missões
-│   │   ├── shop.ts           # Upgrades e cosméticos
-│   │   ├── storage.ts        # Persistência
-│   │   └── wallet.ts         # Mock de carteira
-│   ├── types.ts              # Definições de tipos
-│   ├── App.tsx               # Componente principal
-│   ├── main.tsx              # Entry point
-│   └── index.css             # Estilos globais
-├── index.html                # HTML template
-├── package.json              # Dependências
-├── tsconfig.json             # Config TypeScript
-├── vite.config.ts            # Config Vite
-└── tailwind.config.js        # Config Tailwind
-```
+Todo o som é sintetizado com WebAudio: osciladores e ruído marrom filtrado. O `AudioContext` nasce no primeiro clique. O botão 🔊 no topo silencia, e a preferência fica salva.
 
-### Descrição dos Arquivos
+## 9. Evolução visual (`lib/evolution.ts`)
 
-#### Componentes
+| Fase | Astronauta (pts de raridade equipados, máx 12) | Foguete (soma dos 4 atributos, 4–40) |
+|---|---|---|
+| 1 | Início (0) | Básico (4) |
+| 2 | Exploração (2) | Aprimorado (10) |
+| 3 | Avançado (5) | Avançado (17) |
+| 4 | Especial (8) | Especial (25) |
+| 5 | Lendário (11) | Lendário (33) |
 
-- **ConnectWallet.tsx** - Tela de conexão de carteira com background 3D
-- **PlayerProfile.tsx** - Card do perfil do jogador e cão astronauta
-- **RouteSelector.tsx** - Seletor de rotas de lançamento
-- **Game3D.tsx** - Interface do jogo com controles
-- **SpaceScene3D.tsx** - Cena 3D com foguete, lua, alvo e partículas
-- **MissionsPanel.tsx** - Painel de missões diárias
-- **UpgradeShop.tsx** - Loja de upgrades de stats
-- **CosmeticShop.tsx** - Loja de cosméticos
-- **WeeklyLeaderboard.tsx** - Ranking semanal
+As artes ficam em `public/art/astro-N.webp`, `public/art/rocket-N.webp` e `public/art/icons/*.webp`. A Loja funciona como provador (mostra a fase que o item daria) e a Oficina mostra a prévia do próximo nível.
 
-#### Bibliotecas
+## 10. Testes
 
-- **economy.ts** - Definição de rotas, cálculo de tiers, recompensas, XP
-- **missions.ts** - Lógica de missões diárias, progresso, recompensas
-- **shop.ts** - Definição de upgrades e cosméticos, disponibilidade
-- **storage.ts** - Persistência em localStorage, leaderboard
-- **wallet.ts** - Mock de conexão de carteira e saldo DOG
+`npm test` roda `src/lib/game-rules.test.ts` (Vitest + jsdom). Ele cobre economia, pontuação, efeitos dos atributos, aplicação de resultados, missões (renovação, progresso, troca e level up ao resgatar), loja e migração de perfis v1.
 
----
+O CI (`.github/workflows/ci.yml`) roda typecheck, testes e build em Node 20 e 22, e publica no GitHub Pages a cada push em `main`/`master` (o build usa `base: './'`).
 
-## 🚀 Instalação e Configuração
+## 11. Próximos passos sugeridos
 
-### Pré-requisitos
-
-- Node.js 18+ e npm
-- Navegador moderno com suporte a WebGL 2.0
-
-### Instalação
-
-```bash
-# Clonar o repositório
-git clone <repo-url>
-cd dogcity-game
-
-# Instalar dependências
-npm install
-
-# Rodar em desenvolvimento
-npm run dev
-
-# Build para produção
-npm run build
-
-# Preview da build
-npm run preview
-```
-
-### Variáveis de Ambiente (Futuro)
-
-```env
-# Backend API
-VITE_API_URL=http://localhost:3000
-
-# Bitcoin Indexer
-VITE_INDEXER_URL=https://api.dogdata.xyz
-
-# Wallet Connect
-VITE_WALLET_CONNECT_PROJECT_ID=xxx
-```
-
----
-
-## 🎮 Componentes
-
-### ConnectWallet
-
-Tela inicial de conexão de carteira.
-
-**Props:**
-```typescript
-interface ConnectWalletProps {
-  onConnect: (wallet: WalletConnection) => void;
-}
-```
-
-**Features:**
-- Background 3D animado
-- Animações de entrada com Framer Motion
-- Botão com gradiente animado
-- Glass morphism no card
-
-### PlayerProfile
-
-Card do perfil do jogador.
-
-**Props:**
-```typescript
-interface PlayerProfileProps {
-  profile: PlayerProfile;
-}
-```
-
-**Features:**
-- Exibe tier e badge
-- Stats do cão (power, accuracy, luck, speed)
-- Barra de XP animada
-- Recursos (Stardust, Pó Lunar)
-- Saldo de DOG
-
-### Game3D
-
-Interface principal do jogo.
-
-**Props:**
-```typescript
-interface Game3DProps {
-  route: Route;
-  onComplete: (score: number, success: boolean) => void;
-  onCancel: () => void;
-  dogStats?: {
-    power: number;
-    accuracy: number;
-    luck: number;
-    speed: number;
-  };
-}
-```
-
-**Features:**
-- Cena 3D imersiva
-- Controles de power e ângulo
-- HUD overlay com informações
-- Animações de lançamento
-- Feedback visual rico
-
-### SpaceScene3D
-
-Cena 3D com Three.js.
-
-**Props:**
-```typescript
-interface SpaceScene3DProps {
-  phase?: string;
-  power?: number;
-}
-```
-
-**Features:**
-- Foguete 3D detalhado com materiais PBR
-- Lua com rotação
-- Alvo animado com glow
-- 3000+ partículas
-- 5000+ estrelas
-- Iluminação volumétrica
-- Bloom post-processing
-
----
-
-## 🎯 Sistema de Jogo
-
-### Rotas de Lançamento
-
-| Rota | Custo | Dificuldade | Max Score | Multiplicador |
-|------|-------|-------------|-----------|---------------|
-| 🌍 Órbita Baixa | 10 | ★☆☆☆ | 100 | 1x |
-| 🌙 Mar da Tranquilidade | 25 | ★★☆☆ | 250 | 1.8x |
-| ☄️ Cinturão de Asteroides | 50 | ★★★☆ | 500 | 3x |
-| 🔴 Colônia de Marte | 100 | ★★★★ | 1000 | 5x |
-
-### Mecânica de Lançamento
-
-1. **Fase Idle** - Foguete flutua suavemente
-2. **Fase Aiming** - Power carrega automaticamente
-   - Velocidade baseada no stat Power
-   - Máximo baseado no stat Power
-3. **Fase Flying** - Foguete voa com física
-   - Gravidade aplicada
-   - Trail de partículas
-   - Rotação baseada em velocidade
-4. **Fase Landed** - Resultado calculado
-   - Score baseado em distância ao alvo
-   - Sucesso baseado em chance calculada
-
-### Cálculo de Score
-
-```typescript
-// Score baseado em power e accuracy
-baseScore = (power / 100) * route.maxScore * (accuracy / 5)
-score = min(baseScore, route.maxScore)
-```
-
-### Cálculo de Sucesso
-
-```typescript
-// Chance baseada em score e luck
-threshold = route.maxScore * 0.5
-luckBonus = (luck - 1) * 0.03
-
-if (score >= threshold) return min(0.85 + luckBonus, 0.98)
-if (score >= threshold * 0.7) return min(0.6 + luckBonus, 0.85)
-if (score >= threshold * 0.4) return min(0.35 + luckBonus, 0.6)
-return min(0.1 + luckBonus, 0.3)
-```
-
-### Recompensas
-
-```typescript
-// Stardust ganho
-if (success) {
-  reward = score * route.rewardMultiplier
-} else {
-  reward = score * 0.1
-}
-
-// XP ganho
-xp = score * 0.5 * (success ? 1 : 0.3)
-
-// Pó Lunar (apenas sucesso com score > 200)
-if (success && score > 200) {
-  lunarDust = floor(score / 100)
-}
-```
-
----
-
-## 💎 Economia e Mecânicas
-
-### Tiers
-
-Baseado no saldo de DOG:
-
-| Tier | DOG Mínimo | Badge |
-|------|------------|-------|
-| Stray | 0 | 🐕 |
-| Explorer | 100 | 🔭 |
-| Pioneer | 1,000 | 🚀 |
-| Commander | 5,000 | ⭐ |
-| Legend | 10,000 | 🏆 |
-
-### Stats do Cão Astronauta
-
-| Stat | Efeito | Upgrade |
-|------|--------|---------|
-| 🔥 Power | Velocidade de carga do power | Propulsor |
-| 🎯 Accuracy | Zona de acerto no alvo | Mira |
-| 🍀 Luck | Chance de sucesso | Amuleto |
-| 💨 Speed | Velocidade do foguete | Aerodinâmica |
-
-### Upgrades
-
-- 10 níveis por stat
-- Custo crescente
-- Efeitos cumulativos
-- Desbloqueados por nível do cão
-
-### Cosméticos
-
-**Tipos:**
-- Skin (pele)
-- Helmet (capacete)
-- Trail (rastro)
-
-**Raridades:**
-- Common (comum) - Stardust
-- Rare (raro) - Stardust
-- Epic (épico) - Stardust
-- Legendary (lendário) - Pó Lunar
-
-### Missões Diárias
-
-3 missões renováveis diariamente:
-
-**Tipos:**
-- Lançamentos (ex: 3 lançamentos)
-- Score (ex: alcançar 200 pontos)
-- Sucessos (ex: 2 missões bem-sucedidas)
-- Rota específica (ex: lançar no Mar da Tranquilidade)
-- Stardust ganho (ex: ganhar 100 Stardust)
-
-**Recompensas:**
-- Stardust (20-80)
-- XP (15-50)
-- Pó Lunar (0-5)
-
-### Sistema de Níveis
-
-```typescript
-// XP necessário por nível
-xpForLevel = floor(50 * pow(1.5, level - 1))
-
-// Level 1: 50 XP
-// Level 2: 75 XP
-// Level 3: 112 XP
-// Level 4: 168 XP
-// ...
-```
-
-### Leaderboard Semanal
-
-- Reset toda segunda-feira
-- Ranking por melhor score da semana
-- Top 3 com medalhas (👑🥈🥉)
-- Destaque para o jogador atual
-
----
-
-## 🔌 APIs e Integrações
-
-### APIs do DogData (DOG Token)
-
-```typescript
-// Stats globais
-GET https://www.dogdata.xyz/api/dog-rune/stats
-
-// Lista de holders
-GET https://www.dogdata.xyz/api/dog-rune/holders?limit=100&page=1
-
-// Top holders
-GET https://www.dogdata.xyz/api/dog-rune/top-holders
-
-// Resumo do airdrop
-GET https://www.dogdata.xyz/api/airdrop/summary
-
-// Análise forense
-GET https://www.dogdata.xyz/api/forensic/summary
-```
-
-### Integração com Wallets (Futuro)
-
-```typescript
-// UniSat
-window.unisat.requestAccounts()
-window.unisat.getAccounts()
-
-// Xverse
-window.XverseProviders.BitcoinProvider.request('getAccounts', {})
-
-// Leather
-window.LeatherProvider.request('getAddresses')
-```
-
-### Integração com DogCity (Futuro)
-
-```typescript
-// Como iframe
-<iframe src="https://game.dogcity.xyz" />
-
-// Como componente
-import { DogCityGame } from '@dogcity/game-module'
-
-// Como microfrontend
-// Via Module Federation ou similar
-```
-
----
-
-## 👨‍💻 Desenvolvimento
-
-### Padrões de Código
-
-- **TypeScript** para type safety
-- **Functional Components** com hooks
-- **Tailwind CSS** para estilização
-- **Framer Motion** para animações
-- **Three.js** para 3D
-
-### Estrutura de Componentes
-
-```typescript
-// Componente típico
-export default function ComponentName({ prop1, prop2 }: Props) {
-  const [state, setState] = useState(initialValue)
-  
-  useEffect(() => {
-    // Side effects
-  }, [dependencies])
-  
-  const handleClick = () => {
-    // Event handler
-  }
-  
-  return (
-    <div className="...">
-      {/* JSX */}
-    </div>
-  )
-}
-```
-
-### Animações com Framer Motion
-
-```typescript
-// Animação de entrada
-<motion.div
-  initial={{ opacity: 0, y: 20 }}
-  animate={{ opacity: 1, y: 0 }}
-  exit={{ opacity: 0, y: -20 }}
-  transition={{ duration: 0.3 }}
->
-  Content
-</motion.div>
-
-// Hover effect
-<motion.button
-  whileHover={{ scale: 1.05 }}
-  whileTap={{ scale: 0.95 }}
->
-  Click me
-</motion.button>
-```
-
-### 3D com Three.js
-
-```typescript
-// Mesh básico
-<mesh position={[0, 0, 0]}>
-  <boxGeometry args={[1, 1, 1]} />
-  <meshStandardMaterial color="red" />
-</mesh>
-
-// Animação com useFrame
-useFrame((state) => {
-  meshRef.current.rotation.y += 0.01
-})
-
-// Post-processing
-<EffectComposer>
-  <Bloom intensity={1.5} />
-</EffectComposer>
-```
-
-### Testes (Futuro)
-
-```bash
-# Unit tests
-npm test
-
-# E2E tests
-npm run test:e2e
-
-# Coverage
-npm run test:coverage
-```
-
----
-
-## 🚢 Deploy
-
-### Vercel (Recomendado)
-
-```bash
-# Instalar Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel
-
-# Production
-vercel --prod
-```
-
-### Netlify
-
-```bash
-# Build
-npm run build
-
-# Deploy dist/ folder
-# Via Netlify dashboard ou CLI
-```
-
-### Docker (Futuro)
-
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-FROM nginx:alpine
-COPY --from=0 /app/dist /usr/share/nginx/html
-```
-
-### Integração com DogCity
-
-**Opção 1: Iframe**
-```html
-<iframe 
-  src="https://game.dogcity.xyz" 
-  width="100%" 
-  height="800px"
-  frameborder="0"
-/>
-```
-
-**Opção 2: Subdomínio**
-```
-game.dogcity.xyz → Deploy separado
-```
-
-**Opção 3: Subpath**
-```
-dogcity.xyz/game → Mesmo deploy
-```
-
----
-
-## 🗺️ Roadmap
-
-### Fase 1: MVP (Atual) ✅
-
-- [x] Sistema básico de jogo
-- [x] Gráficos 3D com Three.js
-- [x] Economia dual (Stardust/Pó Lunar)
-- [x] Sistema de upgrades
-- [x] Cosméticos
-- [x] Missões diárias
-- [x] Leaderboard semanal
-- [x] Persistência local
-
-### Fase 2: Integração Bitcoin
-
-- [ ] Conectar carteira real (UniSat/Xverse)
-- [ ] Consultar saldo DOG via indexer
-- [ ] Calcular tier baseado em saldo real
-- [ ] Salvar progresso em backend
-
-### Fase 3: Backend
-
-- [ ] API REST com Next.js
-- [ ] Banco de dados (PostgreSQL)
-- [ ] Autenticação com wallet
-- [ ] Leaderboard global
-- [ ] Histórico de transações
-
-### Fase 4: Torneios
-
-- [ ] Sistema de torneios com DOG
-- [ ] Escrow de DOG
-- [ ] Entry receipts
-- [ ] Premiação automática
-- [ ] Dashboard administrativo
-
-### Fase 5: Expansão
-
-- [ ] Novas rotas e missões
-- [ ] Sistema de conquistas
-- [ ] Multiplayer
-- [ ] NFTs de cosméticos
-- [ ] Marketplace
-
-### Fase 6: DogCity Integration
-
-- [ ] Integrar como módulo do DogCity
-- [ ] Usar lore e assets do DogCity
-- [ ] Conectar com sistema de terrenos
-- [ ] Integração com Founders Program
-
----
-
-## 📚 Recursos
-
-### Documentação
-
-- [React Docs](https://react.dev/)
-- [Three.js Docs](https://threejs.org/docs/)
-- [React Three Fiber](https://docs.pmnd.rs/react-three-fiber)
-- [Framer Motion](https://www.framer.com/motion/)
-- [Tailwind CSS](https://tailwindcss.com/docs)
-
-### DogCity
-
-- [DogCity Website](https://www.dogdata.xyz/dogcity)
-- [DogCity Docs](https://www.dogdata.xyz/dogcity/docs)
-- [DOG Token Info](https://www.dogdata.xyz/)
-
-### Comunidade
-
-- [DOG Telegram](https://t.me/dogcommunity)
-- [DOG Twitter](https://twitter.com/dog_token)
-
----
-
-## 🤝 Contribuindo
-
-### Como Contribuir
-
-1. Fork o projeto
-2. Crie uma branch (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
-
-### Estilo de Código
-
-- Use TypeScript
-- Siga os padrões existentes
-- Comente código complexo
-- Teste suas mudanças
-
----
-
-## 📄 Licença
-
-Este projeto é parte do ecossistema DogCity e segue as diretrizes da comunidade DOG.
-
----
-
-## 📞 Contato
-
-Para dúvidas ou sugestões:
-- Abra uma issue no GitHub
-- Entre em contato com a equipe DogCity
-- Participe da comunidade DOG
-
----
-
-**Desenvolvido com ❤️ para a comunidade DogCity**
-
-*Última atualização: Setembro 2026*
+- Ranking online (servidor ou Supabase) com validação do score no servidor.
+- Leitura real do saldo DOG (Runes) via indexador. Suporte a Xverse.
+- Conquistas permanentes e eventos semanais com rotas especiais.

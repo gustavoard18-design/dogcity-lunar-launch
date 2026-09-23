@@ -1,5 +1,20 @@
-import { Route, PlayerProfile } from '../types';
-import { ROUTES } from '../lib/economy';
+import { PlanetKind, PlayerProfile, Route } from '../types';
+import { ROUTES, getRouteCost, isFreeTraining, isRouteUnlocked } from '../lib/economy';
+import { cutoutArt } from '../lib/evolution';
+import GameIcon, { LockIcon, PLANET_ICON, Stardust } from './GameIcon';
+
+function PlanetBadge({ kind, locked }: { kind: PlanetKind; locked: boolean }) {
+  return (
+    <span className="relative w-14 h-14 shrink-0">
+      <GameIcon name={PLANET_ICON[kind]} size={56} dim={locked} />
+      {locked && (
+        <span className="absolute inset-0 flex items-center justify-center">
+          <LockIcon size={22} />
+        </span>
+      )}
+    </span>
+  );
+}
 
 interface RouteSelectorProps {
   profile: PlayerProfile;
@@ -7,58 +22,74 @@ interface RouteSelectorProps {
 }
 
 export default function RouteSelector({ profile, onSelectRoute }: RouteSelectorProps) {
-  const canAfford = (route: Route) => profile.stardust >= route.cost;
-  
-  const isRouteUnlocked = (route: Route) => {
-    switch (route.id) {
-      case 'low-orbit': return true;
-      case 'sea-of-tranquility': return profile.dog.level >= 2;
-      case 'asteroid-belt': return profile.dog.level >= 4;
-      case 'mars-colony': return profile.dog.level >= 7;
-      default: return false;
-    }
-  };
+  const bestByRoute = (id: string) =>
+    profile.launches.filter(l => l.route.id === id).reduce((m, l) => Math.max(m, l.score), 0);
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-lg font-bold text-white">🗺️ Rotas de Lançamento</h3>
-      
+    <div className="panel relative space-y-3">
+      <img
+        src={cutoutArt('rocket')}
+        alt=""
+        draggable={false}
+        className="hidden sm:block absolute -top-12 right-4 h-28 rotate-[18deg] object-contain drop-shadow-[0_12px_18px_rgba(0,0,0,0.55)] pointer-events-none animate-float"
+      />
+      <div className="flex items-baseline justify-between">
+        <h3 className="font-display text-lg text-white">Rotas de lançamento</h3>
+        <span className="text-[11px] text-slate-500 sm:mr-24">Custo debitado na decolagem</span>
+      </div>
+
       {ROUTES.map(route => {
-        const unlocked = isRouteUnlocked(route);
-        const affordable = canAfford(route);
+        const unlocked = isRouteUnlocked(route, profile.dog.level);
+        const cost = getRouteCost(route, profile);
+        const affordable = profile.stardust >= cost;
         const disabled = !unlocked || !affordable;
-        
+        const best = bestByRoute(route.id);
+
         return (
           <button
             key={route.id}
             onClick={() => !disabled && onSelectRoute(route)}
             disabled={disabled}
-            className={`w-full text-left p-4 rounded-xl border transition-all ${
+            className={`group relative w-full text-left p-4 rounded-2xl border overflow-hidden transition-all ${
               disabled
-                ? 'bg-gray-800/30 border-gray-700/30 opacity-50 cursor-not-allowed'
-                : 'bg-gray-800/50 border-purple-500/30 hover:border-purple-400/60 hover:bg-gray-800/80 cursor-pointer'
+                ? 'bg-white/[0.02] border-white/5 opacity-50 cursor-not-allowed'
+                : 'bg-white/[0.04] border-white/10 hover:border-fuchsia-400/50 hover:bg-white/[0.07] cursor-pointer hover:-translate-y-0.5'
             }`}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">{route.emoji}</span>
-                <div>
+            <div
+              className="absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity"
+              style={{ background: route.color }}
+            />
+            <div className="relative flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <PlanetBadge kind={route.destination} locked={!unlocked} />
+                <div className="min-w-0">
                   <h4 className="text-white font-semibold">{route.name}</h4>
-                  <p className="text-xs text-gray-400">{route.description}</p>
+                  <p className="text-xs text-slate-400 truncate">
+                    {unlocked ? route.description : `Desbloqueia no nível ${route.unlockLevel}`}
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {'★'.repeat(route.difficulty)}
+                    {'☆'.repeat(4 - route.difficulty)} · {route.flightSeconds}s · máx {route.maxScore}
+                    {best > 0 && <span className="text-amber-300/80"> · recorde {best}</span>}
+                  </p>
                 </div>
               </div>
-              <div className="text-right">
-                <div className={`text-sm font-bold ${affordable ? 'text-yellow-400' : 'text-red-400'}`}>
-                  ✨ {route.cost}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {'★'.repeat(route.difficulty)}{'☆'.repeat(4 - route.difficulty)}
-                </div>
+              <div className="text-right shrink-0">
+                {isFreeTraining(route, profile) ? (
+                  <div className="text-xs font-bold text-emerald-300">GRÁTIS</div>
+                ) : (
+                  <div className={`text-sm font-bold ${affordable ? 'text-amber-300' : 'text-red-400'}`}><Stardust value={route.cost} /></div>
+                )}
+                <div className="text-[10px] text-slate-500">x{route.rewardMultiplier} XP</div>
               </div>
             </div>
           </button>
         );
       })}
+      {profile.stardust < ROUTES[0].cost && (
+        <p className="text-xs text-emerald-300/80">Sem Stardust? A Órbita Baixa vira treino gratuito até você se recuperar.</p>
+      )}
     </div>
   );
 }

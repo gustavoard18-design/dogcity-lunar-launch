@@ -1,266 +1,112 @@
 # 🐕‍🦺🚀 DogCity Lunar Launch
 
-<div align="center">
+**Mire, lance e pilote um cão astronauta por órbitas, luas e cinturões de asteroides.**
+Jogo 3D no navegador, feito com React + Three.js, integrado ao ecossistema DogCity.
 
-![DogCity Logo](https://img.shields.io/badge/DogCity-Lunar%20Launch-purple?style=for-the-badge)
-![React](https://img.shields.io/badge/React-18.3-blue?style=flat-square&logo=react)
+![React](https://img.shields.io/badge/React-18-blue?style=flat-square&logo=react)
 ![Three.js](https://img.shields.io/badge/Three.js-0.160-green?style=flat-square&logo=three.js)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?style=flat-square&logo=typescript)
-![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
-
-**Um jogo 3D de lançamento espacial integrado ao ecossistema DogCity**
-
-[Documentação Completa](./WIKI.md) • [Demo](#-demo) • [Instalação](#-instalação) • [Como Jogar](#-como-jogar)
-
-</div>
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square&logo=typescript)
 
 ---
 
-## 🎮 Sobre o Jogo
+## 🎮 Como jogar
 
-DogCity Lunar Launch é um jogo 3D onde você controla cães astronautas em missões de lançamento espacial. Ganhe Stardust, evolua seu cão, compre upgrades e cosméticos, e compita no leaderboard semanal!
+Cada missão tem três etapas:
 
-### ✨ Features
+1. **Mira**: um ponteiro oscila entre 15° e 80°. Trave-o dentro da faixa verde, que aponta para o planeta de destino no céu (faixa amarela = perfeito).
+2. **Força**: uma barra sobe e desce. Trave na zona dourada.
+3. **Voo**: pilote com **mouse / toque** ou **WASD / setas**:
+   - ✨ **orbes** dão pontos, e sequências sem perder nenhum aumentam o multiplicador (até x5);
+   - 💫 **anéis** dão pontos extras e um *boost*;
+   - 🛡️ **escudos** absorvem um impacto;
+   - ☄️ **asteroides** tiram um ❤️ do casco. Com o casco zerado, a nave é perdida.
 
-- 🎨 **Gráficos 3D AAAA** com Three.js e React Three Fiber
-- 🐕 **Sistema de pets** com 4 stats evolutivos
-- 🚀 **4 rotas de lançamento** com dificuldades variadas
-- 💎 **Economia dual** (Stardust + Pó Lunar)
-- 🎯 **Missões diárias** renováveis
-- 🏆 **Leaderboard semanal** competitivo
-- 🔧 **Sistema de upgrades** com 10 níveis por stat
-- 🎨 **Cosméticos** com 4 raridades
-- 🔗 **Integração Bitcoin** (preparado para UniSat/Xverse)
+Mira e força **perfeitas** começam o voo com escudo. **Espaço/Enter** também travam os medidores; **Esc** cancela antes da decolagem (com reembolso).
+
+### Score
+
+`score = máx da rota × (30% lançamento + 50% coleta + 20% casco restante)`.
+Se a nave for perdida, o voo vale no máximo 60% do que foi feito até ali. Recordes e ranking só contam voos concluídos.
+
+### Rotas
+
+| Rota | Custo | Desbloqueio | Duração | Máx |
+|------|------:|:-----------:|--------:|----:|
+| 🌍 Órbita Baixa | 10 ✨ | nível 1 | 24 s | 100 |
+| 🌙 Mar da Tranquilidade | 25 ✨ | nível 2 | 30 s | 250 |
+| ☄️ Cinturão de Asteroides | 50 ✨ | nível 4 | 36 s | 500 |
+| 🔴 Colônia de Marte | 100 ✨ | nível 7 | 42 s | 1000 |
+
+O custo é debitado na entrada da missão e só volta se você cancelar **antes** da decolagem. Quem fica sem Stardust ganha **treino gratuito** na Órbita Baixa, então nunca trava.
+
+### Progressão
+
+- **Oficina**: 4 atributos com 10 níveis cada (custo crescente).
+  - 🔥 Potência: medidores mais lentos e casco extra nos níveis 4 e 8
+  - 🎯 Precisão: zonas ideais mais largas
+  - 🍀 Sorte: mais orbes e escudos, e ímã de coleta
+  - 💨 Manobra: nave mais responsiva
+- **Missões diárias**: 3 por dia, sorteadas entre 13 conforme o seu nível. Renovam à meia-noite, e dá para trocar uma vez por dia por 25 ✨.
+- **Loja**: pelagens, capacetes e rastros do motor, que aparecem no foguete e no cão, no hangar e em voo.
+- **Ranking semanal**: seu melhor voo concluído da semana.
+- **Evolução visual**: o astronauta tem 5 fases (Início → Exploração → Avançado → Especial → Lendário) conforme a raridade dos itens equipados na Loja (comum 1, raro 2, épico 3, lendário 4 pts). O foguete tem 5 fases (Básico → Aprimorado → Avançado → Especial → Lendário) conforme a soma dos níveis da Oficina.
 
 ---
 
-## 🚀 Instalação
-
-### Pré-requisitos
-
-- Node.js 18+ e npm
-- Navegador moderno com WebGL 2.0
-
-### Passos
+## 🚀 Rodando
 
 ```bash
-# 1. Clone o repositório
-git clone https://github.com/seu-usuario/dogcity-game.git
-cd dogcity-game
-
-# 2. Instale as dependências
 npm install
-
-# 3. Rode em desenvolvimento
-npm run dev
-
-# 4. Abra no navegador
-# http://localhost:5173
+npm run dev        # http://localhost:5173
+npm test           # testes das regras do jogo (Vitest)
+npm run build      # typecheck + build de produção em dist/
+npm run preview    # serve o build
 ```
 
-### Build para Produção
+Requer Node 20+ e um navegador com WebGL 2.
 
-```bash
-# Buildar
-npm run build
+## 🔗 Carteira
 
-# Preview da build
-npm run preview
-```
+- **Jogar agora** cria um piloto convidado com endereço único, salvo no navegador.
+- **UniSat**: se a extensão estiver instalada, conecta de verdade (`requestAccounts`).
+- O saldo **DOG é simulado** a partir do endereço (ainda não há leitura on-chain de Runes). Nenhuma transação é feita.
 
----
-
-## 🎯 Como Jogar
-
-### 1. Conectar Wallet
-
-Ao iniciar o jogo, clique em **"🔗 Conectar Wallet"**. O jogo gerará uma wallet mockada automaticamente com:
-- 100 Stardust iniciais
-- Um cão astronauta aleatório
-- Saldo de DOG baseado no endereço
-
-### 2. Escolher uma Rota
-
-Na aba **"🚀 Lançar"**, escolha uma das 4 rotas:
-
-| Rota | Custo | Dificuldade | Recompensa |
-|------|-------|-------------|------------|
-| 🌍 Órbita Baixa | 10 ✨ | ★☆☆☆ | 1x |
-| 🌙 Mar da Tranquilidade | 25 ✨ | ★★☆☆ | 1.8x |
-| ☄️ Cinturão de Asteroides | 50 ✨ | ★★★☆ | 3x |
-| 🔴 Colônia de Marte | 100 ✨ | ★★★★ | 5x |
-
-### 3. Lançar o Foguete
-
-1. Clique em **"🎯 Mirar"**
-2. Ajuste o **ângulo** (15° a 80°)
-3. Aguarde a barra de **power** carregar
-4. Clique em **"🚀 LANÇAR!"**
-5. Veja o foguete 3D voando!
-
-### 4. Ganhar Recompensas
-
-- **Sucesso**: Ganha Stardust + XP + possível Pó Lunar
-- **Falha**: Ganha apenas 10% do score em Stardust
-- **Level Up**: Ganhe XP para subir de nível e desbloquear rotas
-
-### 5. Evoluir seu Cão
-
-Na aba **"🔧 Upgrades"**, melhore os stats:
-- 🔥 **Power**: Carrega mais rápido
-- 🎯 **Accuracy**: Zona de acerto maior
-- 🍀 **Luck**: Mais chance de sucesso
-- 💨 **Speed**: Foguete mais rápido
-
-### 6. Completar Missões
-
-Na aba **"📋 Missões"**, complete missões diárias para ganhar recompensas extras!
-
-### 7. Comprar Cosméticos
-
-Na aba **"🎨 Loja"**, compre skins, capacetes e rastros para customizar seu cão!
-
----
-
-## 📁 Estrutura do Projeto
+## 📁 Estrutura
 
 ```
-dogcity-game/
-├── src/
-│   ├── components/          # Componentes React
-│   │   ├── ConnectWallet.tsx
-│   │   ├── PlayerProfile.tsx
-│   │   ├── Game3D.tsx
-│   │   ├── SpaceScene3D.tsx
-│   │   └── ...
-│   ├── lib/                 # Lógica de negócio
-│   │   ├── economy.ts       # Rotas, tiers, cálculos
-│   │   ├── missions.ts      # Sistema de missões
-│   │   ├── shop.ts          # Upgrades e cosméticos
-│   │   ├── storage.ts       # Persistência
-│   │   └── wallet.ts        # Mock de carteira
-│   ├── types.ts             # Definições de tipos
-│   ├── App.tsx              # Componente principal
-│   └── main.tsx             # Entry point
-├── public/                  # Assets estáticos
-├── WIKI.md                  # Documentação completa
-├── README.md                # Este arquivo
-└── package.json             # Dependências
+src/
+├── App.tsx               # telas (conexão, hangar, missão) e ações do jogador
+├── game/                 # a missão jogável
+│   ├── LaunchGame.tsx    # orquestra fases, HUD e entrada
+│   ├── PadScene.tsx      # plataforma, mira, contagem e decolagem (3D)
+│   ├── FlightWorld.tsx   # simulação do voo: asteroides, orbes, anéis, câmera
+│   └── ResultScreen.tsx
+├── three/                # peças 3D reutilizáveis
+│   ├── Rocket.tsx        # foguete em 3D no estilo das artes, com o cão na escotilha
+│   ├── DogAstronaut.tsx  # mascote DOG em 3D: Shiba de traje espacial, no estilo das artes oficiais
+│   ├── Planet.tsx        # planeta com atmosfera (shader)
+│   ├── Particles.tsx     # partículas em GPU (exaustão, fumaça, explosões)
+│   ├── textures.ts       # texturas procedurais de planetas
+│   ├── SpaceBits.tsx     # nebulosas, traços de velocidade, iluminação
+│   └── (o céu do login/hangar é components/SpaceBackdrop.tsx, sem WebGL)
+├── components/           # painéis do hangar
+└── lib/                  # regras puras (testadas)
+    ├── economy.ts        # rotas, recompensas, XP, datas
+    ├── stats.ts          # atributos → parâmetros do jogo
+    ├── scoring.ts        # voo → score
+    ├── progress.ts       # aplicar resultado, compras
+    ├── missions.ts       # missões diárias
+    ├── shop.ts           # upgrades e cosméticos
+    ├── evolution.ts      # fases visuais do astronauta e do foguete
+    ├── storage.ts        # localStorage + migração de perfis v1
+    ├── wallet.ts         # convidado / UniSat
+    └── audio.ts          # efeitos sonoros sintetizados (WebAudio)
 ```
 
----
+As artes (personagens recortados, avatares, itens da Loja, ícones e logo) ficam em `public/art/` e `public/dog-face.png`; a plataforma de lançamento usa os recortes como sprites. Texturas 3D, modelos e sons são gerados em código.
 
-## 🛠️ Tecnologias
+Mais detalhes de design e fórmulas em [WIKI.md](./WIKI.md).
 
-### Core
-- **React 18** - UI Framework
-- **TypeScript** - Type Safety
-- **Vite** - Build Tool
-- **Tailwind CSS** - Styling
+## 📝 Licença
 
-### 3D e Gráficos
-- **Three.js** - 3D Rendering
-- **React Three Fiber** - React for Three.js
-- **React Three Drei** - Helpers 3D
-- **Postprocessing** - Efeitos visuais
-
-### Animações
-- **Framer Motion** - Animações declarativas
-- **Canvas Confetti** - Efeitos de celebração
-
----
-
-## 📚 Documentação
-
-- [**WIKI.md**](./WIKI.md) - Documentação completa do projeto
-- [**3D_GAME_DOCUMENTATION.md**](./3D_GAME_DOCUMENTATION.md) - Detalhes dos gráficos 3D
-- [**VISUAL_IMPROVEMENTS.md**](./VISUAL_IMPROVEMENTS.md) - Melhorias visuais implementadas
-- [**COMO_GERAR_ZIP.md**](./COMO_GERAR_ZIP.md) - Como gerar ZIP do projeto
-
----
-
-## 🔗 Integração com DogCity
-
-Este jogo é um módulo independente que pode ser integrado ao DogCity de várias formas:
-
-### Como Iframe
-```html
-<iframe src="https://game.dogcity.xyz" width="100%" height="800px" />
-```
-
-### Como Componente
-```typescript
-import { DogCityGame } from '@dogcity/game-module'
-
-function App() {
-  return <DogCityGame />
-}
-```
-
-### Como Microfrontend
-Via Module Federation ou similar (configuração futura)
-
----
-
-## 🗺️ Roadmap
-
-### ✅ Fase 1: MVP (Atual)
-- [x] Sistema básico de jogo
-- [x] Gráficos 3D com Three.js
-- [x] Economia dual
-- [x] Sistema de upgrades
-- [x] Cosméticos
-- [x] Missões diárias
-- [x] Leaderboard semanal
-
-### 🔄 Fase 2: Integração Bitcoin
-- [ ] Conectar carteira real (UniSat/Xverse)
-- [ ] Consultar saldo DOG via indexer
-- [ ] Calcular tier baseado em saldo real
-
-### 📋 Fase 3: Backend
-- [ ] API REST com Next.js
-- [ ] Banco de dados (PostgreSQL)
-- [ ] Autenticação com wallet
-- [ ] Leaderboard global
-
-### 🏆 Fase 4: Torneios
-- [ ] Sistema de torneios com DOG
-- [ ] Escrow de DOG
-- [ ] Premiação automática
-
----
-
-## 🤝 Contribuindo
-
-Contribuições são bem-vindas! Veja como contribuir:
-
-1. Fork o projeto
-2. Crie uma branch (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
-
----
-
-## 📄 Licença
-
-Este projeto é parte do ecossistema DogCity e segue as diretrizes da comunidade DOG.
-
----
-
-## 📞 Contato
-
-- **DogCity**: [dogdata.xyz/dogcity](https://www.dogdata.xyz/dogcity)
-- **DOG Token**: [dogdata.xyz](https://www.dogdata.xyz/)
-- **Comunidade**: [Telegram](https://t.me/dogcommunity)
-
----
-
-<div align="center">
-
-**Desenvolvido com ❤️ para a comunidade DogCity**
-
-[⭐ Star this repo](https://github.com/seu-usuario/dogcity-game) • [🐛 Report Bug](https://github.com/seu-usuario/dogcity-game/issues) • [💡 Request Feature](https://github.com/seu-usuario/dogcity-game/issues)
-
-</div>
+MIT

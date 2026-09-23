@@ -1,541 +1,307 @@
-import { useState, useEffect, Suspense } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { PlayerProfile, Route } from './types';
+import { LaunchOutcome, LaunchSummary, PlayerProfile, Route } from './types';
 import { WalletConnection, getMockDogBalance } from './lib/wallet';
 import { loadProfile, createProfile, saveProfile } from './lib/storage';
-import { calculateReward, calculateXpGain, getReputationGain, getXpForLevel, getWeekStart } from './lib/economy';
-import { initializeDailyMissions, updateMissionProgress, claimMissionReward } from './lib/missions';
-import { UPGRADES, COSMETICS } from './lib/shop';
+import { getRouteCost, isRouteUnlocked } from './lib/economy';
+import { claimMission, ensureDailyMissions, rerollMissions } from './lib/missions';
+import { applyLaunchResult, equipCosmetic, purchaseCosmetic, purchaseUpgrade } from './lib/progress';
+import { COSMETICS, UPGRADES } from './lib/shop';
+import { STAT_INFO } from './lib/stats';
+import { cutoutArt } from './lib/evolution';
+import { isMuted, setMuted, sfx } from './lib/audio';
 import ConnectWallet from './components/ConnectWallet';
 import PlayerProfileCard from './components/PlayerProfile';
 import RouteSelector from './components/RouteSelector';
-import Game3D from './components/Game3D';
 import MissionsPanel from './components/MissionsPanel';
 import UpgradeShop from './components/UpgradeShop';
 import CosmeticShop from './components/CosmeticShop';
 import WeeklyLeaderboard from './components/WeeklyLeaderboard';
-import SpaceScene3D from './components/SpaceScene3D';
+import LaunchHistory from './components/LaunchHistory';
+import SpaceBackdrop from './components/SpaceBackdrop';
+import GameIcon, { IconName, LunarDust, Stardust } from './components/GameIcon';
 
-type Screen = 'connect' | 'game' | 'playing';
+const LaunchGame = lazy(() => import('./game/LaunchGame'));
+
 type Tab = 'launch' | 'missions' | 'upgrades' | 'cosmetics' | 'leaderboard' | 'history';
 
+interface Session {
+  id: number;
+  route: Route;
+  paidCost: number;
+  summary: LaunchSummary | null;
+}
+
+const TABS: { id: Tab; label: string; icon: IconName }[] = [
+  { id: 'launch', label: 'Lançar', icon: 'rocket' },
+  { id: 'missions', label: 'Missões', icon: 'medal' },
+  { id: 'upgrades', label: 'Oficina', icon: 'propulsores' },
+  { id: 'cosmetics', label: 'Loja', icon: 'capacete' },
+  { id: 'leaderboard', label: 'Ranking', icon: 'trophy' },
+  { id: 'history', label: 'Diário', icon: 'acessorios' },
+];
+
+
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('connect');
-  const [wallet, setWallet] = useState<WalletConnection | null>(null);
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
-  const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
-  const [launchResult, setLaunchResult] = useState<{ score: number; success: boolean; stardustEarned: number } | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('launch');
-  const [notification, setNotification] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ text: string; key: number } | null>(null);
+  const [muted, setMutedState] = useState(isMuted());
+
+  const notify = useCallback((text: string) => setNotification({ text, key: Date.now() }), []);
 
   useEffect(() => {
-    if (wallet) {
-      const existing = loadProfile(wallet.address);
-      if (existing) {
-        setProfile(existing);
-      } else {
-        const dogBalance = getMockDogBalance(wallet.address);
-        const newProfile = createProfile(wallet.address, dogBalance);
-        setProfile(newProfile);
-      }
-      setScreen('game');
-    }
-  }, [wallet]);
-
-  useEffect(() => {
-    if (notification) {
-      const timer = setTimeout(() => setNotification(null), 3000);
-      return () => clearTimeout(timer);
-    }
+    if (!notification) return;
+    const timer = setTimeout(() => setNotification(null), 3200);
+    return () => clearTimeout(timer);
   }, [notification]);
 
-  const handleConnect = (walletConn: WalletConnection) => {
-    setWallet(walletConn);
-  };
+  const commit = useCallback((next: PlayerProfile) => {
+    saveProfile(next);
+    setProfile(next);
+  }, []);
 
-  const handleSelectRoute = (route: Route) => {
+  // Renova as missões quando o dia vira com o jogo aberto.
+  useEffect(() => {
     if (!profile) return;
-    if (profile.stardust < route.cost) return;
-    setSelectedRoute(route);
-    setScreen('playing');
+    const timer = setInterval(() => {
+      setProfile(p => {
+        if (!p) return p;
+        const next = ensureDailyMissions(p);
+        if (next !== p) saveProfile(next);
+        return next;
+      });
+    }, 60_000);
+    return () => clearInterval(timer);
+  }, [profile?.address]);
+
+  const handleConnect = (wallet: WalletConnection) => {
+    const existing = loadProfile(wallet.address);
+    const next = existing
+      ? { ...existing, provider: wallet.provider }
+      : createProfile(wallet.address, wallet.provider, getMockDogBalance(wallet.address));
+    commit(next);
+    notify(existing ? `Bem-vindo de volta, ${next.dog.name}!` : `Seu piloto ${next.dog.name} está pronto!`);
   };
 
-  const handleGameComplete = (score: number, success: boolean) => {
-    if (!profile || !selectedRoute) return;
+  const startRoute = (route: Route) => {
+    if (!profile || !isRouteUnlocked(route, profile.dog.level)) return;
+    const cost = getRouteCost(route, profile);
+    if (profile.stardust < cost) return;
+    sfx.unlock();
+    sfx.click();
+    // O custo é debitado já na entrada: só volta se cancelar antes da decolagem.
+    commit({ ...profile, stardust: profile.stardust - cost });
+    setSession({ id: Date.now(), route, paidCost: cost, summary: null });
+  };
 
-    const stardustEarned = calculateReward(score, selectedRoute, success);
-    const xpGain = calculateXpGain(score, selectedRoute, success);
-    const repGain = getReputationGain(score, success);
+  const handleCancel = () => {
+    if (!profile || !session) return;
+    commit({ ...profile, stardust: profile.stardust + session.paidCost });
+    setSession(null);
+  };
 
-    const updatedProfile = { ...profile };
-    updatedProfile.stardust = updatedProfile.stardust - selectedRoute.cost + stardustEarned;
-    updatedProfile.totalScore += score;
-    updatedProfile.bestScore = Math.max(updatedProfile.bestScore, score);
-    
-    updatedProfile.dog = { ...updatedProfile.dog };
-    updatedProfile.dog.xp += xpGain;
-    updatedProfile.dog.reputation += repGain;
-    updatedProfile.dog.missions += 1;
-    
-    let leveledUp = false;
-    while (updatedProfile.dog.xp >= updatedProfile.dog.xpToNext) {
-      updatedProfile.dog.xp -= updatedProfile.dog.xpToNext;
-      updatedProfile.dog.level += 1;
-      updatedProfile.dog.xpToNext = getXpForLevel(updatedProfile.dog.level);
-      leveledUp = true;
-    }
-
-    if (leveledUp) {
-      setNotification(`🎉 ${updatedProfile.dog.name} subiu para o nível ${updatedProfile.dog.level}!`);
-      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-    }
-
-    updatedProfile.launches = [
-      {
-        id: `launch_${Date.now()}`,
-        route: selectedRoute,
-        score,
-        stardustEarned,
-        stardustCost: selectedRoute.cost,
-        success,
-        timestamp: new Date().toISOString(),
-      },
-      ...updatedProfile.launches,
-    ].slice(0, 50);
-
-    if (success && score > 200) {
-      updatedProfile.lunarDust += Math.floor(score / 100);
-    }
-
-    const weekStart = getWeekStart();
-    if (updatedProfile.currentWeekStart !== weekStart) {
-      if (updatedProfile.weeklyScores.length === 0 || updatedProfile.weeklyScores[0].weekStart !== weekStart) {
-        updatedProfile.weeklyScores = [
-          { weekStart, bestScore: score, totalLaunches: 1, totalScore: score },
-          ...updatedProfile.weeklyScores,
-        ].slice(0, 12);
-      }
-      updatedProfile.currentWeekStart = weekStart;
-    } else {
-      const currentWeek = updatedProfile.weeklyScores[0];
-      if (currentWeek) {
-        currentWeek.bestScore = Math.max(currentWeek.bestScore, score);
-        currentWeek.totalLaunches += 1;
-        currentWeek.totalScore += score;
-      }
-    }
-
-    updatedProfile.dailyMissions = updateMissionProgress(updatedProfile.dailyMissions, 'launches', 1);
-    updatedProfile.dailyMissions = updateMissionProgress(updatedProfile.dailyMissions, 'score', score);
-    if (success) {
-      updatedProfile.dailyMissions = updateMissionProgress(updatedProfile.dailyMissions, 'success', 1);
-    }
-    updatedProfile.dailyMissions = updateMissionProgress(updatedProfile.dailyMissions, 'route', 1, selectedRoute.id);
-    updatedProfile.dailyMissions = updateMissionProgress(updatedProfile.dailyMissions, 'stardust', stardustEarned);
-
-    saveProfile(updatedProfile);
-    setProfile(updatedProfile);
-    setLaunchResult({ score, success, stardustEarned });
-    setScreen('game');
-    setSelectedRoute(null);
-
-    if (success) {
-      confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+  const handleFinish = (outcome: LaunchOutcome) => {
+    if (!profile || !session || session.summary) return;
+    const { profile: next, summary } = applyLaunchResult(profile, session.route, outcome, session.paidCost);
+    commit(next);
+    setSession({ ...session, summary });
+    if (summary.levelsGained > 0) {
+      window.setTimeout(() => {
+        sfx.levelUp();
+        confetti({ particleCount: 140, spread: 80, origin: { y: 0.6 }, zIndex: 100 });
+      }, 1100);
+    } else if (outcome.success) {
+      confetti({ particleCount: 60, spread: 60, origin: { y: 0.7 }, zIndex: 100 });
     }
   };
 
-  const handleCancelGame = () => {
-    setScreen('game');
-    setSelectedRoute(null);
-  };
+  const canRetry = useMemo(() => {
+    if (!profile || !session) return false;
+    return profile.stardust >= getRouteCost(session.route, profile);
+  }, [profile, session]);
 
-  const handleDisconnect = () => {
-    setWallet(null);
-    setProfile(null);
-    setScreen('connect');
-  };
-
-  const handleClaimMissionReward = (missionId: string) => {
+  const handleClaimMission = (missionId: string) => {
     if (!profile) return;
-    
-    const missionState = profile.dailyMissions.find(m => m.missionId === missionId);
-    if (!missionState) return;
-    
-    const result = claimMissionReward(missionState, profile);
+    const result = claimMission(profile, missionId);
     if (!result) return;
-    
-    const updatedProfile = { ...result.profile };
-    updatedProfile.dailyMissions = profile.dailyMissions.map(m =>
-      m.missionId === missionId ? { ...m, claimed: true } : m
-    );
-    
-    saveProfile(updatedProfile);
-    setProfile(updatedProfile);
-    setNotification(`🎁 Recompensa: +✨${result.reward.stardust} +${result.reward.xp}XP${result.reward.lunarDust ? ` +🌑${result.reward.lunarDust}` : ''}`);
-    
-    confetti({ particleCount: 30, spread: 50, origin: { y: 0.6 } });
+    commit(result.profile);
+    sfx.coin();
+    const { reward } = result;
+    notify(`🎁 +${reward.stardust} Stardust · +${reward.xp} XP${reward.lunarDust ? ` · +${reward.lunarDust} Pó Lunar` : ''}`);
+    confetti({ particleCount: 40, spread: 50, origin: { y: 0.6 } });
+    if (result.levelsGained > 0) {
+      sfx.levelUp();
+      notify(`🎉 ${result.profile.dog.name} subiu para o nível ${result.profile.dog.level}!`);
+    }
   };
 
-  const handleResetMissions = () => {
+  const handleReroll = () => {
     if (!profile) return;
-    
-    const updatedProfile = { ...profile };
-    updatedProfile.lastMissionReset = new Date().toISOString();
-    updatedProfile.dailyMissions = initializeDailyMissions(updatedProfile);
-    
-    saveProfile(updatedProfile);
-    setProfile(updatedProfile);
-    setNotification('📋 Novas missões diárias disponíveis!');
+    const next = rerollMissions(profile);
+    if (!next) return;
+    commit(next);
+    sfx.click();
+    notify('🔄 Missões trocadas!');
   };
 
-  const handlePurchaseUpgrade = (upgradeId: string) => {
+  const handleUpgrade = (upgradeId: string) => {
     if (!profile) return;
-    
+    const next = purchaseUpgrade(profile, upgradeId);
     const upgrade = UPGRADES.find(u => u.id === upgradeId);
-    if (!upgrade) return;
-    if (profile.stardust < upgrade.cost) return;
-    
-    const updatedProfile = { ...profile };
-    updatedProfile.stardust -= upgrade.cost;
-    updatedProfile.purchasedUpgrades = [...updatedProfile.purchasedUpgrades, upgradeId];
-    updatedProfile.dog = { ...updatedProfile.dog };
-    updatedProfile.dog[upgrade.stat] = upgrade.level;
-    
-    saveProfile(updatedProfile);
-    setProfile(updatedProfile);
-    setNotification(`🔧 ${upgrade.name} instalado! ${upgrade.stat} → ${upgrade.level}`);
-    
+    if (!next || !upgrade) return;
+    commit(next);
+    sfx.coin();
+    notify(`🔧 ${upgrade.name} instalado! ${STAT_INFO[upgrade.stat].label} ${upgrade.level}`);
     confetti({ particleCount: 40, spread: 60, origin: { y: 0.6 } });
   };
 
-  const handlePurchaseCosmetic = (cosmeticId: string) => {
+  const handleBuyCosmetic = (id: string) => {
     if (!profile) return;
-    
-    const cosmetic = COSMETICS.find(c => c.id === cosmeticId);
-    if (!cosmetic) return;
-    
-    const canAfford = cosmetic.currency === 'stardust'
-      ? profile.stardust >= cosmetic.cost
-      : profile.lunarDust >= cosmetic.cost;
-    
-    if (!canAfford) return;
-    
-    const updatedProfile = { ...profile };
-    if (cosmetic.currency === 'stardust') {
-      updatedProfile.stardust -= cosmetic.cost;
-    } else {
-      updatedProfile.lunarDust -= cosmetic.cost;
-    }
-    updatedProfile.ownedCosmetics = [...updatedProfile.ownedCosmetics, cosmeticId];
-    
-    saveProfile(updatedProfile);
-    setProfile(updatedProfile);
-    setNotification(`🎨 ${cosmetic.name} desbloqueado!`);
-    
+    const bought = purchaseCosmetic(profile, id);
+    if (!bought) return;
+    const next = equipCosmetic(bought, id) ?? bought;
+    commit(next);
+    sfx.coin();
+    notify(`🎨 ${COSMETICS.find(c => c.id === id)?.name} desbloqueado e equipado!`);
     confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
   };
 
-  const handleEquipCosmetic = (cosmeticId: string) => {
+  const handleEquip = (id: string) => {
     if (!profile) return;
-    
-    const cosmetic = COSMETICS.find(c => c.id === cosmeticId);
-    if (!cosmetic) return;
-    
-    const updatedProfile = { ...profile };
-    updatedProfile.dog = { ...updatedProfile.dog };
-    
-    switch (cosmetic.type) {
-      case 'skin': updatedProfile.dog.skin = cosmeticId; break;
-      case 'helmet': updatedProfile.dog.helmet = cosmeticId; break;
-      case 'trail': updatedProfile.dog.trail = cosmeticId; break;
-    }
-    
-    saveProfile(updatedProfile);
-    setProfile(updatedProfile);
+    const next = equipCosmetic(profile, id);
+    if (!next) return;
+    commit(next);
+    sfx.click();
   };
 
-  if (screen === 'connect') {
-    return <ConnectWallet onConnect={handleConnect} />;
-  }
+  const toggleMute = () => {
+    setMuted(!muted);
+    setMutedState(!muted);
+  };
 
-  if (screen === 'playing' && selectedRoute) {
+  if (profile && session) {
     return (
-      <div className="relative min-h-screen">
-        <div className="fixed inset-0 z-0">
-          <Suspense fallback={<div className="w-full h-full bg-gradient-to-b from-[#0a0a1a] to-[#1a0a2e]" />}>
-            <SpaceScene3D />
-          </Suspense>
-        </div>
-        <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="text-center w-full max-w-4xl"
-          >
-            <h2 className="text-3xl font-bold text-white mb-4">
-              {selectedRoute.emoji} {selectedRoute.name}
-            </h2>
-            <p className="text-gray-300 text-sm mb-6">
-              Custo: ✨{selectedRoute.cost} | Dificuldade: {'★'.repeat(selectedRoute.difficulty)}
-              {profile && ` | Stats: 🔥${profile.dog.power} 🎯${profile.dog.accuracy} 🍀${profile.dog.luck}`}
-            </p>
-            <Game3D
-              route={selectedRoute}
-              onComplete={handleGameComplete}
-              onCancel={handleCancelGame}
-              dogStats={profile ? { power: profile.dog.power, accuracy: profile.dog.accuracy, luck: profile.dog.luck, speed: profile.dog.speed } : undefined}
-            />
-          </motion.div>
-        </div>
-      </div>
+      <Suspense fallback={<LoadingScreen />}>
+        <LaunchGame
+          key={session.id}
+          route={session.route}
+          profile={profile}
+          paidCost={session.paidCost}
+          summary={session.summary}
+          canRetry={canRetry}
+          onFinish={handleFinish}
+          onCancel={handleCancel}
+          onExit={() => setSession(null)}
+          onRetry={() => startRoute(session.route)}
+        />
+      </Suspense>
     );
   }
-
-  if (!profile) return null;
-
-  const tabs: { id: Tab; label: string; emoji: string }[] = [
-    { id: 'launch', label: 'Lançar', emoji: '🚀' },
-    { id: 'missions', label: 'Missões', emoji: '📋' },
-    { id: 'upgrades', label: 'Upgrades', emoji: '🔧' },
-    { id: 'cosmetics', label: 'Loja', emoji: '🎨' },
-    { id: 'leaderboard', label: 'Ranking', emoji: '🏆' },
-    { id: 'history', label: 'Histórico', emoji: '📜' },
-  ];
 
   return (
     <div className="relative min-h-screen">
       <div className="fixed inset-0 z-0">
-        <Suspense fallback={<div className="w-full h-full bg-gradient-to-b from-[#0a0a1a] to-[#1a0a2e]" />}>
-          <SpaceScene3D />
-        </Suspense>
+        <SpaceBackdrop />
       </div>
-      
-      <header className="relative z-20 border-b border-purple-500/20 bg-black/50 backdrop-blur-md sticky top-0">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-2"
-          >
-            <span className="text-2xl">🐕‍🦺🚀</span>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              DogCity
-            </h1>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-3"
-          >
-            <div className="hidden sm:flex items-center gap-2 text-sm">
-              <motion.span whileHover={{ scale: 1.1 }} className="text-yellow-400 font-medium">
-                ✨ {profile.stardust}
-              </motion.span>
-              <span className="text-gray-600">|</span>
-              <motion.span whileHover={{ scale: 1.1 }} className="text-purple-400 font-medium">
-                🌑 {profile.lunarDust}
-              </motion.span>
-            </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleDisconnect}
-              className="text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 px-3 py-1.5 rounded-lg transition-colors"
-            >
-              Sair
-            </motion.button>
-          </motion.div>
-        </div>
-      </header>
 
       <AnimatePresence>
         {notification && (
           <motion.div
-            initial={{ opacity: 0, y: -50, x: '-50%' }}
+            key={notification.key}
+            initial={{ opacity: 0, y: 40, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
-            exit={{ opacity: 0, y: -50, x: '-50%' }}
-            className="fixed top-20 left-1/2 z-50"
+            exit={{ opacity: 0, y: 40, x: '-50%' }}
+            className="fixed bottom-6 left-1/2 z-50 max-w-[90vw]"
           >
-            <div className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-900/90 to-pink-900/90 border border-purple-500/50 text-white text-sm shadow-2xl shadow-purple-500/30 backdrop-blur-sm">
-              {notification}
-            </div>
+            <div className="hud-panel px-5 py-3 text-white text-sm">{notification.text}</div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {launchResult && (
-          <motion.div
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 100 }}
-            className="fixed top-20 right-4 z-50"
-          >
-            <div className={`px-5 py-3 rounded-xl shadow-2xl backdrop-blur-sm ${
-              launchResult.success
-                ? 'bg-gradient-to-r from-green-900/90 to-emerald-900/90 border border-green-500/50'
-                : 'bg-gradient-to-r from-red-900/90 to-orange-900/90 border border-red-500/50'
-            }`}>
-              <div className="flex items-center gap-3">
-                <motion.span
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 0.5 }}
-                  className="text-2xl"
-                >
-                  {launchResult.success ? '🎉' : '💥'}
-                </motion.span>
-                <div>
-                  <p className="text-white font-bold text-sm">
-                    {launchResult.success ? 'Sucesso!' : 'Falha!'}
-                  </p>
-                  <p className="text-xs text-gray-300">
-                    Score: {launchResult.score} | +✨{launchResult.stardustEarned}
-                  </p>
+      {!profile ? (
+        <ConnectWallet onConnect={handleConnect} />
+      ) : (
+        <>
+          <header className="sticky top-0 z-20 border-b border-sky-400/15 bg-[#050d22]/70 backdrop-blur-xl shadow-[0_1px_20px_rgba(56,189,248,0.08)]">
+            <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500/40 via-fuchsia-600/30 to-violet-700/40 ring-2 ring-sky-300/50 shadow-[0_0_18px_rgba(56,189,248,0.45)] overflow-hidden">
+                  <img src={`${import.meta.env.BASE_URL}dog-face.png`} alt="DOG" className="w-full h-full object-contain scale-110 translate-y-0.5" draggable={false} />
                 </div>
-                <motion.button
-                  whileHover={{ scale: 1.2 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setLaunchResult(null)}
-                  className="text-gray-400 hover:text-white text-sm ml-2"
-                >
-                  ✕
-                </motion.button>
+                <h1 className="font-display text-lg bg-gradient-to-r from-sky-300 via-white to-amber-300 bg-clip-text text-transparent">DOGCITY</h1>
+              </div>
+              <div className="flex items-center gap-2 sm:gap-3 text-sm">
+                <span className="text-amber-300 font-semibold"><Stardust value={profile.stardust} /></span>
+                <span className="text-violet-300 font-semibold"><LunarDust value={profile.lunarDust} /></span>
+                <button onClick={toggleMute} className="btn-ghost px-2.5 py-1.5 text-xs" aria-label={muted ? 'Ativar som' : 'Silenciar'}>
+                  {muted ? '🔇' : '🔊'}
+                </button>
+                <button onClick={() => setProfile(null)} className="btn-ghost px-3 py-1.5 text-xs">
+                  Sair
+                </button>
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </header>
 
-      <main className="relative z-10 max-w-6xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-            <PlayerProfileCard profile={profile} />
-          </div>
+          <main className="relative z-10 max-w-6xl mx-auto px-4 py-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1 order-2 lg:order-1">
+                <PlayerProfileCard profile={profile} />
+              </div>
 
-          <div className="lg:col-span-2">
-            <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-              {tabs.map((tab, index) => (
-                <motion.button
-                  key={tab.id}
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30'
-                      : 'bg-gray-800/50 text-gray-400 hover:text-white hover:bg-gray-800/80'
-                  }`}
-                >
-                  {tab.emoji} {tab.label}
-                </motion.button>
-              ))}
+              <div className="lg:col-span-2 order-1 lg:order-2">
+                <nav className="flex gap-2 mb-4 overflow-x-auto pb-2 -mx-1 px-1">
+                  {TABS.map(tab => {
+                    const badge = tab.id === 'missions' && profile.dailyMissions.some(m => m.completed && !m.claimed);
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`relative inline-flex items-center px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
+                          activeTab === tab.id
+                            ? 'tab-active'
+                            : 'bg-[#0b1733]/70 backdrop-blur text-slate-300 hover:text-white hover:bg-[#10224a]/80 border border-sky-400/15'
+                        }`}
+                      >
+                        <GameIcon name={tab.icon} size={22} className="-my-1 mr-1.5" />
+                        {tab.label}
+                        {badge && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />}
+                      </button>
+                    );
+                  })}
+                </nav>
+
+                <AnimatePresence mode="wait">
+                  <motion.div key={activeTab} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }} transition={{ duration: 0.2 }}>
+                    {activeTab === 'launch' && <RouteSelector profile={profile} onSelectRoute={startRoute} />}
+                    {activeTab === 'missions' && <MissionsPanel profile={profile} onClaimReward={handleClaimMission} onReroll={handleReroll} />}
+                    {activeTab === 'upgrades' && <UpgradeShop profile={profile} onPurchase={handleUpgrade} />}
+                    {activeTab === 'cosmetics' && <CosmeticShop profile={profile} onPurchase={handleBuyCosmetic} onEquip={handleEquip} />}
+                    {activeTab === 'leaderboard' && <WeeklyLeaderboard playerAddress={profile.address} />}
+                    {activeTab === 'history' && <LaunchHistory profile={profile} />}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
             </div>
+          </main>
 
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                {activeTab === 'launch' && (
-                  <div className="bg-gray-900/80 border border-purple-500/30 rounded-2xl p-5 backdrop-blur-sm shadow-xl">
-                    <RouteSelector profile={profile} onSelectRoute={handleSelectRoute} />
-                  </div>
-                )}
+          <footer className="relative z-10 mt-12 py-6 text-center text-xs text-slate-600">
+            DogCity Lunar Launch · {profile.provider} · saldo DOG simulado, sem transações on-chain
+          </footer>
+        </>
+      )}
+    </div>
+  );
+}
 
-                {activeTab === 'missions' && (
-                  <MissionsPanel
-                    profile={profile}
-                    onClaimReward={handleClaimMissionReward}
-                    onResetMissions={handleResetMissions}
-                  />
-                )}
-
-                {activeTab === 'upgrades' && (
-                  <UpgradeShop profile={profile} onPurchase={handlePurchaseUpgrade} />
-                )}
-
-                {activeTab === 'cosmetics' && (
-                  <CosmeticShop
-                    profile={profile}
-                    onPurchase={handlePurchaseCosmetic}
-                    onEquip={handleEquipCosmetic}
-                  />
-                )}
-
-                {activeTab === 'leaderboard' && (
-                  <WeeklyLeaderboard playerAddress={profile.address} />
-                )}
-
-                {activeTab === 'history' && (
-                  <div className="bg-gray-900/80 border border-purple-500/30 rounded-2xl p-5 backdrop-blur-sm shadow-xl">
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
-                      📜 Histórico de Lançamentos
-                    </h3>
-                    
-                    {profile.launches.length === 0 ? (
-                      <p className="text-gray-500 text-center py-8 text-sm">
-                        Nenhum lançamento ainda. Escolha uma rota e comece! 🚀
-                      </p>
-                    ) : (
-                      <div className="space-y-2 max-h-96 overflow-y-auto">
-                        {profile.launches.map((launch, index) => (
-                          <motion.div
-                            key={launch.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            whileHover={{ scale: 1.02 }}
-                            className={`flex items-center justify-between p-3 rounded-xl ${
-                              launch.success
-                                ? 'bg-gradient-to-r from-green-900/20 to-emerald-900/20 border border-green-500/20'
-                                : 'bg-gradient-to-r from-red-900/20 to-orange-900/20 border border-red-500/20'
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="text-xl">{launch.route.emoji}</span>
-                              <div>
-                                <p className="text-white text-sm font-medium">{launch.route.name}</p>
-                                <p className="text-xs text-gray-400">
-                                  {new Date(launch.timestamp).toLocaleDateString('pt-BR')}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className={`text-sm font-bold ${launch.success ? 'text-green-400' : 'text-red-400'}`}>
-                                {launch.score} pts
-                              </p>
-                              <p className="text-xs text-yellow-400">
-                                +✨{launch.stardustEarned}
-                              </p>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </div>
-      </main>
-
-      <footer className="relative z-10 border-t border-purple-500/10 mt-12 py-6 text-center">
-        <p className="text-gray-600 text-xs">
-          DogCity Lunar Launch — MVP Module | Pronto para integração com DogCity
-        </p>
-        <p className="text-gray-700 text-xs mt-1">
-          Wallet mockada • Sem emissão de DOG • Bitcoin-native
-        </p>
-      </footer>
+function LoadingScreen() {
+  return (
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_center,#0c2150,#030816_70%)] text-sky-200">
+      <img src={cutoutArt('astronaut')} alt="" className="h-48 object-contain animate-float drop-shadow-[0_20px_30px_rgba(56,189,248,0.35)] mb-5" draggable={false} />
+      <div className="font-display text-sm tracking-[0.3em]">PREPARANDO LANÇAMENTO</div>
     </div>
   );
 }

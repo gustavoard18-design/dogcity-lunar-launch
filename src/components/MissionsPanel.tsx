@@ -1,80 +1,94 @@
 import { PlayerProfile } from '../types';
-import { DAILY_MISSIONS, initializeDailyMissions } from '../lib/missions';
+import { REROLL_COST, canReroll, getMissionDef } from '../lib/missions';
+import { getDayKey } from '../lib/economy';
+import GameIcon, { LunarDust, Stardust, missionIcon } from './GameIcon';
 
 interface MissionsPanelProps {
   profile: PlayerProfile;
   onClaimReward: (missionId: string) => void;
-  onResetMissions: () => void;
+  onReroll: () => void;
 }
 
-export default function MissionsPanel({ profile, onClaimReward, onResetMissions }: MissionsPanelProps) {
-  const missions = initializeDailyMissions(profile);
+function timeToMidnight(): string {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const mins = Math.ceil((next.getTime() - now.getTime()) / 60000);
+  return `${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, '0')}`;
+}
+
+export default function MissionsPanel({ profile, onClaimReward, onReroll }: MissionsPanelProps) {
+  const rerollUsed = profile.missionRerollDay === getDayKey();
+  const hasOpen = profile.dailyMissions.some(m => !m.claimed);
 
   return (
-    <div className="bg-gray-900/80 border border-purple-500/30 rounded-2xl p-5 backdrop-blur-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-white">📋 Missões Diárias</h3>
+    <div className="panel">
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div>
+          <h3 className="font-display text-lg text-white">Missões diárias</h3>
+          <p className="text-[11px] text-slate-500">Novas missões em {timeToMidnight()}</p>
+        </div>
         <button
-          onClick={onResetMissions}
-          className="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg"
+          onClick={onReroll}
+          disabled={!canReroll(profile) || !hasOpen}
+          className="btn-ghost text-xs px-3 py-2 disabled:opacity-40 disabled:cursor-not-allowed"
+          title={rerollUsed ? 'Troca já usada hoje' : `Troca as missões não resgatadas por ${REROLL_COST} Stardust`}
         >
-          🔄 Renovar
+          {rerollUsed ? '🔄 Troca usada' : <span className="inline-flex items-center gap-1">🔄 Trocar <Stardust value={REROLL_COST} /></span>}
         </button>
       </div>
-      
+
       <div className="space-y-3">
-        {missions.map(missionState => {
-          const missionDef = DAILY_MISSIONS.find(m => m.id === missionState.missionId);
-          if (!missionDef) return null;
-          
-          const progress = Math.min(missionState.progress, missionDef.target);
-          const percent = (progress / missionDef.target) * 100;
-          
+        {profile.dailyMissions.map(state => {
+          const def = getMissionDef(state.missionId);
+          if (!def) return null;
+          const progress = Math.min(state.progress, def.target);
+          const percent = (progress / def.target) * 100;
+
           return (
             <div
-              key={missionState.missionId}
-              className={`p-4 rounded-xl border ${
-                missionState.claimed
-                  ? 'bg-gray-800/30 border-gray-700/30 opacity-60'
-                  : missionState.completed
-                  ? 'bg-green-900/20 border-green-500/40'
-                  : 'bg-gray-800/50 border-gray-700/40'
+              key={state.missionId}
+              className={`p-4 rounded-2xl border transition-colors ${
+                state.claimed
+                  ? 'bg-white/[0.02] border-white/5 opacity-60'
+                  : state.completed
+                    ? 'bg-emerald-500/10 border-emerald-400/40'
+                    : 'bg-white/[0.04] border-white/10'
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{missionDef.emoji}</span>
-                  <div>
-                    <h4 className="text-white text-sm font-semibold">{missionDef.title}</h4>
-                    <p className="text-xs text-gray-400">{missionDef.description}</p>
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  <GameIcon name={missionIcon(def)} size={44} className="rounded-lg" />
+                  <div className="min-w-0">
+                    <h4 className="text-white text-sm font-semibold">{def.title}</h4>
+                    <p className="text-xs text-slate-400">{def.description}</p>
                   </div>
                 </div>
-                <div className="text-right text-xs text-yellow-400">
-                  +✨{missionDef.reward.stardust}
+                <div className="text-right text-xs shrink-0">
+                  <div className="text-amber-300"><Stardust value={def.reward.stardust} sign="+" /></div>
+                  <div className="text-fuchsia-300">+{def.reward.xp} XP</div>
+                  {def.reward.lunarDust && <div className="text-violet-300"><LunarDust value={def.reward.lunarDust} sign="+" /></div>}
                 </div>
               </div>
-              
-              <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
-                <div
-                  className={`h-2 rounded-full transition-all ${
-                    missionState.completed ? 'bg-green-500' : 'bg-purple-500'
-                  }`}
-                  style={{ width: `${percent}%` }}
-                />
+
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-2 rounded-full bg-white/10 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${state.completed ? 'bg-emerald-400' : 'bg-gradient-to-r from-sky-400 to-blue-500'}`}
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+                <span className="text-[11px] text-slate-400 w-16 text-right">
+                  {progress}/{def.target}
+                  {def.type === 'quality' ? '%' : ''}
+                </span>
               </div>
-              
-              {missionState.completed && !missionState.claimed && (
-                <button
-                  onClick={() => onClaimReward(missionState.missionId)}
-                  className="w-full text-sm bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-bold"
-                >
-                  ✅ Coletar Recompensa
+
+              {state.completed && !state.claimed && (
+                <button onClick={() => onClaimReward(state.missionId)} className="btn-primary w-full mt-3 py-2 text-sm">
+                  Resgatar recompensa
                 </button>
               )}
-              
-              {missionState.claimed && (
-                <div className="text-xs text-gray-500 text-center">✓ Coletada</div>
-              )}
+              {state.claimed && <div className="text-xs text-slate-500 text-center mt-2">✓ Resgatada</div>}
             </div>
           );
         })}

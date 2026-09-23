@@ -1,0 +1,497 @@
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { AnimatePresence, motion } from 'framer-motion';
+import type { LaunchOutcome, LaunchSummary, PlayerProfile, Route } from '../types';
+import { computeOutcome } from '../lib/scoring';
+import { cutoutArt } from '../lib/evolution';
+import { gaugeQuality, getGameTuning, isPerfect } from '../lib/stats';
+import { getLook } from '../lib/shop';
+import { engineSound, sfx } from '../lib/audio';
+import PadScene, { AimState, PadPhase } from './PadScene';
+import FlightWorld, { FlightEvent, FlightHud, FlightInput } from './FlightWorld';
+import type { FlightResult } from '../lib/scoring';
+import ResultScreen from './ResultScreen';
+import GameIcon, { PLANET_ICON, Stardust } from '../components/GameIcon';
+
+type Phase = PadPhase | 'flight' | 'result';
+
+interface LaunchGameProps {
+  route: Route;
+  profile: PlayerProfile;
+  paidCost: number;
+  summary: LaunchSummary | null;
+  canRetry: boolean;
+  onFinish(outcome: LaunchOutcome): void;
+  onCancel(): void;
+  onExit(): void;
+  onRetry(): void;
+}
+
+const ANGLE_MIN = 15;
+const ANGLE_MAX = 80;
+const rand = (a: number, b: number) => a + Math.random() * (b - a);
+
+function qualityLabel(q: number, perfect: boolean) {
+  if (perfect) return { text: 'PERFEITO!', cls: 'text-yellow-300' };
+  if (q >= 0.9) return { text: 'ÓTIMO', cls: 'text-emerald-300' };
+  if (q >= 0.7) return { text: 'BOM', cls: 'text-sky-300' };
+  if (q >= 0.4) return { text: 'OK', cls: 'text-slate-300' };
+  return { text: 'FRACO', cls: 'text-red-400' };
+}
+
+export default function LaunchGame({ route, profile, paidCost, summary, canRetry, onFinish, onCancel, onExit, onRetry }: LaunchGameProps) {
+  const tuning = useMemo(() => getGameTuning(profile.dog, route), [profile.dog, route]);
+  const look = useMemo(() => getLook(profile.dog), [profile.dog]);
+
+  const [phase, setPhase] = useState<Phase>('brief');
+  const phaseRef = useRef<PadPhase>('brief');
+  const powerTarget = useRef(rand(62, 90));
+  const aimRef = useRef<AimState>({ angle: 45, power: 0, targetAngle: rand(30, 70), angleHalf: tuning.angleHalfZone });
+  const [locks, setLocks] = useState<{ angleQ?: number; powerQ?: number; perfect?: boolean }>({});
+  const [popup, setPopup] = useState<{ text: string; cls: string; key: number } | null>(null);
+  const [count, setCount] = useState<number | null>(null);
+  const [flash, setFlash] = useState(false);
+  const [hud, setHud] = useState<FlightHud | null>(null);
+  const [hitFlash, setHitFlash] = useState(0);
+  const [showHelp, setShowHelp] = useState(true);
+  const inputRef = useRef<FlightInput>({ pointerX: 0, pointerY: 0, pointerActive: false, keys: { up: false, down: false, left: false, right: false } });
+  const abortRef = useRef(false);
+  const launchRef = useRef({ quality: 0, perfect: false });
+
+  const needleRef = useRef<SVGGElement>(null);
+  const angleText = useRef<HTMLSpanElement>(null);
+  const powerFill = useRef<HTMLDivElement>(null);
+  const powerText = useRef<HTMLSpanElement>(null);
+
+  const go = useCallback((p: Phase) => {
+    if (p !== 'flight' && p !== 'result') phaseRef.current = p;
+    setPhase(p);
+  }, []);
+
+  // Medidores oscilantes (animados direto no DOM, sem re-render a cada frame).
+  useEffect(() => {
+    if (phase !== 'angle' && phase !== 'power') return;
+    let raf = 0;
+    let last = performance.now();
+    let t = Math.random();
+    const loop = (now: number) => {
+      const dt = (now - last) / 1000;
+      last = now;
+      t += dt * tuning.gaugeSpeed * (phase === 'power' ? 1.35 : 1);
+      const wave = 0.5 - 0.5 * Math.cos(t * Math.PI * 2);
+      if (phase === 'angle') {
+        const a = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * wave;
+        aimRef.current.angle = a;
+        if (needleRef.current) needleRef.current.setAttribute('transform', `rotate(${-a} 20 180)`);
+        if (angleText.current) angleText.current.textContent = `${Math.round(a)}°`;
+      } else {
+        const p = 100 * wave;
+        aimRef.current.power = p;
+        if (powerFill.current) powerFill.current.style.height = `${p}%`;
+        if (powerText.current) powerText.current.textContent = `${Math.round(p)}%`;
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [phase, tuning.gaugeSpeed]);
+
+  const showPopup = (q: number, perfect: boolean) => {
+    const l = qualityLabel(q, perfect);
+    setPopup({ ...l, key: Date.now() });
+  };
+
+  const act = useCallback(() => {
+    sfx.unlock();
+    if (phase === 'brief') {
+      sfx.click();
+      go('angle');
+    } else if (phase === 'angle') {
+      const a = aimRef.current;
+      const q = gaugeQuality(a.angle, a.targetAngle, a.angleHalf);
+      const perfect = isPerfect(a.angle, a.targetAngle, a.angleHalf);
+      sfx.lock(perfect ? 1 : q);
+      showPopup(q, perfect);
+      setLocks(l => ({ ...l, angleQ: q, perfect }));
+      go('power');
+    } else if (phase === 'power') {
+      const p = aimRef.current.power;
+      const q = gaugeQuality(p, powerTarget.current, tuning.powerHalfZone);
+      const perfectPower = isPerfect(p, powerTarget.current, tuning.powerHalfZone);
+      const angleQ = locks.angleQ ?? 0;
+      const perfect = !!locks.perfect && perfectPower;
+      launchRef.current = { quality: (angleQ + q) / 2, perfect };
+      if (perfect) sfx.perfect();
+      else sfx.lock(perfectPower ? 1 : q);
+      showPopup(perfect ? 1 : q, perfect || perfectPower);
+      setLocks(l => ({ ...l, powerQ: q, perfect }));
+      go('countdown');
+    }
+  }, [phase, go, locks, tuning.powerHalfZone]);
+
+  // Contagem regressiva → decolagem
+  useEffect(() => {
+    if (phase !== 'countdown') return;
+    const timers: number[] = [];
+    [3, 2, 1].forEach((n, i) =>
+      timers.push(
+        window.setTimeout(() => {
+          setCount(n);
+          sfx.countdown();
+        }, 700 + i * 800)
+      )
+    );
+    timers.push(
+      window.setTimeout(() => {
+        setCount(0);
+        sfx.countdown(true);
+        sfx.liftoff();
+        engineSound.start();
+        // Fora de `timers`: a mudança de fase abaixo limpa este efeito.
+        window.setTimeout(() => setCount(null), 900);
+        go('liftoff');
+      }, 700 + 3 * 800)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [phase, go]);
+
+  const onLiftoffDone = useCallback(() => {
+    setFlash(true);
+    window.setTimeout(() => go('flight'), 250);
+    window.setTimeout(() => setFlash(false), 700);
+  }, [go]);
+
+  useEffect(() => {
+    if (phase !== 'flight') return;
+    const t = window.setTimeout(() => setShowHelp(false), 4500);
+    return () => clearTimeout(t);
+  }, [phase]);
+
+  useEffect(() => () => engineSound.stop(), []);
+
+  const onEvent = useCallback((e: FlightEvent) => {
+    switch (e.type) {
+      case 'pickup': sfx.pickup(e.combo); break;
+      case 'ring': sfx.ring(); engineSound.set(1.2); window.setTimeout(() => engineSound.set(0.6), 1600); break;
+      case 'shield': sfx.shield(); break;
+      case 'shieldBreak': sfx.shieldBreak(); break;
+      case 'hit': sfx.hit(); setHitFlash(Date.now()); break;
+      case 'crash': sfx.explosion(); engineSound.stop(); setHitFlash(Date.now()); break;
+      case 'arrive': sfx.success(); engineSound.stop(); break;
+    }
+  }, []);
+
+  const onDone = useCallback(
+    (r: FlightResult) => {
+      const outcome = computeOutcome(route, launchRef.current.quality, launchRef.current.perfect, r, abortRef.current);
+      if (!outcome.success && !outcome.aborted) sfx.fail();
+      onFinish(outcome);
+      go('result');
+    },
+    [route, onFinish, go]
+  );
+
+  // Teclado
+  useEffect(() => {
+    const set = (e: KeyboardEvent, v: boolean) => {
+      const k = inputRef.current.keys;
+      switch (e.key) {
+        case 'ArrowUp': case 'w': case 'W': k.up = v; break;
+        case 'ArrowDown': case 's': case 'S': k.down = v; break;
+        case 'ArrowLeft': case 'a': case 'A': k.left = v; break;
+        case 'ArrowRight': case 'd': case 'D': k.right = v; break;
+        default: return false;
+      }
+      return true;
+    };
+    const down = (e: KeyboardEvent) => {
+      if (set(e, true)) e.preventDefault();
+      if (e.key === ' ' || e.code === 'Space' || e.key === 'Enter') {
+        // Evita o clique nativo do botão em foco somar uma segunda ação.
+        e.preventDefault();
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+        if (!e.repeat) act();
+        return;
+      }
+      if (e.repeat) return;
+      if (e.key === 'Escape' && (phase === 'brief' || phase === 'angle' || phase === 'power')) onCancel();
+    };
+    const up = (e: KeyboardEvent) => void set(e, false);
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+    };
+  }, [act, phase, onCancel]);
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (phase !== 'flight') return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const i = inputRef.current;
+    i.pointerX = ((e.clientX - r.left) / r.width) * 2 - 1;
+    i.pointerY = -(((e.clientY - r.top) / r.height) * 2 - 1);
+    i.pointerActive = true;
+  };
+
+  const preLaunch = phase === 'brief' || phase === 'angle' || phase === 'power';
+  const a = aimRef.current;
+  const zoneA0 = a.targetAngle - a.angleHalf;
+  const zoneA1 = a.targetAngle + a.angleHalf;
+  const arc = (from: number, to: number, r: number) => {
+    const p = (deg: number) => [20 + r * Math.cos((deg * Math.PI) / 180), 180 - r * Math.sin((deg * Math.PI) / 180)];
+    const [x0, y0] = p(from);
+    const [x1, y1] = p(to);
+    return `M ${x0} ${y0} A ${r} ${r} 0 0 0 ${x1} ${y1}`;
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black select-none touch-none" onPointerMove={onPointerMove} onPointerDown={onPointerMove}>
+      <Canvas dpr={[1, 1.75]} gl={{ antialias: false, powerPreference: 'high-performance' }} camera={{ fov: 55, near: 0.1, far: 3000, position: [-8, 2, 12] }}>
+        <Suspense fallback={null}>
+        {phase === 'flight' || phase === 'result' ? (
+          <FlightWorld
+            route={route}
+            tuning={tuning}
+            look={look}
+            startShield={launchRef.current.perfect}
+            inputRef={inputRef}
+            abortRef={abortRef}
+            onHud={setHud}
+            onEvent={onEvent}
+            onDone={onDone}
+          />
+        ) : (
+          <PadScene route={route} look={look} phaseRef={phaseRef} aimRef={aimRef} onLiftoffDone={onLiftoffDone} />
+        )}
+        </Suspense>
+      </Canvas>
+
+      {/* Flash de transição e de dano */}
+      <AnimatePresence>
+        {flash && <motion.div key="flash" className="absolute inset-0 bg-white pointer-events-none" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.45 } }} transition={{ duration: 0.2 }} />}
+      </AnimatePresence>
+      {hitFlash > 0 && (
+        <motion.div
+          key={hitFlash}
+          className="absolute inset-0 pointer-events-none"
+          style={{ boxShadow: 'inset 0 0 180px 40px rgba(255,40,40,0.75)' }}
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 0 }}
+          transition={{ duration: 0.6 }}
+        />
+      )}
+
+      {/* Topo: rota */}
+      <div className="absolute top-0 inset-x-0 p-4 flex items-start justify-between gap-3 pointer-events-none">
+        <div className="hud-panel px-4 py-3">
+          <div className="font-display text-sm sm:text-base text-white tracking-wider">
+            <GameIcon name={PLANET_ICON[route.destination]} size={26} className="mr-2 -my-1" />
+            {route.name.toUpperCase()}
+          </div>
+          <div className="text-[11px] text-slate-400 mt-0.5">
+            {paidCost === 0 ? 'Treino gratuito' : <>Custo <Stardust value={paidCost} size="1em" /></>} · Máx {route.maxScore} pts · {'★'.repeat(route.difficulty)}
+            {'☆'.repeat(4 - route.difficulty)}
+          </div>
+        </div>
+        {preLaunch && (
+          <button onClick={onCancel} className="pointer-events-auto hud-panel px-4 py-2 text-xs text-slate-300 hover:text-white">
+            ✕ Cancelar <span className="text-slate-500">(reembolsa)</span>
+          </button>
+        )}
+        {phase === 'flight' && hud && !abortRef.current && (
+          <button
+            onClick={() => {
+              abortRef.current = true;
+            }}
+            className="pointer-events-auto hud-panel px-4 py-2 text-xs text-red-300 hover:text-red-200"
+          >
+            ⏏ Abortar
+          </button>
+        )}
+      </div>
+
+      {/* Briefing */}
+      <AnimatePresence>
+        {phase === 'brief' && (
+          <motion.div
+            key="brief"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 30 }}
+            className="absolute inset-x-0 bottom-0 p-4 sm:p-8 flex justify-center"
+          >
+            <div className="hud-panel relative max-w-xl w-full p-5 sm:p-6 sm:pl-40">
+              <img
+                src={cutoutArt('astronaut')}
+                alt=""
+                draggable={false}
+                className="hidden sm:block absolute -left-6 bottom-0 h-[118%] object-contain drop-shadow-[0_18px_28px_rgba(0,0,0,0.6)] pointer-events-none"
+              />
+              <div className="font-display text-xl sm:text-2xl text-white mb-3">Briefing da missão</div>
+              <ol className="space-y-2 text-sm text-slate-300 mb-5">
+                <li><b className="text-emerald-300">1. Mira</b> — trave o ponteiro dentro da faixa verde, apontando para o planeta.</li>
+                <li><b className="text-amber-300">2. Força</b> — trave a barra na zona dourada.</li>
+                <li><b className="text-sky-300">3. Voo</b> — pilote com mouse/toque ou WASD/setas. Pegue orbes <GameIcon name="orb" size="1.2em" />, atravesse anéis <GameIcon name="ring" size="1.2em" />, desvie de asteroides <GameIcon name="asteroid" size="1.2em" />.</li>
+              </ol>
+              <p className="text-xs text-slate-500 mb-4">
+                Mira e força perfeitas dão um escudo inicial. Casco: {tuning.hull} ❤️ · Espaço/Enter/clique para travar.
+              </p>
+              <button onClick={act} className="btn-primary w-full py-4 text-lg">
+                Iniciar sequência ▶
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Medidores */}
+      {(phase === 'angle' || phase === 'power') && (
+        <div className="absolute inset-x-0 bottom-0 p-3 sm:p-6 flex items-end justify-between gap-3 pointer-events-none">
+          <div className={`hud-panel p-3 sm:p-4 transition-opacity pointer-events-auto ${phase === 'angle' ? '' : 'opacity-60'}`}>
+            <div className="text-[11px] tracking-widest text-slate-400 mb-1 flex justify-between">
+              <span>ÂNGULO</span>
+              <span ref={angleText} className="font-display text-white">
+                {Math.round(a.angle)}°
+              </span>
+            </div>
+            <svg viewBox="0 0 200 200" className="w-32 h-32 sm:w-44 sm:h-44">
+              <path d={arc(ANGLE_MIN, ANGLE_MAX, 150)} stroke="rgba(148,163,184,0.25)" strokeWidth="18" fill="none" strokeLinecap="round" />
+              <path d={arc(Math.max(ANGLE_MIN, zoneA0 - a.angleHalf * 2), Math.min(ANGLE_MAX, zoneA1 + a.angleHalf * 2), 150)} stroke="rgba(74,222,128,0.18)" strokeWidth="18" fill="none" />
+              <path d={arc(zoneA0, zoneA1, 150)} stroke="#4ade80" strokeWidth="18" fill="none" />
+              <path d={arc(a.targetAngle - a.angleHalf * 0.4, a.targetAngle + a.angleHalf * 0.4, 150)} stroke="#fde047" strokeWidth="18" fill="none" />
+              <g ref={needleRef} transform={`rotate(${-a.angle} 20 180)`}>
+                <line x1="20" y1="180" x2="182" y2="180" stroke="white" strokeWidth="4" strokeLinecap="round" />
+                <circle cx="182" cy="180" r="6" fill="white" />
+              </g>
+              <circle cx="20" cy="180" r="10" fill="#f97316" />
+            </svg>
+            {locks.angleQ !== undefined && <div className={`text-center text-xs font-bold ${qualityLabel(locks.angleQ, false).cls}`}>{Math.round(locks.angleQ * 100)}%</div>}
+          </div>
+
+          <div className="flex flex-col items-end gap-3 pointer-events-auto">
+          <div className={`hud-panel p-3 sm:p-4 transition-opacity ${phase === 'power' ? '' : 'opacity-40'}`}>
+            <div className="text-[11px] tracking-widest text-slate-400 mb-1 flex justify-between gap-3">
+              <span>FORÇA</span>
+              <span ref={powerText} className="font-display text-white">
+                0%
+              </span>
+            </div>
+            <div className="relative w-12 h-28 sm:h-40 mx-auto rounded-xl bg-slate-800/80 overflow-hidden border border-white/10">
+              <div
+                className="absolute inset-x-0 bg-amber-400/25 border-y border-amber-300/70"
+                style={{ bottom: `${powerTarget.current - tuning.powerHalfZone}%`, height: `${tuning.powerHalfZone * 2}%` }}
+              />
+              <div
+                className="absolute inset-x-0 bg-yellow-300/50"
+                style={{ bottom: `${powerTarget.current - tuning.powerHalfZone * 0.4}%`, height: `${tuning.powerHalfZone * 0.8}%` }}
+              />
+              <div ref={powerFill} className="absolute bottom-0 inset-x-2 rounded-t-md bg-gradient-to-t from-emerald-500 via-amber-400 to-red-500 opacity-90" style={{ height: '0%' }} />
+            </div>
+          </div>
+
+          <button onClick={act} className="btn-primary px-6 sm:px-8 py-4 sm:py-5 text-base sm:text-xl">
+            {phase === 'angle' ? '🎯 TRAVAR' : '🔥 TRAVAR'}
+          </button>
+          </div>
+        </div>
+      )}
+
+      {/* Popup de qualidade */}
+      <AnimatePresence>
+        {popup && (preLaunch || phase === 'countdown') && (
+          <motion.div
+            key={popup.key}
+            initial={{ opacity: 0, scale: 0.6, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, y: -30 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 18 }}
+            onAnimationComplete={() => window.setTimeout(() => setPopup(p => (p?.key === popup.key ? null : p)), 700)}
+            className={`absolute top-1/3 inset-x-0 text-center font-display text-4xl sm:text-6xl drop-shadow-[0_0_20px_rgba(0,0,0,0.8)] pointer-events-none ${popup.cls}`}
+          >
+            {popup.text}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Contagem */}
+      <AnimatePresence>
+        {count !== null && (
+          <motion.div
+            key={count}
+            initial={{ opacity: 0, scale: 2 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            className="absolute inset-0 flex items-center justify-center pointer-events-none font-display text-8xl sm:text-9xl text-white drop-shadow-[0_0_30px_rgba(168,85,247,0.9)]"
+          >
+            {count === 0 ? 'IGNIÇÃO!' : count}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {phase === 'countdown' && locks.powerQ !== undefined && (
+        <div className="absolute bottom-6 inset-x-0 flex justify-center pointer-events-none">
+          <div className="hud-panel px-5 py-2 text-sm text-slate-200">
+            Qualidade do lançamento: <b className="font-display text-white">{Math.round(launchRef.current.quality * 100)}%</b>
+            {launchRef.current.perfect && <span className="ml-2 text-cyan-300">+ escudo 🛡️</span>}
+          </div>
+        </div>
+      )}
+
+      {/* HUD de voo */}
+      {phase === 'flight' && hud && (
+        <>
+          <div className="absolute top-20 sm:top-4 left-1/2 -translate-x-1/2 w-[min(520px,70vw)] pointer-events-none">
+            <div className="flex justify-between text-[11px] text-slate-300 mb-1">
+              <GameIcon name="planet-earth" size={18} />
+              <span className="font-display">{Math.round(hud.progress * 100)}%</span>
+              <GameIcon name={PLANET_ICON[route.destination]} size={18} />
+            </div>
+            <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+              <div className="h-full rounded-full bg-gradient-to-r from-sky-400 via-fuchsia-400 to-amber-300" style={{ width: `${hud.progress * 100}%` }} />
+            </div>
+          </div>
+          <div className="absolute bottom-4 left-4 hud-panel px-4 py-3 pointer-events-none">
+            <div className="text-[10px] tracking-widest text-slate-400 mb-1">CASCO</div>
+            <div className="flex gap-1 text-xl">
+              {Array.from({ length: hud.hullMax }, (_, i) => (
+                <span key={i} className={i < hud.hull ? '' : 'opacity-20 grayscale'}>
+                  ❤️
+                </span>
+              ))}
+              {hud.shield && <span className="ml-1 animate-pulse">🛡️</span>}
+            </div>
+          </div>
+          <div className="absolute bottom-4 right-4 hud-panel px-4 py-3 text-right pointer-events-none">
+            <div className="text-[10px] tracking-widest text-slate-400">PONTOS</div>
+            <div className="font-display text-3xl text-amber-300 leading-none">{hud.points}</div>
+            <div className="text-xs text-slate-300 mt-1">
+              <span className="inline-flex items-center gap-1"><GameIcon name="orb" size={16} />{hud.orbs}</span> · <span className="inline-flex items-center gap-1"><GameIcon name="ring" size={16} />{hud.rings}</span>
+              {hud.combo >= 6 && <span className="ml-2 font-display text-fuchsia-300">x{1 + Math.min(4, Math.floor(hud.combo / 6))}</span>}
+            </div>
+          </div>
+          {hud.boost && (
+            <div className="absolute top-1/4 inset-x-0 text-center font-display text-3xl text-fuchsia-300 drop-shadow-[0_0_20px_rgba(255,79,216,0.8)] pointer-events-none animate-pulse">
+              BOOST!
+            </div>
+          )}
+          <AnimatePresence>
+            {showHelp && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute bottom-28 inset-x-0 flex justify-center pointer-events-none"
+              >
+                <div className="hud-panel px-5 py-2 text-sm text-slate-200">🖱️ Mova o mouse / arraste o dedo · ⌨️ WASD ou setas</div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
+      )}
+
+      {phase === 'result' && summary && (
+        <ResultScreen route={route} summary={summary} canRetry={canRetry} onRetry={onRetry} onExit={onExit} />
+      )}
+    </div>
+  );
+}

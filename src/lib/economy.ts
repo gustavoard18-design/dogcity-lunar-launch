@@ -1,4 +1,4 @@
-import { Route, Tier } from '../types';
+import { DogAstronaut, PlayerProfile, Route, Tier } from '../types';
 
 export const ROUTES: Route[] = [
   {
@@ -10,6 +10,11 @@ export const ROUTES: Route[] = [
     maxScore: 100,
     rewardMultiplier: 1,
     emoji: '🌍',
+    unlockLevel: 1,
+    destination: 'earth',
+    flightSeconds: 24,
+    hazardRate: 0.9,
+    color: '#38bdf8',
   },
   {
     id: 'sea-of-tranquility',
@@ -20,16 +25,26 @@ export const ROUTES: Route[] = [
     maxScore: 250,
     rewardMultiplier: 1.8,
     emoji: '🌙',
+    unlockLevel: 2,
+    destination: 'moon',
+    flightSeconds: 30,
+    hazardRate: 1.5,
+    color: '#e2e8f0',
   },
   {
     id: 'asteroid-belt',
     name: 'Cinturão de Asteroides',
-    description: 'Navegação perigosa entre rochas espaciais.',
+    description: 'Navegação perigosa entre rochas espaciais até Ceres.',
     cost: 50,
     difficulty: 3,
     maxScore: 500,
     rewardMultiplier: 3,
     emoji: '☄️',
+    unlockLevel: 4,
+    destination: 'ceres',
+    flightSeconds: 36,
+    hazardRate: 2.4,
+    color: '#f59e0b',
   },
   {
     id: 'mars-colony',
@@ -40,8 +55,32 @@ export const ROUTES: Route[] = [
     maxScore: 1000,
     rewardMultiplier: 5,
     emoji: '🔴',
+    unlockLevel: 7,
+    destination: 'mars',
+    flightSeconds: 42,
+    hazardRate: 3.1,
+    color: '#ef4444',
   },
 ];
+
+export const STARTING_STARDUST = 150;
+
+export function getRoute(id: string): Route | undefined {
+  return ROUTES.find(r => r.id === id);
+}
+
+export function isRouteUnlocked(route: Route, level: number): boolean {
+  return level >= route.unlockLevel;
+}
+
+/** Quem não pode pagar nenhuma rota ganha um treino gratuito na Órbita Baixa, para nunca travar. */
+export function isFreeTraining(route: Route, profile: PlayerProfile): boolean {
+  return route.id === 'low-orbit' && profile.stardust < route.cost;
+}
+
+export function getRouteCost(route: Route, profile: PlayerProfile): number {
+  return isFreeTraining(route, profile) ? 0 : route.cost;
+}
 
 export function getTier(dogBalance: number): Tier {
   if (dogBalance >= 10000) return 'Legend';
@@ -71,43 +110,68 @@ export function getTierBadge(tier: Tier): string {
   }
 }
 
-export function calculateReward(score: number, route: Route, success: boolean): number {
-  if (!success) return Math.floor(score * 0.1);
-  const baseReward = Math.floor(score * route.rewardMultiplier);
-  return Math.max(baseReward, 5);
+/** Qualidade do voo em [0, 1]. */
+export function getQuality(score: number, route: Route): number {
+  return Math.max(0, Math.min(1, score / route.maxScore));
 }
 
-export function calculateSuccessChance(score: number, route: Route, luck: number = 1): number {
-  const threshold = route.maxScore * 0.5;
-  const luckBonus = (luck - 1) * 0.03;
-  
-  if (score >= threshold) return Math.min(0.85 + luckBonus, 0.98);
-  if (score >= threshold * 0.7) return Math.min(0.6 + luckBonus, 0.85);
-  if (score >= threshold * 0.4) return Math.min(0.35 + luckBonus, 0.6);
-  return Math.min(0.1 + luckBonus, 0.3);
+/**
+ * Sucesso devolve entre 0.6x e 2.4x o custo da rota (+5 fixo), então um voo mediano
+ * já dá lucro. Falha recupera até 25% do custo, proporcional ao desempenho.
+ */
+export function calculateReward(score: number, route: Route, success: boolean): number {
+  const q = getQuality(score, route);
+  if (!success) return Math.round(route.cost * 0.25 * q);
+  return Math.round(route.cost * (0.6 + 1.8 * q)) + 5;
+}
+
+export function calculateXpGain(score: number, route: Route, success: boolean): number {
+  const q = getQuality(score, route);
+  const base = (10 + 40 * q) * route.rewardMultiplier;
+  return Math.round(success ? base : base * 0.3);
+}
+
+export function getReputationGain(score: number, route: Route, success: boolean): number {
+  if (!success) return -1;
+  return 2 + Math.round(8 * getQuality(score, route) * route.difficulty);
+}
+
+export function getLunarDustGain(score: number, route: Route, success: boolean): number {
+  if (!success) return 0;
+  const q = getQuality(score, route);
+  if (q >= 0.85) return route.difficulty * 2;
+  if (q >= 0.7) return route.difficulty;
+  return 0;
 }
 
 export function getXpForLevel(level: number): number {
   return Math.floor(50 * Math.pow(1.5, level - 1));
 }
 
-export function calculateXpGain(score: number, route: Route, success: boolean): number {
-  const base = Math.floor(score * 0.5);
-  return success ? base : Math.floor(base * 0.3);
+/** Soma XP e processa quantos níveis forem necessários. Imutável. */
+export function applyXp(dog: DogAstronaut, xp: number): { dog: DogAstronaut; levelsGained: number } {
+  const next = { ...dog, xp: dog.xp + xp };
+  let levelsGained = 0;
+  while (next.xp >= next.xpToNext) {
+    next.xp -= next.xpToNext;
+    next.level += 1;
+    next.xpToNext = getXpForLevel(next.level);
+    levelsGained += 1;
+  }
+  return { dog: next, levelsGained };
 }
 
-export function getReputationGain(score: number, success: boolean): number {
-  if (!success) return -2;
-  if (score > 400) return 10;
-  if (score > 200) return 5;
-  return 2;
+/** Segunda-feira 00:00 (horário local) da semana de `date`, em ISO. Não altera `date`. */
+export function getWeekStart(date: Date = new Date()): string {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = d.getDay();
+  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  return d.toISOString();
 }
 
-export function getWeekStart(): string {
-  const now = new Date();
-  const day = now.getDay();
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(now.setDate(diff));
-  monday.setHours(0, 0, 0, 0);
-  return monday.toISOString();
+/** Chave do dia local no formato YYYY-MM-DD. */
+export function getDayKey(date: Date = new Date()): string {
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${m}-${d}`;
 }

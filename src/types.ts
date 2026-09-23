@@ -1,5 +1,9 @@
 export type Tier = 'Stray' | 'Explorer' | 'Pioneer' | 'Commander' | 'Legend';
 
+export type Stat = 'power' | 'accuracy' | 'luck' | 'speed';
+
+export type PlanetKind = 'earth' | 'moon' | 'ceres' | 'mars' | 'gas';
+
 export interface DogAstronaut {
   id: string;
   name: string;
@@ -19,8 +23,18 @@ export interface DogAstronaut {
   trail: string;
 }
 
+/** Aparência do astronauta e do foguete (cosméticos + peças da Oficina). */
+export interface AstronautLook {
+  skinColor: string;
+  helmet: string;
+  trailColor: string;
+  upgrades?: Record<Stat, number>;
+}
+
 export interface PlayerProfile {
+  version: number;
   address: string;
+  provider: string;
   dogBalance: number;
   tier: Tier;
   stardust: number;
@@ -31,17 +45,18 @@ export interface PlayerProfile {
   bestScore: number;
   createdAt: string;
   dailyMissions: DailyMissionState[];
-  lastMissionReset: string;
+  /** Dia local (YYYY-MM-DD) em que o conjunto atual de missões foi sorteado. */
+  missionDay: string;
+  /** Dia local em que o jogador usou a troca paga de missões. */
+  missionRerollDay: string;
   purchasedUpgrades: string[];
   ownedCosmetics: string[];
-  unlockedAchievements: string[];
   weeklyScores: WeeklyScore[];
-  currentWeekStart: string;
 }
 
 export interface LaunchRecord {
   id: string;
-  route: Route;
+  route: Pick<Route, 'id' | 'name' | 'emoji'>;
   score: number;
   stardustEarned: number;
   stardustCost: number;
@@ -58,6 +73,40 @@ export interface Route {
   maxScore: number;
   rewardMultiplier: number;
   emoji: string;
+  unlockLevel: number;
+  destination: PlanetKind;
+  /** Duração do voo em segundos (sem boost). */
+  flightSeconds: number;
+  /** Asteroides gerados por segundo. */
+  hazardRate: number;
+  color: string;
+}
+
+/** O que aconteceu em um lançamento, produzido pelo jogo. */
+export interface LaunchOutcome {
+  score: number;
+  success: boolean;
+  aborted: boolean;
+  launchQuality: number;
+  perfectLaunch: boolean;
+  orbs: number;
+  rings: number;
+  hits: number;
+  hullLeft: number;
+  hullMax: number;
+}
+
+/** O que o jogador ganhou com o lançamento, calculado pelo App. */
+export interface LaunchSummary {
+  outcome: LaunchOutcome;
+  quality: number;
+  stardustEarned: number;
+  xpGained: number;
+  lunarDustGained: number;
+  reputationGained: number;
+  levelsGained: number;
+  newLevel: number;
+  newBest: boolean;
 }
 
 export interface LeaderboardEntry {
@@ -67,14 +116,28 @@ export interface LeaderboardEntry {
   bestScore: number;
   totalLaunches: number;
   weekScore: number;
+  simulated?: boolean;
 }
+
+export type MissionType =
+  | 'launches'
+  | 'success'
+  | 'quality'
+  | 'orbs'
+  | 'rings'
+  | 'perfect'
+  | 'flawless'
+  | 'route'
+  | 'stardust';
 
 export interface DailyMission {
   id: string;
   title: string;
   description: string;
-  type: 'launches' | 'score' | 'success' | 'route' | 'stardust';
+  type: MissionType;
   target: number;
+  routeId?: string;
+  minLevel?: number;
   reward: {
     stardust: number;
     xp: number;
@@ -94,11 +157,13 @@ export interface Upgrade {
   id: string;
   name: string;
   description: string;
-  stat: 'power' | 'accuracy' | 'luck' | 'speed';
+  stat: Stat;
   level: number;
   cost: number;
   emoji: string;
 }
+
+export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 
 export interface Cosmetic {
   id: string;
@@ -108,7 +173,9 @@ export interface Cosmetic {
   currency: 'stardust' | 'lunarDust';
   emoji: string;
   description: string;
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  rarity: Rarity;
+  /** Cor usada na renderização 3D ('solar' = chama laranja/dourada animada). */
+  color: string;
 }
 
 export interface WeeklyScore {

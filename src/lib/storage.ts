@@ -1,82 +1,105 @@
-import { PlayerProfile, LeaderboardEntry } from '../types';
-import { getTier, getXpForLevel, getWeekStart } from './economy';
-import { initializeDailyMissions } from './missions';
+import { LeaderboardEntry, PlayerProfile } from '../types';
+import { getTier, getXpForLevel, getWeekStart, getDayKey, STARTING_STARDUST } from './economy';
+import { ensureDailyMissions } from './missions';
+import { DEFAULT_SKIN, DEFAULT_TRAIL } from './shop';
+import { MAX_STAT_LEVEL } from './stats';
 
 const STORAGE_KEY = 'dogcity_game_state';
-const LEADERBOARD_KEY = 'dogcity_leaderboard';
+const LEADERBOARD_KEY = 'dogcity_leaderboard_v2';
+export const PROFILE_VERSION = 2;
+
+function readJson<T>(key: string, fallback: T): T {
+  try {
+    const data = localStorage.getItem(key);
+    return data ? (JSON.parse(data) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJson(key: string, value: unknown): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Armazenamento cheio ou bloqueado: o jogo continua em memória.
+  }
+}
+
+export function getAllProfiles(): Record<string, PlayerProfile> {
+  return readJson<Record<string, PlayerProfile>>(STORAGE_KEY, {});
+}
 
 export function saveProfile(profile: PlayerProfile): void {
-  const allProfiles = getAllProfiles();
-  allProfiles[profile.address] = profile;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(allProfiles));
+  const all = getAllProfiles();
+  all[profile.address] = profile;
+  writeJson(STORAGE_KEY, all);
   updateLeaderboard(profile);
 }
 
 export function loadProfile(address: string): PlayerProfile | null {
-  const allProfiles = getAllProfiles();
-  return allProfiles[address] || null;
+  const raw = getAllProfiles()[address];
+  return raw ? ensureDailyMissions(migrateProfile(raw)) : null;
 }
 
-export function getAllProfiles(): Record<string, PlayerProfile> {
-  const data = localStorage.getItem(STORAGE_KEY);
-  if (!data) return {};
-  try {
-    return JSON.parse(data);
-  } catch {
-    return {};
-  }
-}
+const clampStat = (v: unknown) => Math.max(1, Math.min(MAX_STAT_LEVEL, Math.floor(Number(v) || 1)));
 
-export function createProfile(address: string, dogBalance: number): PlayerProfile {
-  const tier = getTier(dogBalance);
-  const profile: PlayerProfile = {
-    address,
-    dogBalance,
-    tier,
-    stardust: 100,
-    lunarDust: 0,
+/** Aceita perfis da v1 (ou corrompidos) e completa campos faltando. */
+export function migrateProfile(raw: Partial<PlayerProfile>): PlayerProfile {
+  const dog = { ...(raw.dog ?? {}) } as PlayerProfile['dog'];
+  const level = Math.max(1, dog.level || 1);
+  return {
+    version: PROFILE_VERSION,
+    address: String(raw.address),
+    provider: raw.provider ?? 'Convidado',
+    dogBalance: raw.dogBalance ?? 0,
+    tier: raw.tier ?? getTier(raw.dogBalance ?? 0),
+    stardust: Math.max(0, Math.floor(raw.stardust ?? STARTING_STARDUST)),
+    lunarDust: Math.max(0, Math.floor(raw.lunarDust ?? 0)),
     dog: {
-      id: `dog_${Date.now()}`,
-      name: generateDogName(),
-      breed: generateBreed(),
-      level: 1,
-      xp: 0,
-      xpToNext: getXpForLevel(1),
-      reputation: 0,
-      missions: 0,
-      createdAt: new Date().toISOString(),
-      power: 1,
-      accuracy: 1,
-      luck: 1,
-      speed: 1,
-      skin: 'default',
-      helmet: 'none',
-      trail: 'orange',
+      id: dog.id ?? `dog_${Date.now()}`,
+      name: dog.name ?? generateDogName(),
+      breed: dog.breed ?? generateBreed(),
+      level,
+      xp: Math.max(0, dog.xp || 0),
+      xpToNext: getXpForLevel(level),
+      reputation: Math.max(0, dog.reputation || 0),
+      missions: dog.missions || 0,
+      createdAt: dog.createdAt ?? new Date().toISOString(),
+      power: clampStat(dog.power),
+      accuracy: clampStat(dog.accuracy),
+      luck: clampStat(dog.luck),
+      speed: clampStat(dog.speed),
+      skin: dog.skin ?? DEFAULT_SKIN.id,
+      helmet: dog.helmet ?? 'none',
+      trail: dog.trail ?? DEFAULT_TRAIL.id,
     },
-    launches: [],
-    totalScore: 0,
-    bestScore: 0,
-    createdAt: new Date().toISOString(),
-    dailyMissions: [],
-    lastMissionReset: new Date().toISOString(),
-    purchasedUpgrades: [],
-    ownedCosmetics: [],
-    unlockedAchievements: [],
-    weeklyScores: [],
-    currentWeekStart: getWeekStart(),
+    launches: (raw.launches ?? []).map(l => ({
+      ...l,
+      route: { id: l.route.id, name: l.route.name, emoji: l.route.emoji },
+    })),
+    totalScore: raw.totalScore ?? 0,
+    bestScore: raw.bestScore ?? 0,
+    createdAt: raw.createdAt ?? new Date().toISOString(),
+    dailyMissions: raw.dailyMissions ?? [],
+    missionDay: raw.missionDay ?? '',
+    missionRerollDay: raw.missionRerollDay ?? '',
+    purchasedUpgrades: raw.purchasedUpgrades ?? [],
+    ownedCosmetics: raw.ownedCosmetics ?? [],
+    weeklyScores: raw.weeklyScores ?? [],
   };
-  
-  profile.dailyMissions = initializeDailyMissions(profile);
-  saveProfile(profile);
-  return profile;
+}
+
+export function createProfile(address: string, provider: string, dogBalance: number): PlayerProfile {
+  const profile = migrateProfile({ address, provider, dogBalance, stardust: STARTING_STARDUST });
+  const withMissions = ensureDailyMissions(profile);
+  saveProfile(withMissions);
+  return withMissions;
 }
 
 function generateDogName(): string {
   const prefixes = ['Astro', 'Cosmo', 'Luna', 'Nova', 'Orbit', 'Star', 'Comet', 'Nebula', 'Solar', 'Rocket'];
   const suffixes = ['paw', 'tail', 'bark', 'howl', 'woof', 'zoom', 'dash', 'flash', 'bolt', 'spark'];
-  const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-  const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
-  return prefix + suffix;
+  return prefixes[Math.floor(Math.random() * prefixes.length)] + suffixes[Math.floor(Math.random() * suffixes.length)];
 }
 
 function generateBreed(): string {
@@ -84,51 +107,56 @@ function generateBreed(): string {
   return breeds[Math.floor(Math.random() * breeds.length)];
 }
 
+export function getWeeklyBest(profile: PlayerProfile, now: Date = new Date()): number {
+  const week = profile.weeklyScores[0];
+  return week && week.weekStart === getWeekStart(now) ? week.bestScore : 0;
+}
+
+/** Pilotos simulados para o ranking não ficar vazio no modo offline. Variam por semana. */
+function simulatedEntries(): LeaderboardEntry[] {
+  const seed = getDayKey(new Date(getWeekStart())).split('-').reduce((a, n) => a * 31 + Number(n), 7);
+  const vary = (base: number, i: number) => Math.round(base * (0.8 + ((seed * (i + 3)) % 40) / 100));
+  const base: [string, string, LeaderboardEntry['tier'], number, number][] = [
+    ['bc1qsim0legend', 'Astropaw', 'Legend', 920, 140],
+    ['bc1qsim1commander', 'Cosmobark', 'Commander', 780, 96],
+    ['bc1qsim2pioneer', 'Lunahowl', 'Pioneer', 410, 61],
+    ['bc1qsim3explorer', 'Novazoom', 'Explorer', 210, 38],
+    ['bc1qsim4explorer', 'Orbitflash', 'Explorer', 84, 17],
+  ];
+  return base.map(([address, dogName, tier, best, launches], i) => ({
+    address,
+    dogName,
+    tier,
+    bestScore: best,
+    totalLaunches: launches,
+    weekScore: vary(best * 0.85, i),
+    simulated: true,
+  }));
+}
+
 export function getLeaderboard(): LeaderboardEntry[] {
-  const data = localStorage.getItem(LEADERBOARD_KEY);
-  if (!data) return generateMockLeaderboard();
-  try {
-    return JSON.parse(data);
-  } catch {
-    return generateMockLeaderboard();
-  }
+  const real = readJson<LeaderboardEntry[]>(LEADERBOARD_KEY, []).map(e => ({
+    ...e,
+    weekScore: e.weekScore ?? 0,
+  }));
+  // A pontuação semanal dos jogadores locais só vale na semana em que foi feita.
+  const profiles = getAllProfiles();
+  const current = real.map(e => {
+    const p = profiles[e.address];
+    return p ? { ...e, weekScore: getWeeklyBest(migrateProfile(p)) } : e;
+  });
+  return [...current, ...simulatedEntries()].sort((a, b) => b.weekScore - a.weekScore);
 }
 
 function updateLeaderboard(profile: PlayerProfile): void {
-  const leaderboard = getLeaderboard();
-  const existing = leaderboard.findIndex(e => e.address === profile.address);
-  
-  const weekStart = getWeekStart();
-  const weekLaunches = profile.launches.filter(l => new Date(l.timestamp) >= new Date(weekStart));
-  const weekScore = weekLaunches.reduce((max, l) => Math.max(max, l.score), 0);
-  
-  const entry: LeaderboardEntry = {
+  const entries = readJson<LeaderboardEntry[]>(LEADERBOARD_KEY, []).filter(e => e.address !== profile.address);
+  entries.push({
     address: profile.address,
     dogName: profile.dog.name,
     tier: profile.tier,
     bestScore: profile.bestScore,
     totalLaunches: profile.launches.length,
-    weekScore,
-  };
-
-  if (existing >= 0) {
-    leaderboard[existing] = entry;
-  } else {
-    leaderboard.push(entry);
-  }
-
-  leaderboard.sort((a, b) => b.bestScore - a.bestScore);
-  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(leaderboard.slice(0, 50)));
-}
-
-function generateMockLeaderboard(): LeaderboardEntry[] {
-  const mockEntries: LeaderboardEntry[] = [
-    { address: 'bc1q_mock_legend_1', dogName: 'Astropaw', tier: 'Legend', bestScore: 2450, totalLaunches: 89, weekScore: 890 },
-    { address: 'bc1q_mock_commander_1', dogName: 'Cosmobark', tier: 'Commander', bestScore: 1820, totalLaunches: 56, weekScore: 620 },
-    { address: 'bc1q_mock_pioneer_1', dogName: 'Lunahowl', tier: 'Pioneer', bestScore: 1340, totalLaunches: 42, weekScore: 450 },
-    { address: 'bc1q_mock_explorer_1', dogName: 'Novazoom', tier: 'Explorer', bestScore: 890, totalLaunches: 31, weekScore: 320 },
-    { address: 'bc1q_mock_explorer_2', dogName: 'Orbitflash', tier: 'Explorer', bestScore: 650, totalLaunches: 22, weekScore: 210 },
-  ];
-  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(mockEntries));
-  return mockEntries;
+    weekScore: getWeeklyBest(profile),
+  });
+  writeJson(LEADERBOARD_KEY, entries.slice(-50));
 }

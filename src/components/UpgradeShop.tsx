@@ -1,5 +1,10 @@
-import { PlayerProfile } from '../types';
-import { getAvailableUpgrades } from '../lib/shop';
+import { useMemo, useState } from 'react';
+import { PlayerProfile, Stat } from '../types';
+import { getNextUpgrade } from '../lib/shop';
+import { STAT_ICON, iconArt } from '../lib/evolution';
+import { MAX_STAT_LEVEL, STAT_INFO, UPGRADE_VISUALS } from '../lib/stats';
+import Showcase from './Showcase';
+import { LockIcon, Stardust } from './GameIcon';
 
 interface UpgradeShopProps {
   profile: PlayerProfile;
@@ -7,62 +12,118 @@ interface UpgradeShopProps {
 }
 
 export default function UpgradeShop({ profile, onPurchase }: UpgradeShopProps) {
-  const available = getAvailableUpgrades(
-    {
-      power: profile.dog.power,
-      accuracy: profile.dog.accuracy,
-      luck: profile.dog.luck,
-      speed: profile.dog.speed,
-    },
-    profile.purchasedUpgrades
+  const [preview, setPreview] = useState<Stat | null>(null);
+  const previewLevel = preview ? Math.min(MAX_STAT_LEVEL, profile.dog[preview] + 1) : 0;
+  const dog = useMemo(() => (preview ? { ...profile.dog, [preview]: previewLevel } : profile.dog), [profile.dog, preview, previewLevel]);
+  const installed = (Object.keys(UPGRADE_VISUALS) as Stat[]).flatMap(stat =>
+    UPGRADE_VISUALS[stat].filter(v => profile.dog[stat] >= v.level).map(v => v.part)
   );
 
   return (
-    <div className="bg-gray-900/80 border border-purple-500/30 rounded-2xl p-5 backdrop-blur-sm">
-      <h3 className="text-lg font-bold text-white mb-4">🔧 Upgrades</h3>
-      
-      {available.length === 0 ? (
-        <div className="text-center py-8">
-          <div className="text-5xl mb-3">🎊</div>
-          <p className="text-gray-400">Todos os upgrades disponíveis foram comprados!</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {(['power', 'accuracy', 'luck', 'speed'] as const).map(stat => {
-            const statUpgrades = available.filter(u => u.stat === stat);
-            if (statUpgrades.length === 0) return null;
-            
-            const upgrade = statUpgrades[0];
-            const canAfford = profile.stardust >= upgrade.cost;
-            
-            return (
-              <div
-                key={upgrade.id}
-                className="flex items-center justify-between p-4 rounded-xl bg-gray-800/50 border border-gray-700/40"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{upgrade.emoji}</span>
-                  <div>
-                    <h4 className="text-white text-sm font-semibold">{upgrade.name}</h4>
-                    <p className="text-xs text-gray-400">Nível {upgrade.level}</p>
+    <div className="panel">
+      <div className="flex items-baseline justify-between mb-3">
+        <h3 className="font-display text-lg text-white">Oficina</h3>
+        <span className="text-xs text-amber-300"><Stardust value={profile.stardust} /></span>
+      </div>
+
+      <Showcase
+        dog={dog}
+        focus="rocket"
+        badge={preview ? <>🔭 Prévia: {STAT_INFO[preview].label} nv {previewLevel}</> : <>Configuração atual</>}
+        footer={
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+            <span className="text-slate-400 mr-1">Peças instaladas:</span>
+            {installed.length === 0 ? (
+              <span className="text-slate-500">nenhuma ainda — suba os atributos para equipar o foguete</span>
+            ) : (
+              installed.map(part => (
+                <span key={part} className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
+                  {part}
+                </span>
+              ))
+            )}
+          </div>
+        }
+      />
+
+      <div className="space-y-3">
+        {(Object.keys(STAT_INFO) as Stat[]).map(stat => {
+          const info = STAT_INFO[stat];
+          const level = profile.dog[stat];
+          const next = getNextUpgrade(profile.dog, stat);
+          const canAfford = !!next && profile.stardust >= next.cost;
+          const active = preview === stat;
+
+          return (
+            <div
+              key={stat}
+              onMouseEnter={() => next && setPreview(stat)}
+              onMouseLeave={() => setPreview(p => (p === stat ? null : p))}
+              onClick={() => next && setPreview(active ? null : stat)}
+              className={`p-4 rounded-2xl bg-white/[0.04] border transition-colors cursor-default ${active ? 'border-fuchsia-400/50' : 'border-white/10'}`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <img src={iconArt(STAT_ICON[stat])} alt="" className="w-12 h-12 rounded-xl object-cover border border-white/10 shrink-0" draggable={false} />
+                  <div className="min-w-0">
+                    <h4 className={`text-sm font-semibold ${info.color}`}>
+                      {info.label} <span className="text-white">nv {level}</span>
+                    </h4>
+                    <p className="text-xs text-slate-400">{info.effect}</p>
+                    {next && <p className="text-[11px] text-slate-500 mt-0.5">Próximo: {next.name}</p>}
                   </div>
                 </div>
-                <button
-                  onClick={() => canAfford && onPurchase(upgrade.id)}
-                  disabled={!canAfford}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold ${
-                    canAfford
-                      ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                      : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                  }`}
-                >
-                  ✨ {upgrade.cost}
-                </button>
+                {next ? (
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      if (canAfford) onPurchase(next.id);
+                    }}
+                    disabled={!canAfford}
+                    className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                      canAfford ? 'btn-primary' : 'bg-white/5 text-slate-500 cursor-not-allowed'
+                    }`}
+                  >
+                    <Stardust value={next.cost} />
+                  </button>
+                ) : (
+                  <span className="shrink-0 font-display text-xs text-amber-300">MÁX</span>
+                )}
               </div>
-            );
-          })}
-        </div>
-      )}
+              <div className="flex gap-0.5 mt-3">
+                {Array.from({ length: MAX_STAT_LEVEL }, (_, i) => (
+                  <div
+                    key={i}
+                    className="stat-pip"
+                    style={
+                      i < level
+                        ? { background: 'linear-gradient(90deg,#38bdf8,#f97316)' }
+                        : UPGRADE_VISUALS[stat].some(v => v.level === i + 1)
+                          ? { background: 'rgba(242,122,26,0.35)' }
+                          : undefined
+                    }
+                  />
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {UPGRADE_VISUALS[stat].map(v => {
+                  const on = level >= v.level;
+                  return (
+                    <span
+                      key={v.part}
+                      className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                        on ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30' : 'bg-white/5 text-slate-400 border-white/10'
+                      }`}
+                    >
+                      {on ? '✓' : <><LockIcon size={11} className="inline -mt-0.5" /> nv {v.level}</>} {v.part}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

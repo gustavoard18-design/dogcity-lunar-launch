@@ -11,21 +11,16 @@ ZIP_NAME="dogcity-game-$(date +%Y%m%d-%H%M%S).zip"
 # Arquivos e pastas para incluir
 INCLUDE=(
   "src"
-  "public"
+  ".github"
   "package.json"
   "package-lock.json"
   "tsconfig.json"
-  "tsconfig.app.json"
-  "tsconfig.node.json"
-  "vite.config.ts"
-  "tailwind.config.js"
-  "postcss.config.js"
-  "eslint.config.js"
+  "vite.config.js"
+  "vitest.config.ts"
   "index.html"
+  ".gitignore"
   "README.md"
   "WIKI.md"
-  "3D_GAME_DOCUMENTATION.md"
-  "VISUAL_IMPROVEMENTS.md"
 )
 
 # Arquivos e pastas para excluir
