@@ -17,6 +17,8 @@ import { UPGRADES, getNextUpgrade } from './shop';
 import { gaugeQuality, getGameTuning } from './stats';
 import { createProfile, loadProfile, migrateProfile, saveProfile } from './storage';
 import { astronautTier, rocketTier } from './evolution';
+import { EVENTS, getCurrentEvent, getEventBonus, getWeekIndex, msUntilNextEvent } from './events';
+import { ACHIEVEMENTS, claimAchievement, statsFromHistory, unlockAchievements } from './achievements';
 
 const [LOW, MOON] = ROUTES;
 
@@ -278,5 +280,86 @@ describe('evolução dos avatares', () => {
     expect(rocketTier(lv(7)).tier.name).toBe('Especial');
     expect(rocketTier(lv(10)).tier.name).toBe('Lendário');
     expect(rocketTier(lv(1)).next?.min).toBe(10);
+  });
+});
+
+describe('evento semanal', () => {
+  it('troca toda segunda-feira em rodízio e é o mesmo durante a semana', () => {
+    const mon = new Date(2026, 8, 21, 0, 30);
+    const sun = new Date(2026, 8, 27, 23, 30);
+    const nextMon = new Date(2026, 8, 28, 0, 30);
+    expect(getCurrentEvent(mon).id).toBe(getCurrentEvent(sun).id);
+    expect(getWeekIndex(nextMon)).toBe(getWeekIndex(mon) + 1);
+    expect(getCurrentEvent(nextMon).id).not.toBe(getCurrentEvent(mon).id);
+    const ids = new Set(Array.from({ length: EVENTS.length }, (_, i) => getCurrentEvent(new Date(2026, 8, 21 + 7 * i)).id));
+    expect(ids.size).toBe(EVENTS.length);
+    expect(msUntilNextEvent(sun)).toBe(30 * 60 * 1000);
+  });
+
+  it('dá o bônus uma vez por semana, só na rota do evento e com qualidade mínima', () => {
+    const now = new Date(2026, 8, 23, 12);
+    const event = getCurrentEvent(now);
+    const good = Math.ceil(event.route.maxScore * event.minQuality);
+    expect(getEventBonus(profile, LOW, 100, true, now)).toBeNull();
+    expect(getEventBonus(profile, event.route, good - 1, true, now)).toBeNull();
+    expect(getEventBonus(profile, event.route, good, false, now)).toBeNull();
+
+    const { profile: won, summary } = applyLaunchResult(profile, event.route, outcome({ score: good }), event.route.cost, now);
+    expect(summary.eventBonus).toEqual(event.bonus);
+    expect(won.lunarDust).toBe(profile.lunarDust + summary.lunarDustGained + event.bonus.lunarDust);
+    expect(won.eventWins).toHaveLength(1);
+
+    const again = applyLaunchResult(won, event.route, outcome({ score: good }), event.route.cost, now);
+    expect(again.summary.eventBonus).toBeUndefined();
+  });
+
+  it('rotas de evento aumentam a taxa de orbes', () => {
+    const stats = { power: 1, accuracy: 1, luck: 1, speed: 1 };
+    const event = EVENTS.find(e => (e.route.orbRateMult ?? 1) > 1)!;
+    expect(getGameTuning(stats, event.route).orbRate).toBeGreaterThan(getGameTuning(stats, LOW).orbRate);
+  });
+});
+
+describe('conquistas', () => {
+  it('os voos alimentam os contadores de vida e desbloqueiam conquistas', () => {
+    const { profile: next, summary } = applyLaunchResult(profile, MOON, outcome({ score: 200, orbs: 12, rings: 2, perfectLaunch: true, hits: 0 }), MOON.cost);
+    expect(next.stats).toMatchObject({ launches: 1, successes: 1, orbs: 12, rings: 2, perfects: 1, flawless: 1 });
+    expect(next.stats.routes[MOON.id]).toBe(1);
+    expect(summary.newAchievements).toEqual(expect.arrayContaining(['first_success', 'route_moon']));
+    expect(next.achievements.first_success.claimed).toBe(false);
+  });
+
+  it('resgatar paga uma vez só', () => {
+    const { profile: next } = applyLaunchResult(profile, LOW, outcome(), LOW.cost);
+    const claimed = claimAchievement(next, 'first_success')!;
+    const def = ACHIEVEMENTS.find(a => a.id === 'first_success')!;
+    expect(claimed.profile.stardust).toBe(next.stardust + def.reward.stardust);
+    expect(claimAchievement(claimed.profile, 'first_success')).toBeNull();
+    expect(claimAchievement(profile, 'first_success')).toBeNull();
+  });
+
+  it('não desbloqueia de novo o que já foi desbloqueado', () => {
+    const first = unlockAchievements({ ...profile, dog: { ...profile.dog, level: 5 } });
+    expect(first.unlocked.map(a => a.id)).toContain('level_5');
+    const second = unlockAchievements(first.profile);
+    expect(second.unlocked).toHaveLength(0);
+    expect(second.profile).toBe(first.profile);
+  });
+
+  it('perfil antigo ganha contadores estimados pelo histórico e as conquistas já cumpridas', () => {
+    const old = { ...profile } as Partial<PlayerProfile>;
+    delete old.stats;
+    delete old.achievements;
+    delete old.eventWins;
+    old.dog = { ...profile.dog, missions: 12 };
+    old.launches = [
+      { id: 'a', route: { id: 'mars-colony', name: 'Colônia de Marte' }, score: 700, stardustEarned: 150, stardustCost: 100, success: true, timestamp: 't' },
+      { id: 'b', route: { id: 'low-orbit', name: 'Órbita Baixa' }, score: 10, stardustEarned: 1, stardustCost: 10, success: false, timestamp: 't' },
+    ];
+    expect(statsFromHistory(old as PlayerProfile)).toMatchObject({ launches: 12, successes: 1, stardustEarned: 150, routes: { 'mars-colony': 1 } });
+    saveProfile(old as PlayerProfile);
+    const loaded = loadProfile(profile.address)!;
+    expect(loaded.eventWins).toEqual([]);
+    expect(Object.keys(loaded.achievements)).toEqual(expect.arrayContaining(['launches_10', 'route_mars', 'first_success']));
   });
 });

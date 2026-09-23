@@ -73,6 +73,29 @@ export interface PlayerProfile {
   purchasedUpgrades: string[];
   ownedCosmetics: string[];
   weeklyScores: WeeklyScore[];
+  /** Contadores de toda a vida do piloto (base das conquistas). */
+  stats: LifetimeStats;
+  /** Conquistas desbloqueadas (id → quando e se a recompensa já foi resgatada). */
+  achievements: Record<string, AchievementState>;
+  /** Semanas (weekStart ISO) em que o bônus do evento semanal já foi ganho. */
+  eventWins: string[];
+}
+
+export interface LifetimeStats {
+  launches: number;
+  successes: number;
+  orbs: number;
+  rings: number;
+  perfects: number;
+  flawless: number;
+  stardustEarned: number;
+  /** Voos concluídos com sucesso por rota. */
+  routes: Record<string, number>;
+}
+
+export interface AchievementState {
+  unlockedAt: string;
+  claimed: boolean;
 }
 
 export interface LaunchRecord {
@@ -100,6 +123,10 @@ export interface Route {
   /** Asteroides gerados por segundo. */
   hazardRate: number;
   color: string;
+  /** Multiplica a taxa de orbes (rotas de evento). */
+  orbRateMult?: number;
+  /** Rota especial do evento semanal. */
+  event?: boolean;
 }
 
 /** O que aconteceu em um lançamento, produzido pelo jogo. */
@@ -127,6 +154,10 @@ export interface LaunchSummary {
   levelsGained: number;
   newLevel: number;
   newBest: boolean;
+  /** Bônus do evento semanal ganho neste voo (uma vez por semana). */
+  eventBonus?: { stardust: number; lunarDust: number };
+  /** Conquistas desbloqueadas por este voo. */
+  newAchievements: string[];
 }
 
 export interface LeaderboardEntry {

@@ -1,6 +1,7 @@
 import { LeaderboardEntry, PlayerProfile } from '../types';
 import { getTier, getXpForLevel, getWeekStart, getDayKey, STARTING_STARDUST } from './economy';
 import { ensureDailyMissions } from './missions';
+import { statsFromHistory, unlockAchievements } from './achievements';
 import { DEFAULT_SKIN, DEFAULT_TRAIL } from './shop';
 import { MAX_STAT_LEVEL } from './stats';
 
@@ -38,7 +39,8 @@ export function saveProfile(profile: PlayerProfile): void {
 
 export function loadProfile(address: string): PlayerProfile | null {
   const raw = getAllProfiles()[address];
-  return raw ? ensureDailyMissions(migrateProfile(raw)) : null;
+  // Perfis antigos recebem na hora as conquistas que já tinham cumprido.
+  return raw ? unlockAchievements(ensureDailyMissions(migrateProfile(raw))).profile : null;
 }
 
 const clampStat = (v: unknown) => Math.max(1, Math.min(MAX_STAT_LEVEL, Math.floor(Number(v) || 1)));
@@ -88,6 +90,9 @@ export function migrateProfile(raw: Partial<PlayerProfile>): PlayerProfile {
     purchasedUpgrades: raw.purchasedUpgrades ?? [],
     ownedCosmetics: raw.ownedCosmetics ?? [],
     weeklyScores: raw.weeklyScores ?? [],
+    stats: raw.stats ? { ...raw.stats, routes: { ...(raw.stats.routes ?? {}) } } : statsFromHistory({ launches: raw.launches ?? [], dog: { missions: dog.missions || 0 } as PlayerProfile['dog'] }),
+    achievements: raw.achievements ?? {},
+    eventWins: raw.eventWins ?? [],
   };
 }
 

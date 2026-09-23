@@ -1,7 +1,8 @@
 import { PlanetKind, PlayerProfile, Route } from '../types';
 import { ROUTES, getRouteCost, isFreeTraining, isRouteUnlocked } from '../lib/economy';
 import { cutoutArt } from '../lib/evolution';
-import GameIcon, { Difficulty, LockIcon, PLANET_ICON, Stardust } from './GameIcon';
+import { getCurrentEvent, hasWonEventThisWeek, msUntilNextEvent } from '../lib/events';
+import GameIcon, { Difficulty, LockIcon, LunarDust, PLANET_ICON, Stardust } from './GameIcon';
 
 function PlanetBadge({ kind, locked }: { kind: PlanetKind; locked: boolean }) {
   return (
@@ -13,6 +14,71 @@ function PlanetBadge({ kind, locked }: { kind: PlanetKind; locked: boolean }) {
         </span>
       )}
     </span>
+  );
+}
+
+function timeLeft(ms: number): string {
+  const h = Math.floor(ms / 3_600_000);
+  const d = Math.floor(h / 24);
+  return d > 0 ? `${d}d ${h % 24}h` : `${h}h ${Math.floor((ms % 3_600_000) / 60_000)}min`;
+}
+
+/** Rota especial da semana, com o bônus e o tempo que falta. */
+function EventCard({ profile, onSelectRoute }: RouteSelectorProps) {
+  const event = getCurrentEvent();
+  const { route } = event;
+  const unlocked = isRouteUnlocked(route, profile.dog.level);
+  const affordable = profile.stardust >= route.cost;
+  const disabled = !unlocked || !affordable;
+  const won = hasWonEventThisWeek(profile);
+  const best = profile.launches.filter(l => l.route.id === route.id).reduce((m, l) => Math.max(m, l.score), 0);
+
+  return (
+    <button
+      onClick={() => !disabled && onSelectRoute(route)}
+      disabled={disabled}
+      className={`group relative w-full text-left rounded-2xl p-[1.5px] overflow-hidden transition-all ${disabled ? 'opacity-60 cursor-not-allowed' : 'hover:-translate-y-0.5 cursor-pointer'}`}
+      style={{ background: `linear-gradient(120deg, ${route.color}, #38bdf8 55%, ${route.color})` }}
+    >
+      <div className="relative rounded-[15px] bg-[#0a1430]/95 p-4 overflow-hidden">
+        <div className="absolute -right-8 -top-12 w-48 h-48 rounded-full blur-3xl opacity-30 group-hover:opacity-50 transition-opacity" style={{ background: route.color }} />
+        <div className="relative flex items-center justify-between gap-2 mb-2">
+          <span className="text-[10px] font-bold tracking-[0.2em] px-2 py-0.5 rounded-full" style={{ color: route.color, background: `${route.color}22` }}>
+            EVENTO DA SEMANA
+          </span>
+          <span className="text-[11px] text-slate-400">termina em {timeLeft(msUntilNextEvent())}</span>
+        </div>
+        <div className="relative flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <PlanetBadge kind={route.destination} locked={!unlocked} />
+            <div className="min-w-0">
+              <h4 className="font-display text-white text-lg leading-tight">{event.name}</h4>
+              <p className="text-xs text-slate-300">{unlocked ? event.tagline : `Desbloqueia no nível ${route.unlockLevel}`}</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                <Difficulty level={route.difficulty} /> · {route.flightSeconds}s · máx {route.maxScore}
+                {(route.orbRateMult ?? 1) > 1 && <span className="text-amber-300/90"> · orbes x{route.orbRateMult}</span>}
+                {best > 0 && <span className="text-amber-300/80"> · recorde {best}</span>}
+              </p>
+            </div>
+          </div>
+          <div className="text-right shrink-0">
+            <div className={`text-sm font-bold ${affordable ? 'text-amber-300' : 'text-red-400'}`}><Stardust value={route.cost} /></div>
+            <div className="text-[10px] text-slate-500">x{route.rewardMultiplier} XP</div>
+          </div>
+        </div>
+        <div className={`relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl px-3 py-2 text-xs ${won ? 'bg-emerald-500/10 text-emerald-300' : 'bg-white/[0.04] text-slate-300'}`}>
+          {won ? (
+            <span className="inline-flex items-center gap-1.5"><GameIcon name="trophy" size={18} /> Bônus desta semana conquistado</span>
+          ) : (
+            <>
+              <span className="inline-flex items-center gap-1.5"><GameIcon name="trophy" size={18} /> Bônus: conclua com {Math.round(event.minQuality * 100)}% ou mais</span>
+              <span className="text-amber-300"><Stardust value={event.bonus.stardust} sign="+" /></span>
+              <span className="text-violet-300"><LunarDust value={event.bonus.lunarDust} sign="+" /></span>
+            </>
+          )}
+        </div>
+      </div>
+    </button>
   );
 }
 
@@ -37,6 +103,8 @@ export default function RouteSelector({ profile, onSelectRoute }: RouteSelectorP
         <h3 className="font-display text-lg text-white">Rotas de lançamento</h3>
         <span className="text-[11px] text-slate-500 sm:mr-24">Custo debitado na decolagem</span>
       </div>
+
+      <EventCard profile={profile} onSelectRoute={onSelectRoute} />
 
       {ROUTES.map(route => {
         const unlocked = isRouteUnlocked(route, profile.dog.level);

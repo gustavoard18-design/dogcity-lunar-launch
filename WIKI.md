@@ -59,6 +59,9 @@ Upgrades custam `base × 1.45^(nível−2)` (bases: potência 40, precisão 45, 
 - Os asteroides aumentam ao longo do voo (`ramp = 0.6 + 0.8·progresso`). Uma fração deles mira a posição atual da nave (15% a 39% conforme a dificuldade).
 - Em telas em pé, a área jogável encolhe na horizontal, a densidade de asteroides é compensada e o FOV aumenta.
 - Efeitos: bloom, vinheta, aberração cromática pulsando ao levar dano, tremor de câmera, FOV kick no boost, traços de velocidade e partículas de exaustão com a cor do rastro equipado.
+- Fundo do voo (`three/DeepSpace.tsx`): rochas gigantes e um satélite fora da área jogável, com parallax. Objetos distantes surgem crescendo em vez de usar névoa (que deixava silhuetas pretas).
+- Modelos 3D gerados no 3D AI Studio (`public/models`): o DOG astronauta (`three/DogModel.tsx`, na plataforma, embarca com um pulo na contagem) e o foguete Bitcoin (`three/RocketModel.tsx`). O rosto do DOG na escotilha e o símbolo ₿ são malhas projetadas na superfície do casco por raycast. O casco procedural antigo só aparece enquanto o modelo carrega.
+- Base Lunar (`game/LaunchSite.tsx`): relevo com crateras, pedras instanciadas, cordilheiras com a Terra nascendo, torre de serviço, holofotes e construções.
 
 ## 6. Missões diárias (`lib/missions.ts`)
 
@@ -68,18 +71,42 @@ Upgrades custam `base × 1.45^(nível−2)` (bases: potência 40, precisão 45, 
 - A troca custa 25 ✨, pode ser usada 1× por dia e só substitui missões não resgatadas.
 - O XP das missões passa por `applyXp`, então também sobe de nível.
 
-## 7. Persistência (`lib/storage.ts`)
+## 7. Evento semanal (`lib/events.ts`)
+
+- Uma rota especial por semana, em rodízio fixo de 4 eventos. Troca na segunda-feira às 00:00 (horário local), contando a partir da semana de 05/01/2026.
+- Os eventos reaproveitam os destinos das rotas normais e mudam o ritmo com `hazardRate`, `flightSeconds` e `orbRateMult` (multiplica a taxa de orbes em `getGameTuning`).
+
+| Evento | Destino | Nível | Custo | Voo | Orbes | Bônus (qualidade mínima) |
+|---|---|---|---|---|---|---|
+| Chuva de Meteoros | Terra | 2 | 30 | 30 s | x2 | +120 ✨ +6 Pó Lunar (60%) |
+| Tempestade Solar | Lua | 2 | 25 | 26 s | x2.4 | +100 ✨ +5 Pó Lunar (60%) |
+| Caçada ao Cometa | Ceres | 3 | 40 | 40 s | x1.5 | +150 ✨ +7 Pó Lunar (60%) |
+| Maratona Marciana | Marte | 5 | 60 | 50 s | x1.4 | +200 ✨ +9 Pó Lunar (55%) |
+
+- O bônus sai uma vez por semana, só na rota do evento *daquela* semana, com sucesso e qualidade mínima. A semana ganha fica em `profile.eventWins`.
+- O card do evento aparece no topo da aba Lançar, com o tempo restante e o status do bônus.
+- Ranking online: a migração `20260924000000_event_routes.sql` adiciona as rotas de evento em `route_max_score`. Sem ela, o servidor recusa esses envios e o ranking local continua valendo.
+
+## 8. Conquistas (`lib/achievements.ts`)
+
+- 22 conquistas permanentes medidas sobre `profile.stats` (voos, sucessos, orbes, anéis, lançamentos perfeitos, voos sem dano, Stardust ganho e sucessos por rota), `eventWins` e o próprio perfil (nível, atributo máximo, itens da Loja).
+- `unlockAchievements` roda no resultado de cada voo e em todo `commit` do App, então compras e level ups também desbloqueiam. A recompensa (Stardust e Pó Lunar) é resgatada no painel de Conquistas da aba Missões, que ganha o selo verde quando há algo para resgatar.
+- Perfis antigos sem contadores recebem uma estimativa pelo histórico (`statsFromHistory`: total de missões do piloto e sucessos dos últimos 50 voos) e já carregam as conquistas cumpridas.
+- A tela de resultado lista as conquistas desbloqueadas no voo e o bônus do evento.
+
+## 9. Persistência (`lib/storage.ts`)
 
 - `localStorage['dogcity_game_state']`: perfis por endereço (`version: 2`).
 - `migrateProfile` aceita perfis da v1 ou corrompidos: completa campos, limita atributos a 1–10, recalcula `xpToNext` e troca missões inexistentes.
-- Ranking: `dogcity_leaderboard_v2` guarda os jogadores locais e é complementado por 5 pilotos simulados (marcados como "bot").
+- Ranking: `dogcity_leaderboard_v2` guarda os jogadores locais e é complementado por 5 pilotos simulados (marcados como "bot"). Com o backend no ar, o ranking semanal vem do Supabase (`lib/online.ts`).
+- `migrateProfile` também completa `stats`, `achievements` e `eventWins` em perfis que não têm esses campos.
 - Toda leitura e escrita é protegida por `try/catch`. Com armazenamento bloqueado, o jogo continua em memória.
 
-## 8. Áudio (`lib/audio.ts`)
+## 10. Áudio (`lib/audio.ts`)
 
 Todo o som é sintetizado com WebAudio: osciladores e ruído marrom filtrado. O `AudioContext` nasce no primeiro clique. O botão 🔊 no topo silencia, e a preferência fica salva.
 
-## 9. Evolução visual (`lib/evolution.ts`)
+## 11. Evolução visual (`lib/evolution.ts`)
 
 | Fase | Astronauta (pts de raridade equipados, máx 12) | Foguete (soma dos 4 atributos, 4–40) |
 |---|---|---|
@@ -91,14 +118,14 @@ Todo o som é sintetizado com WebAudio: osciladores e ruído marrom filtrado. O 
 
 As artes ficam em `public/art/astro-N.webp`, `public/art/rocket-N.webp` e `public/art/icons/*.webp`. A Loja funciona como provador (mostra a fase que o item daria) e a Oficina mostra a prévia do próximo nível.
 
-## 10. Testes
+## 12. Testes
 
-`npm test` roda `src/lib/game-rules.test.ts` (Vitest + jsdom). Ele cobre economia, pontuação, efeitos dos atributos, aplicação de resultados, missões (renovação, progresso, troca e level up ao resgatar), loja e migração de perfis v1.
+`npm test` roda `src/lib/game-rules.test.ts` (Vitest + jsdom). Ele cobre economia, pontuação, efeitos dos atributos, aplicação de resultados, missões (renovação, progresso, troca e level up ao resgatar), loja, migração de perfis v1, rodízio e bônus do evento semanal, e conquistas (contadores, desbloqueio, resgate e migração).
 
-O CI (`.github/workflows/ci.yml`) roda typecheck, testes e build em Node 20 e 22, e publica no GitHub Pages a cada push em `main`/`master` (o build usa `base: './'`).
+O CI (`.github/workflows/ci.yml`) roda typecheck, testes e build em Node 22 e 24, e publica no GitHub Pages a cada push em `main`/`master` (o build usa `base: './'`).
 
-## 11. Próximos passos sugeridos
+## 13. Próximos passos sugeridos
 
-- Ranking online (servidor ou Supabase) com validação do score no servidor.
-- Leitura real do saldo DOG (Runes) via indexador. Suporte a Xverse.
-- Conquistas permanentes e eventos semanais com rotas especiais.
+- Ranking do evento semanal separado do ranking geral.
+- Conquistas secretas e títulos exibidos no perfil do piloto.
+- Mais eventos no rodízio (Saturno com anéis usando o planeta `gas`).

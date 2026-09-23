@@ -10,6 +10,8 @@ import {
 } from './economy';
 import { applyLaunchToMissions, ensureDailyMissions } from './missions';
 import { COSMETICS, UPGRADES } from './shop';
+import { addLaunchToStats, unlockAchievements } from './achievements';
+import { getEventBonus } from './events';
 
 /** Só voos concluídos contam como melhor da semana. */
 function updateWeekly(weekly: WeeklyScore[], score: number, success: boolean, now: Date): WeeklyScore[] {
@@ -48,11 +50,14 @@ export function applyLaunchResult(
   const reputationGained = getReputationGain(score, route, success);
   const lunarDustGained = getLunarDustGain(score, route, success);
   const { dog, levelsGained } = applyXp(base.dog, xpGained);
+  const eventBonus = getEventBonus(base, route, score, success, now);
 
-  const next: PlayerProfile = {
+  const flown: PlayerProfile = {
     ...base,
-    stardust: base.stardust + stardustEarned,
-    lunarDust: base.lunarDust + lunarDustGained,
+    stardust: base.stardust + stardustEarned + (eventBonus?.stardust ?? 0),
+    lunarDust: base.lunarDust + lunarDustGained + (eventBonus?.lunarDust ?? 0),
+    stats: addLaunchToStats(base.stats, outcome, route, stardustEarned),
+    eventWins: eventBonus ? [getWeekStart(now), ...base.eventWins] : base.eventWins,
     totalScore: base.totalScore + score,
     bestScore: success ? Math.max(base.bestScore, score) : base.bestScore,
     dog: {
@@ -75,6 +80,7 @@ export function applyLaunchResult(
     weeklyScores: updateWeekly(base.weeklyScores, score, success, now),
     dailyMissions: applyLaunchToMissions(base.dailyMissions, outcome, route, stardustEarned),
   };
+  const { profile: next, unlocked } = unlockAchievements(flown, now);
 
   return {
     profile: next,
@@ -88,6 +94,8 @@ export function applyLaunchResult(
       levelsGained,
       newLevel: next.dog.level,
       newBest: success && score > base.bestScore,
+      eventBonus: eventBonus ?? undefined,
+      newAchievements: unlocked.map(a => a.id),
     },
   };
 }

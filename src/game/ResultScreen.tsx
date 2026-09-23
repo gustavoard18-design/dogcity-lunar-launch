@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { LaunchSummary, Route } from '../types';
 import { cutoutArt } from '../lib/evolution';
+import { getAchievementDef } from '../lib/achievements';
 import GameIcon, { IconName, LunarDust, PLANET_ICON, Stardust, StarIcon } from '../components/GameIcon';
 
 interface ResultScreenProps {
@@ -117,6 +118,37 @@ export default function ResultScreen({ route, summary, canRetry, onRetry, onExit
             className="mb-5 rounded-xl bg-gradient-to-r from-sky-600/40 to-amber-500/40 border border-amber-300/50 py-3 font-display text-lg text-white"
           >
             <span className="inline-flex items-center gap-2"><GameIcon name="medal" size={28} className="-my-1" /> NÍVEL {summary.newLevel}!</span>
+          </motion.div>
+        )}
+
+        {summary.eventBonus && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+            className="mb-4 rounded-xl border py-2.5 px-3 text-sm text-white"
+            style={{ borderColor: `${route.color}99`, background: `${route.color}22` }}
+          >
+            <div className="text-[10px] tracking-[0.2em] text-slate-300 mb-1">BÔNUS DO EVENTO</div>
+            <span className="inline-flex items-center gap-3 font-display">
+              <span className="text-amber-300"><Stardust value={summary.eventBonus.stardust} sign="+" size={20} /></span>
+              <span className="text-violet-300"><LunarDust value={summary.eventBonus.lunarDust} sign="+" size={20} /></span>
+            </span>
+          </motion.div>
+        )}
+
+        {summary.newAchievements.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2 }} className="mb-5 space-y-1.5">
+            {summary.newAchievements.map(id => (
+              <div key={id} className="flex items-center gap-2 rounded-xl bg-amber-400/10 border border-amber-300/40 px-3 py-2 text-left">
+                <GameIcon name="trophy" size={24} />
+                <div className="min-w-0">
+                  <div className="text-[10px] tracking-widest text-amber-300">CONQUISTA DESBLOQUEADA</div>
+                  <div className="text-sm text-white font-semibold truncate">{getAchievementDef(id)?.title}</div>
+                </div>
+              </div>
+            ))}
+            <p className="text-[11px] text-slate-400">Resgate a recompensa na aba Missões.</p>
           </motion.div>
         )}
 

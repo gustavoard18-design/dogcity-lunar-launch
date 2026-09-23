@@ -61,7 +61,7 @@ export function getGameTuning(stats: DogStats, route: Route): GameTuning {
     gaugeSpeed: (0.45 + 0.12 * (route.difficulty - 1)) / (1 + 0.09 * lv(stats.power)),
     hull: 3 + (stats.power >= 4 ? 1 : 0) + (stats.power >= 8 ? 1 : 0),
     steer: 4.5 + 1.0 * lv(stats.speed),
-    orbRate: 2.4 * (1 + 0.06 * lv(stats.luck)),
+    orbRate: 2.4 * (1 + 0.06 * lv(stats.luck)) * (route.orbRateMult ?? 1),
     shieldRate: 0.035 + 0.012 * lv(stats.luck),
     magnet: 1.0 + 0.07 * lv(stats.luck),
     hazardRate: route.hazardRate,

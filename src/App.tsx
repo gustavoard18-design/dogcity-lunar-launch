@@ -10,12 +10,14 @@ import { claimMission, ensureDailyMissions, rerollMissions } from './lib/mission
 import { applyLaunchResult, equipCosmetic, purchaseCosmetic, purchaseUpgrade } from './lib/progress';
 import { COSMETICS, UPGRADES } from './lib/shop';
 import { STAT_INFO } from './lib/stats';
+import { claimAchievement, getAchievementDef, hasClaimableAchievement, unlockAchievements } from './lib/achievements';
 import { cutoutArt } from './lib/evolution';
 import { isMuted, setMuted, sfx } from './lib/audio';
 import ConnectWallet from './components/ConnectWallet';
 import PlayerProfileCard from './components/PlayerProfile';
 import RouteSelector from './components/RouteSelector';
 import MissionsPanel from './components/MissionsPanel';
+import AchievementsPanel from './components/AchievementsPanel';
 import UpgradeShop from './components/UpgradeShop';
 import CosmeticShop from './components/CosmeticShop';
 import WeeklyLeaderboard from './components/WeeklyLeaderboard';
@@ -59,10 +61,16 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [notification]);
 
-  const commit = useCallback((next: PlayerProfile) => {
-    saveProfile(next);
-    setProfile(next);
-  }, []);
+  // Toda mudança de perfil passa aqui: compras e level ups também podem desbloquear conquistas.
+  const commit = useCallback(
+    (next: PlayerProfile) => {
+      const { profile: checked, unlocked } = unlockAchievements(next);
+      saveProfile(checked);
+      setProfile(checked);
+      if (unlocked.length) window.setTimeout(() => notify(`Conquista desbloqueada: ${unlocked.map(a => a.title).join(', ')}`, 'trophy'), 1600);
+    },
+    [notify]
+  );
 
   // Renova as missões quando o dia vira com o jogo aberto.
   useEffect(() => {
@@ -152,6 +160,17 @@ export default function App() {
       sfx.levelUp();
       notify(`${result.profile.dog.name} subiu para o nível ${result.profile.dog.level}!`, 'trophy');
     }
+  };
+
+  const handleClaimAchievement = (id: string) => {
+    if (!profile) return;
+    const result = claimAchievement(profile, id);
+    if (!result) return;
+    commit(result.profile);
+    sfx.coin();
+    const { reward } = result;
+    notify(`${getAchievementDef(id)?.title}: +${reward.stardust} Stardust${reward.lunarDust ? ` · +${reward.lunarDust} Pó Lunar` : ''}`, 'trophy');
+    confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
   };
 
   const handleReroll = () => {
@@ -275,7 +294,7 @@ export default function App() {
               <div className="lg:col-span-2 order-1 lg:order-2">
                 <nav className="flex gap-2 mb-4 overflow-x-auto pb-2 -mx-1 px-1">
                   {TABS.map(tab => {
-                    const badge = tab.id === 'missions' && profile.dailyMissions.some(m => m.completed && !m.claimed);
+                    const badge = tab.id === 'missions' && (profile.dailyMissions.some(m => m.completed && !m.claimed) || hasClaimableAchievement(profile));
                     return (
                       <button
                         key={tab.id}
@@ -297,7 +316,12 @@ export default function App() {
                 <AnimatePresence mode="wait">
                   <motion.div key={activeTab} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }} transition={{ duration: 0.2 }}>
                     {activeTab === 'launch' && <RouteSelector profile={profile} onSelectRoute={startRoute} />}
-                    {activeTab === 'missions' && <MissionsPanel profile={profile} onClaimReward={handleClaimMission} onReroll={handleReroll} />}
+                    {activeTab === 'missions' && (
+                      <>
+                        <MissionsPanel profile={profile} onClaimReward={handleClaimMission} onReroll={handleReroll} />
+                        <AchievementsPanel profile={profile} onClaim={handleClaimAchievement} />
+                      </>
+                    )}
                     {activeTab === 'upgrades' && <UpgradeShop profile={profile} onPurchase={handleUpgrade} />}
                     {activeTab === 'cosmetics' && <CosmeticShop profile={profile} onPurchase={handleBuyCosmetic} onEquip={handleEquip} />}
                     {activeTab === 'leaderboard' && <WeeklyLeaderboard playerAddress={profile.address} />}

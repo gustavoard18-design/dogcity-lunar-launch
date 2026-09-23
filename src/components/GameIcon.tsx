@@ -1,5 +1,6 @@
 import type { DailyMission, PlanetKind, Stat, Tier } from '../types';
 import { getRoute } from '../lib/economy';
+import { getEventByRoute } from '../lib/events';
 import { STAT_ICON } from '../lib/evolution';
 
 /**
@@ -106,7 +107,7 @@ export const PLANET_ICON: Record<PlanetKind, IconName> = {
 };
 
 export function routeIcon(routeId: string): IconName {
-  const route = getRoute(routeId);
+  const route = getRoute(routeId) ?? getEventByRoute(routeId)?.route;
   return route ? PLANET_ICON[route.destination] : 'planet-earth';
 }
 
