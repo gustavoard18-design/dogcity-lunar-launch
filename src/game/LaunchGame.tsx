@@ -319,15 +319,16 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 30 }}
-            className="absolute inset-x-0 bottom-0 p-4 sm:p-8 flex justify-center"
+            className="absolute inset-x-0 bottom-0 p-4 sm:p-8 flex items-end justify-center gap-2"
           >
-            <div className="hud-panel relative max-w-xl w-full p-5 sm:p-6 sm:pl-40">
-              <img
-                src={cutoutArt('astronaut')}
-                alt=""
-                draggable={false}
-                className="hidden sm:block absolute -left-6 bottom-0 h-[118%] object-contain drop-shadow-[0_18px_28px_rgba(0,0,0,0.6)] pointer-events-none"
-              />
+            {/* Astronauta ao lado do painel (nunca por cima do texto) */}
+            <img
+              src={cutoutArt('astronaut')}
+              alt=""
+              draggable={false}
+              className="hidden md:block h-72 w-auto shrink-0 object-contain drop-shadow-[0_18px_28px_rgba(0,0,0,0.6)] pointer-events-none"
+            />
+            <div className="hud-panel relative max-w-xl w-full p-5 sm:p-6">
               <div className="font-display text-xl sm:text-2xl text-white mb-3">Briefing da missão</div>
               <ol className="space-y-2 text-sm text-slate-300 mb-5">
                 <li><b className="text-emerald-300">1. Mira</b> — trave o ponteiro dentro da faixa verde, apontando para o planeta.</li>
