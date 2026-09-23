@@ -1,7 +1,7 @@
 import { forwardRef, MutableRefObject, Suspense, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { RoundedBox, useTexture } from '@react-three/drei';
+import { RoundedBox } from '@react-three/drei';
 import RocketModel from './RocketModel';
 import { getRocketDecalTexture } from './textures';
 import type { DogStats } from '../lib/stats';
@@ -44,14 +44,14 @@ function UpgradeParts({ upgrades, fin }: { upgrades: DogStats; fin: THREE.Buffer
     <>
       {boosters &&
         [-1, 1].map(s => (
-          <group key={s} position={[0.97 * s, -0.4, -0.08]}>
+          <group key={s} position={[0.95 * s, -0.35, -0.55]}>
             <mesh>
               <cylinderGeometry args={[0.16, 0.16, 1.25, 32]} />
               <meshPhysicalMaterial color="#eef1f6" metalness={0.35} roughness={0.3} clearcoat={1} />
             </mesh>
             <mesh position={[0, 0.8, 0]}>
               <coneGeometry args={[0.16, 0.36, 32]} />
-              <meshPhysicalMaterial color="#e63946" metalness={0.4} roughness={0.25} clearcoat={1} />
+              <meshPhysicalMaterial color="#f7931a" metalness={0.4} roughness={0.25} clearcoat={1} />
             </mesh>
             <mesh position={[0, -0.72, 0]}>
               <cylinderGeometry args={[0.1, 0.17, 0.2, 24]} />
@@ -82,7 +82,7 @@ function UpgradeParts({ upgrades, fin }: { upgrades: DogStats; fin: THREE.Buffer
         </group>
       )}
       {radar && (
-        <group position={[0.7, 0.62, 0.16]} rotation={[0, 0, -(Math.PI / 2 + 0.4)]}>
+        <group position={[0.86, 0.3, 0.1]} rotation={[0, 0, -(Math.PI / 2 + 0.4)]}>
           <mesh position={[0, 0.08, 0]}>
             <cylinderGeometry args={[0.02, 0.02, 0.16, 8]} />
             <meshStandardMaterial color="#c9ced8" metalness={1} roughness={0.2} />
@@ -100,8 +100,8 @@ function UpgradeParts({ upgrades, fin }: { upgrades: DogStats; fin: THREE.Buffer
       {canards &&
         [0, 1, 2].map(i => (
           <group key={i} rotation={[0, (i * Math.PI * 2) / 3 + Math.PI / 2, 0]}>
-            <mesh geometry={fin} position={[0.6, 0.95, 0]} scale={[0.45, 0.35, 0.8]}>
-              <meshPhysicalMaterial color="#e63946" metalness={0.4} roughness={0.3} clearcoat={1} />
+            <mesh geometry={fin} position={[0.74, 0.95, 0]} scale={[0.45, 0.35, 0.8]}>
+              <meshPhysicalMaterial color="#f7931a" metalness={0.4} roughness={0.3} clearcoat={1} />
             </mesh>
           </group>
         ))}
@@ -240,6 +240,7 @@ function ProceduralHull({
   red,
   hull,
   decal,
+  ring,
 }: {
   geo: ReturnType<typeof useRocketGeometry>;
   goldNose: boolean;
@@ -248,6 +249,7 @@ function ProceduralHull({
   red: JSX.Element;
   hull: JSX.Element;
   decal: THREE.Texture;
+  ring: ReturnType<typeof cockpitRing>;
 }) {
   return (
     <>
@@ -310,93 +312,8 @@ function ProceduralHull({
         <meshStandardMaterial map={decal} transparent roughness={0.5} polygonOffset polygonOffsetFactor={-2} depthWrite={false} />
       </mesh>
 
-    </>
-  );
-}
-
-const FACE_URL = `${import.meta.env.BASE_URL || './'}dog-face.png`;
-const DEFAULT_FUR = '#d9924f';
-
-/**
- * O DOG visto pela escotilha: a arte oficial do rosto recortada em círculo,
- * levemente iluminada por dentro. Pelagens da Loja tingem a arte.
- */
-function PilotPortrait({ skinColor }: { skinColor: string }) {
-  const tex = useTexture(FACE_URL);
-  const map = useMemo(() => {
-    const t = tex.clone();
-    t.colorSpace = THREE.SRGBColorSpace;
-    // Aproxima no rosto (a arte tem o capacete inteiro).
-    t.repeat.set(0.84, 0.84);
-    t.offset.set(0.1, 0.06);
-    t.anisotropy = 8;
-    t.needsUpdate = true;
-    return t;
-  }, [tex]);
-  const custom = skinColor.toLowerCase() !== DEFAULT_FUR;
-  const tint = useMemo(() => new THREE.Color('#ffffff').lerp(new THREE.Color(skinColor), custom ? 0.45 : 0), [skinColor, custom]);
-  const glow = skinColor.toLowerCase() === '#3ff0ff';
-  return (
-    <mesh>
-      <circleGeometry args={[0.35, 48]} />
-      <meshStandardMaterial map={map} color={tint} emissiveMap={map} emissive={glow ? '#3ff0ff' : '#ffffff'} emissiveIntensity={glow ? 0.7 : 0.35} roughness={0.8} />
-    </mesh>
-  );
-}
-
-const Rocket = forwardRef<THREE.Group, RocketProps>(function Rocket(
-  { skinColor, helmet, trailColor, thrust = 1, thrustRef, nozzleRef, trailColorRef, pilotRef, upgrades = NO_UPGRADES },
-  ref
-) {
-  const geo = useRocketGeometry();
-  const ring = cockpitRing(helmet);
-  const goldBands = upgrades.luck >= UPGRADE_VISUALS.luck[0].level;
-  const bigFins = upgrades.speed >= UPGRADE_VISUALS.speed[0].level;
-  const goldNose = upgrades.luck >= UPGRADE_VISUALS.luck[1].level;
-  const decal = useMemo(() => getRocketDecalTexture(), []);
-  const hull = <meshPhysicalMaterial color="#ebe8e3" metalness={0.25} roughness={0.38} clearcoat={0.6} clearcoatRoughness={0.3} />;
-  const red = <meshPhysicalMaterial color="#d7322b" metalness={0.3} roughness={0.32} clearcoat={1} clearcoatRoughness={0.15} />;
-  const seam = goldBands ? (
-    <meshStandardMaterial color={GOLD} metalness={1} roughness={0.2} emissive="#6a4200" emissiveIntensity={0.4} />
-  ) : (
-    <meshStandardMaterial color="#4a4f58" metalness={0.7} roughness={0.4} />
-  );
-
-  return (
-    <group ref={ref}>
-      {/* Casco 3D gerado da arte oficial; o casco procedural aparece enquanto o modelo carrega. */}
-      <Suspense fallback={<ProceduralHull geo={geo} goldNose={goldNose} bigFins={bigFins} seam={seam} red={red} hull={hull} decal={decal} />}>
-        <RocketModel />
-        {/* Peças da Oficina que mudam o próprio casco, por cima do modelo */}
-        {goldNose && (
-          <mesh geometry={geo.nose} position={[0, -0.05, 0]} scale={[1.1, 1.02, 1.1]}>
-            <meshPhysicalMaterial color={GOLD} metalness={1} roughness={0.18} clearcoat={1} emissive="#6a4200" emissiveIntensity={0.35} />
-          </mesh>
-        )}
-        {goldBands &&
-          [
-            [0.93, 0.7],
-            [-0.93, 0.74],
-          ].map(([y, r]) => (
-            <mesh key={y} position={[0, y, 0]}>
-              <cylinderGeometry args={[r, r, 0.07, 64, 1, true]} />
-              {seam}
-            </mesh>
-          ))}
-        {bigFins &&
-          [0, Math.PI].map(r => (
-            <group key={r} rotation={[0, r, 0]}>
-              <mesh geometry={geo.fin} position={[0.72, -0.35, 0]} scale={[1.35, 1.25, 1]}>
-                {red}
-              </mesh>
-            </group>
-          ))}
-      </Suspense>
-
-      <UpgradeParts upgrades={upgrades} fin={geo.fin} />
-
       {/* Escotilha grande de vidro escuro, com o piloto dentro */}
-      <group position={[0, 0.42, 0.86]}>
+      <group position={[0, 0.32, 0.66]}>
         <mesh>
           <torusGeometry args={[0.42, 0.08, 20, 56]} />
           <meshStandardMaterial color="#8f949c" metalness={0.9} roughness={0.25} />
@@ -409,11 +326,6 @@ const Rocket = forwardRef<THREE.Group, RocketProps>(function Rocket(
           <circleGeometry args={[0.36, 40]} />
           <meshStandardMaterial color="#070d1a" roughness={0.6} />
         </mesh>
-        <group ref={pilotRef} position={[0, 0, 0.05]}>
-          <Suspense fallback={null}>
-            <PilotPortrait skinColor={skinColor} />
-          </Suspense>
-        </group>
         <mesh position={[0, 0, 0.02]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 0.62, 1]}>
           <sphereGeometry args={[0.36, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2]} />
           <meshPhysicalMaterial color={ring.tint} transparent opacity={0.2} roughness={0.04} metalness={0.3} clearcoat={1} depthWrite={false} />
@@ -432,6 +344,61 @@ const Rocket = forwardRef<THREE.Group, RocketProps>(function Rocket(
         <sphereGeometry args={[0.035, 12, 12]} />
         <meshBasicMaterial color="#ff3d5a" toneMapped={false} />
       </mesh>
+
+    </>
+  );
+}
+
+const Rocket = forwardRef<THREE.Group, RocketProps>(function Rocket(
+  { skinColor, helmet, trailColor, thrust = 1, thrustRef, nozzleRef, trailColorRef, pilotRef, upgrades = NO_UPGRADES },
+  ref
+) {
+  const geo = useRocketGeometry();
+  const ring = cockpitRing(helmet);
+  const goldBands = upgrades.luck >= UPGRADE_VISUALS.luck[0].level;
+  const bigFins = upgrades.speed >= UPGRADE_VISUALS.speed[0].level;
+  const goldNose = upgrades.luck >= UPGRADE_VISUALS.luck[1].level;
+  const decal = useMemo(() => getRocketDecalTexture(), []);
+  const hull = <meshPhysicalMaterial color="#ebe8e3" metalness={0.25} roughness={0.38} clearcoat={0.6} clearcoatRoughness={0.3} />;
+  const red = <meshPhysicalMaterial color="#f07a1c" metalness={0.3} roughness={0.32} clearcoat={1} clearcoatRoughness={0.15} />;
+  const seam = goldBands ? (
+    <meshStandardMaterial color={GOLD} metalness={1} roughness={0.2} emissive="#6a4200" emissiveIntensity={0.4} />
+  ) : (
+    <meshStandardMaterial color="#4a4f58" metalness={0.7} roughness={0.4} />
+  );
+
+  return (
+    <group ref={ref}>
+      {/* Casco 3D gerado da arte oficial; o casco procedural aparece enquanto o modelo carrega. */}
+      <Suspense fallback={<ProceduralHull geo={geo} goldNose={goldNose} bigFins={bigFins} seam={seam} red={red} hull={hull} decal={decal} ring={ring} />}>
+        <RocketModel skinColor={skinColor} pilotRef={pilotRef} />
+        {/* Peças da Oficina que mudam o próprio casco, por cima do modelo */}
+        {goldNose && (
+          <mesh geometry={geo.nose} position={[0, 0.49, -0.02]} scale={[1.07, 0.75, 1.07]}>
+            <meshPhysicalMaterial color={GOLD} metalness={1} roughness={0.18} clearcoat={1} emissive="#6a4200" emissiveIntensity={0.35} />
+          </mesh>
+        )}
+        {goldBands &&
+          [
+            [1.25, 0.64],
+            [-1.02, 0.98],
+          ].map(([y, r]) => (
+            <mesh key={y} position={[0, y, 0]}>
+              <cylinderGeometry args={[r, r, 0.07, 64, 1, true]} />
+              {seam}
+            </mesh>
+          ))}
+        {bigFins &&
+          [0, Math.PI].map(r => (
+            <group key={r} rotation={[0, r, 0]}>
+              <mesh geometry={geo.fin} position={[1.05, -0.55, 0]} scale={[1.1, 1.15, 1]}>
+                {red}
+              </mesh>
+            </group>
+          ))}
+      </Suspense>
+
+      <UpgradeParts upgrades={upgrades} fin={geo.fin} />
 
       {/* Chama */}
       <group position={[0, -1.56, 0]}>
