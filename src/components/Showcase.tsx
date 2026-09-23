@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react';
+import { lazy, ReactNode, Suspense, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { DogAstronaut, Stat } from '../types';
+import { getLook } from '../lib/shop';
 import { ASTRONAUT_TIERS, ROCKET_TIERS, Tier, TierProgress, astronautArt, astronautTier, rocketArt, rocketTier } from '../lib/evolution';
 import { LockIcon } from './GameIcon';
 
@@ -14,7 +15,9 @@ interface ShowcaseProps {
   footer?: ReactNode;
 }
 
-function Portrait({ src, label, tier, highlight }: { src: string; label: string; tier: Tier; highlight: boolean }) {
+const RocketViewer = lazy(() => import('../three/RocketViewer'));
+
+function Portrait({ src, label, tier, highlight, children }: { src: string; label: string; tier: Tier; highlight: boolean; children?: ReactNode }) {
   return (
     <div className="flex flex-col items-center">
       <div
@@ -22,6 +25,7 @@ function Portrait({ src, label, tier, highlight }: { src: string; label: string;
           highlight ? 'border-sky-300/70 shadow-[0_0_30px_rgba(56,189,248,0.35)]' : 'border-white/10'
         }`}
       >
+        {children ?? (
         <AnimatePresence mode="popLayout">
           <motion.img
             key={src}
@@ -35,6 +39,7 @@ function Portrait({ src, label, tier, highlight }: { src: string; label: string;
             className="absolute inset-0 w-full h-full object-cover"
           />
         </AnimatePresence>
+        )}
       </div>
       <div className="mt-2 text-center leading-tight">
         <div className="text-[10px] tracking-[0.3em] text-slate-500">{label}</div>
@@ -93,18 +98,27 @@ function EvolutionStrip({ tiers, progress, art, unit }: { tiers: Tier[]; progres
 export default function Showcase({ dog, focus, badge, footer }: ShowcaseProps) {
   const astro = astronautTier(dog);
   const rocket = rocketTier(dog);
+  const look = useMemo(() => getLook(dog), [dog]);
 
   return (
     <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-[radial-gradient(ellipse_at_30%_10%,rgba(56,189,248,0.18),transparent_55%),radial-gradient(ellipse_at_80%_70%,rgba(124,58,237,0.25),transparent_60%),rgba(4,6,20,0.7)] mb-4">
       {badge && <div className="absolute top-3 left-3 z-10 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-black/60 border border-white/15 text-white">{badge}</div>}
       <div className="grid grid-cols-2 gap-3 px-4 pt-11 pb-3">
         <Portrait src={astronautArt(astro.tier)} label="ASTRONAUTA" tier={astro.tier} highlight={focus === 'astronaut'} />
-        <Portrait src={rocketArt(rocket.tier)} label="FOGUETE" tier={rocket.tier} highlight={focus === 'rocket'} />
+        <Portrait src={rocketArt(rocket.tier)} label="FOGUETE" tier={rocket.tier} highlight={focus === 'rocket'}>
+          {/* Foguete 3D ao vivo: peças da Oficina, rastro e o DOG na janela */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(56,189,248,0.22),rgba(12,20,52,0.9)_65%,#050a1c)]">
+            <Suspense fallback={<img src={rocketArt(rocket.tier)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-60" />}>
+              <RocketViewer look={look} />
+            </Suspense>
+            <div className="pointer-events-none absolute bottom-1.5 inset-x-0 text-center text-[9px] tracking-widest text-sky-200/60">ARRASTE PARA GIRAR</div>
+          </div>
+        </Portrait>
       </div>
       {focus === 'astronaut' ? (
         <EvolutionStrip tiers={ASTRONAUT_TIERS} progress={astro} art={astronautArt} unit="pontos de raridade" />
       ) : (
-        <EvolutionStrip tiers={ROCKET_TIERS} progress={rocket} art={rocketArt} unit="níveis na Oficina" />
+        <EvolutionStrip tiers={ROCKET_TIERS} progress={rocket} art={rocketArt} unit="pontos (níveis da Oficina + raridade do rastro)" />
       )}
       {footer && <div className="relative border-t border-white/10 px-3 py-2">{footer}</div>}
     </div>
