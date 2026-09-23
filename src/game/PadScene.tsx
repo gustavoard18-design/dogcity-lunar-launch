@@ -1,4 +1,4 @@
-import { MutableRefObject, useEffect, useMemo, useRef } from 'react';
+import { MutableRefObject, Suspense, useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Stars } from '@react-three/drei';
 import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing';
@@ -8,6 +8,7 @@ import Rocket, { RocketLook, trailStartColor } from '../three/Rocket';
 import LaunchSite, { HoloTarget } from './LaunchSite';
 import Particles, { ParticleApi } from '../three/Particles';
 import { SkyBackground, StudioEnvironment } from '../three/SpaceBits';
+import DogModel from '../three/DogModel';
 
 export type PadPhase = 'brief' | 'angle' | 'power' | 'countdown' | 'liftoff';
 
@@ -203,6 +204,46 @@ function PadRocket({
   );
 }
 
+/** Onde o DOG fica na plataforma antes de embarcar (ao lado do foguete, de frente para a câmera). */
+const DOG_SPOT = new THREE.Vector3(1.6, BASE_Y - 0.04, 1.15);
+/** Escotilha do foguete: destino do "pulo" de embarque. */
+const HATCH = new THREE.Vector3(0.15, BASE_Y + 2.6, 0.6);
+
+/** DOG astronauta 3D na plataforma: respira parado e embarca na contagem regressiva. */
+function PadDog({ phaseRef }: { phaseRef: MutableRefObject<PadPhase> }) {
+  const group = useRef<THREE.Group>(null);
+  const board = useRef(0);
+  useFrame(({ clock }, rawDt) => {
+    const g = group.current;
+    if (!g) return;
+    const dt = Math.min(rawDt, 0.05);
+    const t = clock.elapsedTime;
+    const phase = phaseRef.current;
+    const boarding = phase === 'countdown' || phase === 'liftoff';
+    board.current = boarding ? Math.min(1, board.current + dt / 0.7) : 0;
+    const b = board.current;
+    if (b >= 1) {
+      g.visible = false;
+      return;
+    }
+    g.visible = true;
+    // Arco do pé da plataforma até a escotilha, encolhendo no final.
+    const e = b * b * (3 - 2 * b);
+    g.position.lerpVectors(DOG_SPOT, HATCH, e);
+    g.position.y += Math.sin(e * Math.PI) * 1.2;
+    // Parado: respiração e um leve balanço olhando para a câmera.
+    g.scale.set(1, 1 + (b ? 0 : Math.sin(t * 2.2) * 0.012), 1).multiplyScalar(1 - e * 0.9);
+    g.rotation.y = 0.05 + (b ? -e * 1.6 : Math.sin(t * 0.7) * 0.12);
+  });
+  return (
+    <group ref={group} position={DOG_SPOT}>
+      <Suspense fallback={null}>
+        <DogModel height={1.6} />
+      </Suspense>
+    </group>
+  );
+}
+
 export default function PadScene({ route, look, phaseRef, aimRef, onLiftoffDone }: PadSceneProps) {
   const camera = useThree(s => s.camera) as THREE.PerspectiveCamera;
   const size = useThree(s => s.size);
@@ -366,6 +407,7 @@ export default function PadScene({ route, look, phaseRef, aimRef, onLiftoffDone 
       </group>
 
       <Platform />
+      <PadDog phaseRef={phaseRef} />
       <group ref={pivot}>
         <PadRocket look={look} thrustRef={thrust} nozzleRef={nozzle} trailColorRef={trailColor} />
       </group>
