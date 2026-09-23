@@ -5,7 +5,7 @@ import { LaunchOutcome, LaunchSummary, PlayerProfile, Route } from './types';
 import { WalletConnection, getMockDogBalance } from './lib/wallet';
 import { loadProfile, createProfile, saveProfile } from './lib/storage';
 import { getRouteCost, getTier, isRouteUnlocked } from './lib/economy';
-import { fetchDogBalance, submitScore } from './lib/online';
+import { fetchDogInfo, submitScore } from './lib/online';
 import { claimMission, ensureDailyMissions, rerollMissions } from './lib/missions';
 import { applyLaunchResult, equipCosmetic, purchaseCosmetic, purchaseUpgrade } from './lib/progress';
 import { COSMETICS, UPGRADES } from './lib/shop';
@@ -85,13 +85,13 @@ export default function App() {
       : createProfile(wallet.address, wallet.provider, getMockDogBalance(wallet.address));
     commit(next);
     notify(existing ? `Bem-vindo de volta, ${next.dog.name}!` : `Seu piloto ${next.dog.name} está pronto!`, 'astronaut');
-    // Carteira real: busca o saldo DOG on-chain e recalcula a patente.
-    if (wallet.provider === 'UniSat') {
-      fetchDogBalance(wallet.address).then(balance => {
-        if (balance === null) return;
+    // Carteira real: busca saldo DOG on-chain, ranking e lote no DogCity; recalcula a patente.
+    if (wallet.provider !== 'Convidado') {
+      fetchDogInfo(wallet.address).then(info => {
+        if (!info) return;
         setProfile(p => {
           if (!p || p.address !== wallet.address) return p;
-          const updated = { ...p, dogBalance: Math.floor(balance), dogBalanceSource: 'real' as const, tier: getTier(balance) };
+          const updated = { ...p, dogBalance: Math.floor(info.balance), dogBalanceSource: 'real' as const, dogOnchain: info, tier: getTier(info.balance) };
           saveProfile(updated);
           return updated;
         });

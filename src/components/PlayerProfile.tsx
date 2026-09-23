@@ -11,6 +11,8 @@ interface PlayerProfileProps {
 export default function PlayerProfileCard({ profile }: PlayerProfileProps) {
   const { dog } = profile;
   const { tier } = astronautTier(dog);
+  const onchain = profile.dogBalanceSource === 'real' ? profile.dogOnchain : undefined;
+  const lot = onchain?.dogcity?.status === 'in_snapshot' ? onchain.dogcity : null;
   const xpPercent = Math.min(100, (dog.xp / dog.xpToNext) * 100);
   const successRate = profile.launches.length
     ? Math.round((profile.launches.filter(l => l.success).length / profile.launches.length) * 100)
@@ -93,10 +95,50 @@ export default function PlayerProfileCard({ profile }: PlayerProfileProps) {
           <div className="text-[10px] text-slate-400">Pó Lunar</div>
         </div>
       </div>
-      <div className="flex items-center justify-between text-xs rounded-xl bg-orange-500/10 border border-orange-400/20 px-3 py-2">
-        <span className="text-slate-300">Saldo DOG <span className="text-slate-500">({profile.dogBalanceSource === 'real' ? 'on-chain' : 'simulado'})</span></span>
-        <span className="text-orange-300 font-bold">{profile.dogBalance.toLocaleString('pt-BR')}</span>
+      <div className="rounded-xl bg-orange-500/10 border border-orange-400/20 px-3 py-2 text-xs">
+        <div className="flex items-center justify-between">
+          <span className="text-slate-300">
+            Saldo DOG <span className="text-slate-500">({profile.dogBalanceSource === 'real' ? 'on-chain' : 'simulado'})</span>
+          </span>
+          <span className="text-orange-300 font-bold">{profile.dogBalance.toLocaleString('pt-BR')}</span>
+        </div>
+        {onchain && (
+          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+            {onchain.rank && <span className="px-2 py-0.5 rounded-full bg-white/5 text-slate-300">Holder #{onchain.rank.toLocaleString('pt-BR')}</span>}
+            {onchain.dogcity?.genesis && <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/30">Genesis · recebeu o airdrop</span>}
+            {onchain.dogcity?.status === 'exchange' && (
+              <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-300">Endereço de corretora{onchain.dogcity.identity ? ` (${onchain.dogcity.identity})` : ''}</span>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Lote no DogCity (snapshot do bloco 966.670) */}
+      {lot?.lotId && (
+        <a
+          href={lot.mapUrl ?? 'https://www.dogdata.xyz/dogcity'}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 block rounded-xl border border-sky-400/25 bg-sky-500/10 px-3 py-2.5 text-xs hover:bg-sky-500/15 transition-colors"
+        >
+          <div className="flex items-center justify-between">
+            <span className="font-display text-[11px] tracking-wider text-sky-200">SEU LOTE NO DOGCITY</span>
+            <span className="text-sky-300">mapa ↗</span>
+          </div>
+          <div className="mt-1 text-white font-semibold">
+            {lot.district} · {lot.typology}
+          </div>
+          <div className="text-slate-400">
+            {lot.areaM2?.toLocaleString('pt-BR')} m² · lote {lot.lotId}
+          </div>
+        </a>
+      )}
+      {onchain?.dogcity?.status === 'not_in_snapshot' && (
+        <a href="https://www.dogdata.xyz/dogcity" target="_blank" rel="noreferrer" className="mt-2 block text-[11px] text-slate-500 hover:text-slate-300">
+          Esta carteira não estava no snapshot do DogCity (bloco 966.670). Saiba mais ↗
+        </a>
+      )}
+      {onchain && <p className="mt-2 text-[10px] text-slate-600">Dados on-chain: DogData (dogdata.xyz)</p>}
     </div>
   );
 }

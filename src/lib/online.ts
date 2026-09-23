@@ -1,10 +1,10 @@
-import type { LeaderboardEntry, Tier } from '../types';
+import type { DogOnchainInfo, LeaderboardEntry, Tier } from '../types';
 
 /**
  * Backend online (Supabase): ranking semanal e saldo real de DOG.
  * A chave publicável é pública por design; as regras ficam no banco
- * (funções submit_score / weekly_leaderboard) e o segredo da UniSat
- * fica só na Edge Function dog-balance.
+ * (funções submit_score / weekly_leaderboard); os dados on-chain de DOG
+ * vêm do DogData pela Edge Function dog-balance.
  * Sem rede ou com o backend fora do ar, o jogo segue no modo local.
  */
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? 'https://uknupldacjxbuoiaucfc.supabase.co';
@@ -73,8 +73,11 @@ export async function fetchWeeklyLeaderboard(limit = 20): Promise<LeaderboardEnt
   }));
 }
 
-/** Saldo real da Rune DOG (via Edge Function). `null` se indisponível. */
-export async function fetchDogBalance(address: string): Promise<number | null> {
+/**
+ * Saldo real da Rune DOG, ranking de holder e lote no DogCity (Edge Function
+ * dog-balance, que consulta o DogData). `null` se indisponível.
+ */
+export async function fetchDogInfo(address: string): Promise<DogOnchainInfo | null> {
   if (!onlineEnabled) return null;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 10000);
@@ -84,8 +87,9 @@ export async function fetchDogBalance(address: string): Promise<number | null> {
       signal: ctrl.signal,
     });
     if (!res.ok) return null;
-    const body = (await res.json()) as { balance?: number };
-    return typeof body.balance === 'number' ? body.balance : null;
+    const body = (await res.json()) as Partial<DogOnchainInfo>;
+    if (typeof body.balance !== 'number') return null;
+    return { balance: body.balance, rank: body.rank ?? null, dogcity: body.dogcity ?? null, updatedAt: new Date().toISOString() };
   } catch {
     return null;
   } finally {

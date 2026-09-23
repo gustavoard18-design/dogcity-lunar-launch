@@ -31,6 +31,23 @@ export interface AstronautLook {
   upgrades?: Record<Stat, number>;
 }
 
+/** Dados on-chain de DOG de uma carteira real (via DogData). */
+export interface DogOnchainInfo {
+  balance: number;
+  rank: number | null;
+  dogcity: {
+    status: 'in_snapshot' | 'not_in_snapshot' | 'exchange' | string;
+    identity: string | null;
+    genesis: boolean;
+    areaM2: number | null;
+    lotId: string | null;
+    district: string | null;
+    typology: string | null;
+    mapUrl: string | null;
+  } | null;
+  updatedAt: string;
+}
+
 export interface PlayerProfile {
   version: number;
   address: string;
@@ -38,6 +55,8 @@ export interface PlayerProfile {
   dogBalance: number;
   /** 'real' = lido da blockchain via UniSat; senão é simulado a partir do endereço. */
   dogBalanceSource?: 'real' | 'simulated';
+  /** Ranking de holder e lote no DogCity (só carteiras reais). */
+  dogOnchain?: DogOnchainInfo;
   tier: Tier;
   stardust: number;
   lunarDust: number;

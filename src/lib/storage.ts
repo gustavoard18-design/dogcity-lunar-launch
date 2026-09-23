@@ -53,6 +53,7 @@ export function migrateProfile(raw: Partial<PlayerProfile>): PlayerProfile {
     provider: raw.provider ?? 'Convidado',
     dogBalance: raw.dogBalance ?? 0,
     dogBalanceSource: raw.dogBalanceSource ?? 'simulated',
+    dogOnchain: raw.dogOnchain,
     tier: raw.tier ?? getTier(raw.dogBalance ?? 0),
     stardust: Math.max(0, Math.floor(raw.stardust ?? STARTING_STARDUST)),
     lunarDust: Math.max(0, Math.floor(raw.lunarDust ?? 0)),

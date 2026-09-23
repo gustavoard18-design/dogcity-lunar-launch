@@ -1,9 +1,16 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { WalletConnection, connectGuest, connectUniSat, hasUniSat } from '../lib/wallet';
+import { WALLETS, WalletConnection, WalletId, connectGuest, connectWallet, isWalletInstalled } from '../lib/wallet';
 import { sfx } from '../lib/audio';
 import { cutoutArt } from '../lib/evolution';
 import GameIcon from './GameIcon';
+
+const WALLET_COLOR: Record<WalletId, string> = {
+  kray: '#7C3AED',
+  xverse: '#EE7A30',
+  okx: '#3f3f46',
+  unisat: '#c2410c',
+};
 
 interface ConnectWalletProps {
   onConnect: (wallet: WalletConnection) => void;
@@ -40,17 +47,17 @@ function HeroArt() {
 }
 
 export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
-  const [connecting, setConnecting] = useState<'guest' | 'unisat' | null>(null);
+  const [connecting, setConnecting] = useState<'guest' | WalletId | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const unisat = hasUniSat();
+  const [showWallets, setShowWallets] = useState(false);
 
-  const handle = async (kind: 'guest' | 'unisat') => {
+  const handle = async (kind: 'guest' | WalletId) => {
     sfx.unlock();
     sfx.click();
     setConnecting(kind);
     setError(null);
     try {
-      onConnect(kind === 'unisat' ? await connectUniSat() : await connectGuest());
+      onConnect(kind === 'guest' ? await connectGuest() : await connectWallet(kind));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao conectar.');
     } finally {
@@ -89,17 +96,42 @@ export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
               </span>
             )}
           </button>
-          <button
-            onClick={() => handle('unisat')}
-            disabled={!!connecting || !unisat}
-            className="btn-ghost w-full py-3 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-            title={unisat ? 'Conectar carteira UniSat' : 'Extensão UniSat não detectada'}
-          >
-            {connecting === 'unisat' ? 'Aguardando UniSat…' : unisat ? 'Conectar carteira UniSat' : 'Carteira UniSat não detectada'}
+          <button onClick={() => setShowWallets(v => !v)} disabled={!!connecting} className="btn-ghost w-full py-3 text-sm disabled:opacity-40">
+            {showWallets ? 'Fechar carteiras' : 'Conectar carteira Bitcoin'}
           </button>
+          {showWallets && (
+            <div className="space-y-2">
+              {WALLETS.map(w => {
+                const installed = isWalletInstalled(w.id);
+                return (
+                  <div key={w.id} className="flex items-center gap-3 rounded-xl border border-sky-400/15 bg-[#0b1733]/70 px-3 py-2.5">
+                    <span className="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center font-display text-sm text-white" style={{ background: WALLET_COLOR[w.id] }}>
+                      {w.name[0]}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-white">
+                        {w.name} {w.note && <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded border border-orange-400/40 text-orange-300">{w.note}</span>}
+                      </div>
+                      <div className="text-[11px] text-slate-500">{installed ? 'Detectada' : 'Não instalada'}</div>
+                    </div>
+                    {installed ? (
+                      <button onClick={() => handle(w.id)} disabled={!!connecting} className="btn-primary px-3 py-1.5 text-xs disabled:opacity-50">
+                        {connecting === w.id ? 'Aguardando…' : 'Conectar'}
+                      </button>
+                    ) : (
+                      <a href={w.installUrl} target="_blank" rel="noreferrer" className="btn-ghost px-3 py-1.5 text-xs">
+                        Instalar ↗
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
           {error && <p className="text-xs text-red-400">{error}</p>}
           <p className="text-[11px] text-slate-500 leading-relaxed">
-            “Jogar agora” cria um piloto convidado salvo neste navegador, com saldo DOG simulado. Com a UniSat, o saldo DOG é lido da blockchain. Nenhuma transação é feita.
+            “Jogar agora” cria um piloto convidado neste navegador, com saldo DOG simulado. Com uma carteira, o saldo DOG, seu ranking de holder e seu lote no DogCity são lidos da blockchain (dados do{' '}
+            <a href="https://www.dogdata.xyz" target="_blank" rel="noreferrer" className="underline hover:text-slate-300">DogData</a>). Só lemos o endereço: nada é assinado nem enviado.
           </p>
         </div>
       </motion.div>
