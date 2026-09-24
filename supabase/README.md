@@ -8,9 +8,9 @@ Projeto `dogcity-lunar-launch` (ref `uknupldacjxbuoiaucfc`). O jogo chama tudo s
 |---|---|---|
 | Migrações até `20260925010000_chest_orders.sql` | `migrations/` | aplicadas (25/09/2026) |
 | Função `dog-balance` (saldo DOG, lote DogCity, identidade DogData) | `functions/dog-balance/` | publicada (25/09/2026) |
-| Função `chests` (baús pagos em DOG) | `functions/chests/` + `functions/_shared/` | publicada (25/09/2026); **a versão 2.5.0 (exige sessão) falta publicar** |
-| Migração `20260926000000_wallet_sessions.sql` (sessões, `submit_score_v3`, progresso na nuvem) | `migrations/` | **falta aplicar** |
-| Função `auth` (login com assinatura da carteira) | `functions/auth/` + `functions/_shared/auth-rules.ts` | **falta publicar** |
+| Função `chests` (baús pagos em DOG) | `functions/chests/` + `functions/_shared/` | publicada; versão 2.5.0 (exige sessão) publicada em 26/09/2026 |
+| Migração `20260926000000_wallet_sessions.sql` (sessões, `submit_score_v3`, progresso na nuvem) | `migrations/` | aplicada (26/09/2026) |
+| Função `auth` (login com assinatura da carteira) | `functions/auth/` + `functions/_shared/auth-rules.ts` | publicada (26/09/2026) |
 
 Consultas de métricas prontas em `queries/metrics.sql` (rodar no SQL editor).
 
