@@ -12,6 +12,13 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY ?? 'sb_publishable_Mf-IQj
 
 export const onlineEnabled = Boolean(SUPABASE_URL && SUPABASE_KEY);
 
+/**
+ * Só o jogo publicado grava no ranking. Em `npm run dev` (e nos testes) os voos
+ * não são enviados, para testes locais não poluírem o ranking real; defina
+ * VITE_SUBMIT_IN_DEV=1 para enviar mesmo assim.
+ */
+export const submitEnabled = onlineEnabled && (!import.meta.env.DEV || import.meta.env.VITE_SUBMIT_IN_DEV === '1');
+
 const headers = () => ({ apikey: SUPABASE_KEY, 'Content-Type': 'application/json' });
 
 async function rpc<T>(fn: string, args: Record<string, unknown>, timeoutMs = 8000): Promise<T> {
@@ -43,7 +50,7 @@ export interface ScoreSubmission {
 
 /** Envia um voo concluído. Falhas são silenciosas: o ranking local continua valendo. */
 export async function submitScore(s: ScoreSubmission): Promise<boolean> {
-  if (!onlineEnabled) return false;
+  if (!submitEnabled) return false;
   try {
     const args = { p_address: s.address, p_dog_name: s.dogName, p_tier: s.tier, p_route: s.routeId, p_score: s.score };
     try {
