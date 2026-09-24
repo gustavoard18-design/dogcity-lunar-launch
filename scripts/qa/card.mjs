@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
-const b = await puppeteer.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: 'new', args: ['--use-angle=swiftshader'] });
+const b = await puppeteer.launch({ executablePath: process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: 'new', args: ['--use-angle=swiftshader'] });
 const p = await b.newPage();
 p.on('pageerror', e => console.log('ERR', e.message));
 await p.goto('http://localhost:5173', { waitUntil: 'networkidle2' });

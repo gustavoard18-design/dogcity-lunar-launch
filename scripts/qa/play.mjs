@@ -4,11 +4,14 @@ import puppeteer from 'puppeteer-core';
 const OUT = process.argv[2] ?? '.';
 const ROUTE = process.argv[3] ?? 'Órbita Baixa';
 const SMART = process.argv[4] !== 'dumb';
+// Máquina lenta (SwiftShader a poucos fps): janela menor e mais tempo de voo.
+const [W, H] = (process.env.QA_VIEWPORT ?? '1280x720').split('x').map(Number);
+const FLIGHT_MS = Number(process.env.QA_FLIGHT_SECONDS ?? 170) * 1000;
 const browser = await puppeteer.launch({
-  executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  executablePath: process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe',
   headless: 'new',
-  args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--window-size=1280,720', '--autoplay-policy=no-user-gesture-required'],
-  defaultViewport: { width: 1280, height: 720 },
+  args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', `--window-size=${W},${H}`, '--autoplay-policy=no-user-gesture-required'],
+  defaultViewport: { width: W, height: H },
 });
 const page = await browser.newPage();
 const errors = [];
@@ -26,6 +29,20 @@ await sleep(2500);
 await shot('01-connect');
 await clickText('Jogar agora');
 await sleep(2500);
+// QA_LEVEL=7 libera as rotas mais altas (piloto com nível e Stardust de sobra).
+if (process.env.QA_LEVEL) {
+  await page.evaluate(level => {
+    const all = JSON.parse(localStorage.getItem('dogcity_game_state'));
+    const p = all[localStorage.getItem('dogcity_guest_address')];
+    p.dog.level = level;
+    p.stardust = 5000;
+    localStorage.setItem('dogcity_game_state', JSON.stringify(all));
+  }, Number(process.env.QA_LEVEL));
+  await page.reload({ waitUntil: 'networkidle2' });
+  await sleep(2500);
+  await clickText('Jogar agora').catch(() => {});
+  await sleep(2500);
+}
 await shot('02-hangar');
 await clickText(ROUTE, 'button');
 await sleep(3000);
@@ -46,7 +63,7 @@ if (SMART) {
     const a1 = ang(n[7], n[8]);
     const a = parseFloat(txt);
     return a >= Math.min(a0, a1) && a <= Math.max(a0, a1);
-  }, { polling: 'raf', timeout: 20000 });
+  }, { polling: 'raf', timeout: 90000 }).catch(() => console.log('mira/força: travando fora da zona (poucos fps)'));
 }
 await clickText('TRAVAR');
 await sleep(500);
@@ -60,7 +77,7 @@ if (SMART) {
     const h = parseFloat(zone.style.height);
     const p = parseFloat(txt.textContent);
     return p >= b && p <= b + h;
-  }, { polling: 'raf', timeout: 20000 });
+  }, { polling: 'raf', timeout: 90000 }).catch(() => console.log('mira/força: travando fora da zona (poucos fps)'));
 }
 await shot('04-power');
 await clickText('TRAVAR');
@@ -75,12 +92,12 @@ await shot('07-liftoff2');
 const t0 = Date.now();
 let i = 0;
 let fpsSample = null;
-while (Date.now() - t0 < 170000) {
+while (Date.now() - t0 < FLIGHT_MS) {
   const done = await page.evaluate(() => [...document.querySelectorAll('button')].some(b => b.textContent.includes('Hangar')));
   if (done) break;
   const t = (Date.now() - t0) / 1000;
-  await page.mouse.move(640 + Math.sin(t * 1.3) * 420, 360 + Math.sin(t * 0.9) * 220);
-  if (i % 100 === 0) await shot(`08-flight-${String(i / 100).padStart(2, '0')}`);
+  await page.mouse.move(W / 2 + Math.sin(t * 1.3) * W * 0.33, H / 2 + Math.sin(t * 0.9) * H * 0.3);
+  if (i % 400 === 0) await shot(`08-flight-${String(i / 100).padStart(2, '0')}`);
   if (i === 60) {
     fpsSample = await page.evaluate(() => new Promise(r => { let n = 0; const s = performance.now(); const f = () => { n++; performance.now() - s < 1000 ? requestAnimationFrame(f) : r(n); }; requestAnimationFrame(f); }));
   }
