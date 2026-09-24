@@ -275,11 +275,11 @@ export default function ResultScreen({ route, summary, pilotName, pilotTitle, pi
         </button>
 
         <div className="flex gap-3">
-          <button onClick={onExit} className="btn-ghost flex-1 py-3">
+          <button onClick={onExit} className="btn-ghost flex-1 min-w-0 py-3 px-2 text-sm sm:text-base">
             Hangar
           </button>
-          <button onClick={onRetry} disabled={!canRetry} className="btn-primary flex-1 py-3 disabled:opacity-40 disabled:cursor-not-allowed">
-            <span className="inline-flex items-center justify-center gap-1.5"><GameIcon name="rocket" size={22} className="-my-1 rotate-[30deg]" /> {L({ en: 'Fly again', pt: 'Voar de novo', es: 'Volar de nuevo' })}</span>
+          <button onClick={onRetry} disabled={!canRetry} className="btn-primary flex-1 min-w-0 py-3 px-2 text-[13px] tracking-normal sm:text-base sm:tracking-[0.05em] disabled:opacity-40 disabled:cursor-not-allowed">
+            <span className="inline-flex items-center justify-center gap-1 whitespace-nowrap"><GameIcon name="rocket" size={18} className="-my-1 shrink-0 rotate-[30deg]" /> {L({ en: 'Fly again', pt: 'Voar de novo', es: 'Volar de nuevo' })}</span>
           </button>
         </div>
       </motion.div>

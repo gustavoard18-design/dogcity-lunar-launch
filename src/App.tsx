@@ -806,7 +806,7 @@ export default function App() {
         </>
       ) : (
         <>
-          <header className="sticky top-0 z-20 border-b border-sky-400/15 bg-[#050d22]/70 backdrop-blur-xl shadow-[0_1px_20px_rgba(56,189,248,0.08)]">
+          <header className="sticky top-0 z-20 border-b border-sky-400/15 bg-[#050d22]/95 sm:bg-[#050d22]/70 backdrop-blur-xl shadow-[0_1px_20px_rgba(56,189,248,0.08)]">
             <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500/40 via-sky-700/30 to-blue-900/40 ring-2 ring-sky-300/50 shadow-[0_0_18px_rgba(56,189,248,0.45)] overflow-hidden">
@@ -856,21 +856,21 @@ export default function App() {
                 {pendingChallenge && (
                   <ChallengeCard challenge={pendingChallenge} profile={profile} onAccept={acceptChallenge} onDismiss={() => setPendingChallenge(null)} />
                 )}
-                <nav className="flex gap-2 mb-4 overflow-x-auto pb-2 -mx-1 px-1">
+                <nav className="grid grid-cols-6 gap-1.5 mb-4 sm:flex sm:gap-2 sm:overflow-x-auto sm:pb-2 sm:-mx-1 sm:px-1">
                   {TABS.map(tab => {
                     const badge = tab.id === 'missions' && (profile.dailyMissions.some(m => m.completed && !m.claimed) || hasClaimableAchievement(profile));
                     return (
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`relative inline-flex items-center px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
+                        className={`relative flex flex-col items-center justify-center gap-0.5 px-1 py-1.5 rounded-xl text-[10px] leading-tight font-semibold transition-all whitespace-nowrap sm:inline-flex sm:flex-row sm:gap-0 sm:px-4 sm:py-2 sm:text-sm ${
                           activeTab === tab.id
                             ? 'tab-active'
                             : 'bg-[#0b1733]/70 backdrop-blur text-slate-300 hover:text-white hover:bg-[#10224a]/80 border border-sky-400/15'
                         }`}
                       >
-                        <GameIcon name={tab.icon} size={22} className="-my-1 mr-1.5" />
-                        {tab.label}
+                        <GameIcon name={tab.icon} size={22} className="sm:-my-1 sm:mr-1.5" />
+                        <span className="max-w-full overflow-hidden text-ellipsis">{tab.label}</span>
                         {badge && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />}
                       </button>
                     );
