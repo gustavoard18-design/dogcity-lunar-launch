@@ -15,6 +15,18 @@ import { DISTRICT_PRIZE, applyDistrictPrize, playerDistrict } from './lib/distri
 import ChallengeCard from './components/ChallengeCard';
 import StreakPanel from './components/StreakPanel';
 import SeasonPanel from './components/SeasonPanel';
+import ChestShop from './components/ChestShop';
+import {
+  type ChestOrder,
+  type ChestStatus,
+  applyChestReward,
+  cancelChestOrder,
+  chestName,
+  claimChest,
+  createChestOrder,
+  fetchChestStatus,
+  payWithXverse,
+} from './lib/chests';
 import { loadProfile, createProfile, saveProfile } from './lib/storage';
 import { getRouteCost, getTier, isRouteUnlocked } from './lib/economy';
 import { fetchDistrictLeaderboard, fetchDogInfo, fetchEventLeaderboard, onlineEnabled, submitScore } from './lib/online';
@@ -214,6 +226,118 @@ export default function App() {
     },
     [notify]
   );
+
+  // ── Baús pagos com DOG ──────────────────────────────────────────────────────
+  const [chestStatus, setChestStatus] = useState<ChestStatus | null>(null);
+  const [chestBusy, setChestBusy] = useState(false);
+  const [chestReveal, setChestReveal] = useState<{ chestId: string; stardust: number; lunarDust: number } | null>(null);
+  const realWallet = !!profile && profile.provider !== GUEST_PROVIDER;
+
+  const refreshChests = useCallback(async (address: string) => {
+    const st = await fetchChestStatus(address);
+    if (st) setChestStatus(st);
+    return st;
+  }, []);
+
+  /** Credita um pedido pago (uma vez só) e mostra o baú abrindo. */
+  const creditChest = useCallback(
+    (order: ChestOrder) => {
+      if (!order.reward) return;
+      setProfile(p => {
+        if (!p) return p;
+        const next = applyChestReward(p, order.id, order.reward!);
+        if (!next) return p;
+        saveProfile(next);
+        track('chest_open', { chest: order.chest_id, stardust: order.reward!.stardust, lunarDust: order.reward!.lunarDust });
+        window.setTimeout(() => {
+          setChestReveal({ chestId: order.chest_id, stardust: order.reward!.stardust, lunarDust: order.reward!.lunarDust });
+          sfx.levelUp();
+          confetti({ particleCount: 120, spread: 80, origin: { y: 0.55 }, zIndex: 100 });
+        }, 0);
+        return next;
+      });
+    },
+    []
+  );
+
+  const checkPendingChest = useCallback(async () => {
+    const pending = profile?.chestPending;
+    if (!profile || !pending?.txid) return;
+    const r = await claimChest(pending.orderId, pending.txid);
+    if (r.kind === 'paid') {
+      creditChest(r.order);
+      void refreshChests(profile.address);
+    } else if (r.kind === 'rejected') {
+      // Pagamento não confere: libera o txid para o jogador tentar outro.
+      commit({ ...profile, chestPending: { ...pending, txid: null } });
+      notify(`${L({ en: 'Payment not accepted', pt: 'Pagamento não aceito', es: 'Pago no aceptado' })}: ${r.reason}`, 'escudo');
+    }
+  }, [profile, creditChest, refreshChests, commit, notify]);
+
+  // Ao entrar com carteira real: limites, pedidos pagos ainda não creditados (outro aparelho) e o pendente.
+  useEffect(() => {
+    if (!profile || !realWallet || !onlineEnabled) return;
+    let alive = true;
+    refreshChests(profile.address).then(st => {
+      if (!alive || !st) return;
+      for (const o of st.orders) if (o.status === 'paid' && o.reward) creditChest(o);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [profile?.address, realWallet]);
+
+  // Pagamento enviado: confere a cada minuto até o baú abrir.
+  useEffect(() => {
+    if (!profile?.chestPending?.txid) return;
+    void checkPendingChest();
+    const timer = setInterval(() => void checkPendingChest(), 60_000);
+    return () => clearInterval(timer);
+  }, [profile?.chestPending?.txid]);
+
+  const orderChest = async (chestId: string) => {
+    if (!profile || chestBusy) return;
+    setChestBusy(true);
+    const r = await createChestOrder(profile.address, chestId);
+    setChestBusy(false);
+    if (r.kind === 'ok' || r.kind === 'open') {
+      const o = r.order;
+      commit({ ...profile, chestPending: { orderId: o.id, chestId: o.chest_id, priceDog: Number(o.price_dog), txid: o.txid, createdAt: o.created_at } });
+      if (r.kind === 'open') notify(L({ en: 'You already have an open chest order.', pt: 'Você já tem um pedido de baú aberto.', es: 'Ya tienes un pedido de cofre abierto.' }), 'medal');
+    } else if (r.kind === 'limit') {
+      notify(L({ en: 'Chest limit reached for now.', pt: 'Limite de baús atingido por enquanto.', es: 'Límite de cofres alcanzado por ahora.' }), 'medal');
+    } else {
+      notify(L({ en: 'Could not reach the chest shop. Try again soon.', pt: 'Não deu para falar com a loja de baús. Tente de novo em instantes.', es: 'No se pudo contactar la tienda de cofres. Inténtalo en un momento.' }), 'escudo');
+    }
+    void refreshChests(profile.address);
+  };
+
+  const submitChestTxid = (txid: string) => {
+    if (!profile?.chestPending) return;
+    commit({ ...profile, chestPending: { ...profile.chestPending, txid } });
+  };
+
+  const payChestXverse = async () => {
+    if (!profile?.chestPending || chestBusy) return;
+    setChestBusy(true);
+    try {
+      const txid = await payWithXverse(profile.chestPending.priceDog);
+      if (txid) submitChestTxid(txid);
+    } catch {
+      notify(L({ en: 'The wallet did not send the payment.', pt: 'A carteira não enviou o pagamento.', es: 'La billetera no envió el pago.' }), 'escudo');
+    } finally {
+      setChestBusy(false);
+    }
+  };
+
+  const cancelChest = async () => {
+    if (!profile?.chestPending || chestBusy) return;
+    setChestBusy(true);
+    await cancelChestOrder(profile.chestPending.orderId);
+    setChestBusy(false);
+    commit({ ...profile, chestPending: undefined });
+    void refreshChests(profile.address);
+  };
 
   const handleConnect = (wallet: WalletConnection) => {
     const existing = loadProfile(wallet.address);
@@ -577,6 +701,25 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {chestReveal && (
+          <motion.div key="chest" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.7, rotate: -4 }} animate={{ scale: 1, rotate: 0 }} className="hud-panel w-full max-w-sm p-6 text-center">
+              <div className="text-6xl mb-2">🎁</div>
+              <div className="font-display text-xl text-white mb-1">{chestName(chestReveal.chestId)}</div>
+              <div className="text-xs text-slate-400 mb-3">{L({ en: 'Chest opened!', pt: 'Baú aberto!', es: '¡Cofre abierto!' })}</div>
+              <div className="flex justify-center gap-4 text-xl font-display">
+                <span className="text-amber-300"><Stardust value={chestReveal.stardust} sign="+" size={26} /></span>
+                {chestReveal.lunarDust > 0 && <span className="text-violet-300"><LunarDust value={chestReveal.lunarDust} sign="+" size={26} /></span>}
+              </div>
+              <button onClick={() => setChestReveal(null)} className="btn-primary w-full py-3 mt-5">
+                {L({ en: 'Collect', pt: 'Pegar', es: 'Recoger' })}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {!profile ? (
         <>
           {pendingChallenge && (
@@ -676,6 +819,17 @@ export default function App() {
                       </>
                     )}
                     {activeTab === 'upgrades' && <UpgradeShop profile={profile} onPurchase={handleUpgrade} />}
+                    {activeTab === 'cosmetics' && (
+                      <ChestShop
+                        profile={profile}
+                        status={chestStatus}
+                        busy={chestBusy}
+                        onOrder={orderChest}
+                        onPayXverse={payChestXverse}
+                        onSubmitTxid={submitChestTxid}
+                        onCancel={cancelChest}
+                      />
+                    )}
                     {activeTab === 'cosmetics' && <CosmeticShop profile={profile} onPurchase={handleBuyCosmetic} onEquip={handleEquip} />}
                     {activeTab === 'leaderboard' && <WeeklyLeaderboard playerAddress={profile.address} playerDistrict={playerDistrict(profile)} />}
                     {activeTab === 'history' && <LaunchHistory profile={profile} />}
