@@ -2,7 +2,9 @@
 // rápido e funcionar sem internet. Páginas: rede primeiro (pega a versão nova);
 // arquivos (JS, CSS, artes, modelos, fontes): cache primeiro, atualizando por trás.
 // O ranking e o saldo DOG (Supabase) nunca passam pelo cache.
-const CACHE = 'dogcity-v1';
+// O build troca __BUILD__ por um carimbo novo: cada deploy usa um cache limpo
+// (artes com nome fixo são baixadas de novo e os bundles antigos são apagados).
+const CACHE = 'dogcity-__BUILD__';
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', './index.html', './manifest.webmanifest', './icon-192.png'])));

@@ -16,6 +16,15 @@ A chave da API fica em `.env.local` (`THREEDAI_API_KEY=...`, fora do git). Gerar
 
 Depois de gerar: conferir o modelo de vários ângulos, corrigir orientação/inclinação no componente (`src/three/RocketModel.tsx`, `DogModel.tsx`) e medir posições (escotilha, símbolos) com um render ortográfico.
 
+## `art/`: artes 2D do foguete
+
+`rocket-art.mjs` fotografa o foguete 3D do jogo (componente `Rocket`, com as peças da Oficina) e grava em `public/art`:
+
+- `rocket-1..5.webp`: vitrine de cada fase da Oficina, com cenário;
+- `cutout-rocket.webp` e `sprite-rocket.webp`: recorte e ícone com fundo transparente.
+
+Rodar com `npm run dev` ativo e Playwright instalado (`npm i --no-save playwright`): `node scripts/art/rocket-art.mjs`. As peças e cores de cada fase ficam em `rocket-art.tsx` (página servida pelo Vite em `/scripts/art/rocket-art.html`, fora do build). No Chrome headless (SwiftShader) leva uns 2 minutos.
+
 ## `qa/`: testes automáticos no navegador
 
 Usam `puppeteer-core` com o Chrome instalado (`npm i --no-save puppeteer-core`) e o jogo rodando em `http://localhost:5173` (`npm run dev`). O Chrome headless com `--use-angle=swiftshader` roda a ~6 fps, então os voos demoram bem mais que no jogo real.
