@@ -70,6 +70,8 @@ export interface ChestOrder {
 export interface ChestStatus {
   limits: { perDay: number; perWeek: number; usedToday: number; usedThisWeek: number };
   orders: ChestOrder[];
+  /** Todos os pedidos pagos da carteira (para creditar em qualquer aparelho). */
+  paid?: ChestOrder[];
 }
 
 async function call<T>(init: RequestInit & { query?: string } = {}): Promise<{ ok: boolean; status: number; body: T }> {
@@ -100,11 +102,14 @@ export type OrderResult =
   | { kind: 'ok'; order: ChestOrder }
   | { kind: 'open'; order: ChestOrder }
   | { kind: 'limit' }
+  | { kind: 'session' }
   | { kind: 'error' };
 
-export async function createChestOrder(address: string, chestId: string): Promise<OrderResult> {
+/** `token`: sessão da carteira assinada (lib/auth). O endereço segue para servidores antigos. */
+export async function createChestOrder(token: string, address: string, chestId: string): Promise<OrderResult> {
   try {
-    const r = await call<{ order?: ChestOrder; error?: string }>({ method: 'POST', body: JSON.stringify({ action: 'order', address, chestId }) });
+    const r = await call<{ order?: ChestOrder; error?: string }>({ method: 'POST', body: JSON.stringify({ action: 'order', token, address, chestId }) });
+    if (r.status === 401) return { kind: 'session' };
     if (r.ok && r.body.order) return { kind: 'ok', order: r.body.order };
     if (r.status === 409 && r.body.order) return { kind: 'open', order: r.body.order };
     if (r.status === 429) return { kind: 'limit' };
@@ -114,9 +119,9 @@ export async function createChestOrder(address: string, chestId: string): Promis
   }
 }
 
-export async function cancelChestOrder(orderId: string): Promise<boolean> {
+export async function cancelChestOrder(token: string, orderId: string): Promise<boolean> {
   try {
-    return (await call({ method: 'POST', body: JSON.stringify({ action: 'cancel', orderId }) })).ok;
+    return (await call({ method: 'POST', body: JSON.stringify({ action: 'cancel', token, orderId }) })).ok;
   } catch {
     return false;
   }
@@ -126,14 +131,16 @@ export type ClaimResult =
   | { kind: 'paid'; order: ChestOrder }
   | { kind: 'waiting' }
   | { kind: 'rejected'; reason: string }
+  | { kind: 'session' }
   | { kind: 'error'; reason?: string };
 
-export async function claimChest(orderId: string, txid: string): Promise<ClaimResult> {
+export async function claimChest(token: string, orderId: string, txid: string): Promise<ClaimResult> {
   try {
     const r = await call<{ status?: string; order?: ChestOrder; reason?: string; error?: string }>({
       method: 'POST',
-      body: JSON.stringify({ action: 'claim', orderId, txid: txid.trim().toLowerCase() }),
+      body: JSON.stringify({ action: 'claim', token, orderId, txid: txid.trim().toLowerCase() }),
     });
+    if (r.status === 401) return { kind: 'session' };
     if (r.body.status === 'paid' && r.body.order?.reward) return { kind: 'paid', order: r.body.order };
     if (r.body.status === 'waiting') return { kind: 'waiting' };
     if (r.body.status === 'rejected') return { kind: 'rejected', reason: r.body.reason ?? '' };

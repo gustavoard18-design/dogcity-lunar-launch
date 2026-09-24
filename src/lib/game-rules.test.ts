@@ -23,6 +23,9 @@ import { STREAK_REWARDS, applyDailyStreak } from './streak';
 import { SEASON_TIERS, applySeasonPoints, isSeasonId, seasonId, seasonPoints } from './seasons';
 import { DISTRICT_PRIZE, applyDistrictPrize, playerDistrict } from './districts';
 import { checkPayment, countsForLimit, roll, windowStarts } from '../../supabase/functions/_shared/chest-rules.ts';
+import { GUEST_ADDRESS_RE, checkSignInMessage, signInMessage } from '../../supabase/functions/_shared/auth-rules.ts';
+import { getSession } from './auth';
+import { storedProfile } from './storage';
 import { CHESTS, CHEST_LIMITS, CHEST_TREASURY, applyChestReward, chestOdds, isTxid } from './chests';
 import { dogDataProfileUrl, inscriptionImageUrls, prestigeStars, sanitizeIdentity } from './dogdata';
 import { astronautTier, rocketTier } from './evolution';
@@ -729,3 +732,43 @@ describe('regras do servidor dos baús', () => {
   });
 });
 
+
+describe('sessão assinada e progresso na nuvem', () => {
+  const A = 'bc1ppv609nr0vr25u07u95waq5lucwfm6tde4nydujnu8npg4q75mr5sxq8lt3';
+  const now = Date.parse('2026-09-24T12:00:00.000Z');
+
+  it('mensagem de login: texto exato, do endereço certo e recente', () => {
+    const msg = signInMessage(A, '2026-09-24T11:58:00.000Z');
+    expect(msg).toMatch(/^DogCity Lunar Launch - sign in\n/);
+    expect(checkSignInMessage(msg, A, now)).toBeNull();
+    expect(checkSignInMessage(msg, 'bc1qother000000000000000000000000000000000', now)).toBe('mensagem inválida');
+    expect(checkSignInMessage(msg + ' ', A, now)).toBe('mensagem inválida');
+    expect(checkSignInMessage(signInMessage(A, '2026-09-24T11:40:00.000Z'), A, now)).toBe('mensagem vencida');
+    expect(checkSignInMessage(signInMessage(A, '2026-09-24T12:10:00.000Z'), A, now)).toBe('mensagem inválida');
+    expect(checkSignInMessage('Issued: 2026-09-24T11:58:00.000Z', A, now)).toBe('mensagem inválida');
+  });
+
+  it('endereço de convidado tem o formato esperado', async () => {
+    const { connectGuest } = await import('./wallet');
+    const g = await connectGuest();
+    expect(GUEST_ADDRESS_RE.test(g.address)).toBe(true);
+  });
+
+  it('sessão vencida ou com token estranho é ignorada', () => {
+    localStorage.setItem('dogcity_sessions', JSON.stringify({ [A]: { token: 'x'.repeat(43), kind: 'wallet', expiresAt: '2000-01-01T00:00:00Z' } }));
+    expect(getSession(A)).toBeNull();
+    localStorage.setItem('dogcity_sessions', JSON.stringify({ [A]: { token: 'bad token', kind: 'wallet', expiresAt: '2999-01-01T00:00:00Z' } }));
+    expect(getSession(A)).toBeNull();
+    localStorage.setItem('dogcity_sessions', JSON.stringify({ [A]: { token: 'a'.repeat(43), kind: 'wallet', expiresAt: '2999-01-01T00:00:00Z' } }));
+    expect(getSession(A)?.kind).toBe('wallet');
+  });
+
+  it('cada gravação sobe a revisão do perfil', () => {
+    const p = createProfile(A, 'Xverse', 0);
+    const r1 = storedProfile(A)!.revision;
+    saveProfile(p); // cópia antiga em memória não volta a revisão
+    saveProfile({ ...p, stardust: 5 });
+    expect(storedProfile(A)!.revision).toBe(r1 + 2);
+    expect(migrateProfile({ ...p, revision: undefined } as never).revision).toBe(0);
+  });
+});

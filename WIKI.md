@@ -117,6 +117,7 @@ Upgrades custam `base × 1.45^(nível−2)` (bases: potência 40, precisão 45, 
 - `localStorage['dogcity_game_state']`: perfis por endereço (`version: 2`).
 - `migrateProfile` aceita perfis da v1 ou corrompidos: completa campos, limita atributos a 1–10, recalcula `xpToNext` e troca missões inexistentes.
 - Ranking: `dogcity_leaderboard_v2` guarda os jogadores locais e é complementado por 5 pilotos simulados (marcados como "bot"). Com o backend no ar, o ranking semanal vem do Supabase (`lib/online.ts`). Só o jogo publicado envia voos: em `npm run dev` e nos testes o envio fica desligado para não poluir o ranking real (use `VITE_SUBMIT_IN_DEV=1` para testar o envio).
+- Sessão e nuvem: `lib/auth.ts` pede a assinatura de login (Xverse e OKX por sats-connect/`signMessage` BIP-322, OKX pela API própria `bip322-simple`, Kray por `signMessage` quando existir) e guarda o token por endereço em `dogcity_sessions`. `lib/cloud.ts` envia o perfil 4 s depois de cada gravação (e ao sair da página) e, ao entrar, troca o perfil pela cópia da nuvem quando a revisão dela é maior. `saveProfile` sobe `revision` a cada gravação.
 - `migrateProfile` também completa `stats`, `achievements` e `eventWins` em perfis que não têm esses campos.
 - Toda leitura e escrita é protegida por `try/catch`. Com armazenamento bloqueado, o jogo continua em memória.
 

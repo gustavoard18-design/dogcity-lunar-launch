@@ -1,0 +1,47 @@
+name: Supabase deploy
+
+# Publica as migrações e as Edge Functions quando algo em supabase/ muda na main.
+# Precisa dos segredos do repositório SUPABASE_ACCESS_TOKEN (token pessoal do
+# Supabase) e SUPABASE_DB_PASSWORD (senha do banco). Sem eles, o job só avisa.
+on:
+  push:
+    branches: [main]
+    paths: ['supabase/**']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: uknupldacjxbuoiaucfc
+    steps:
+      - uses: actions/checkout@v7
+      - name: Segredos configurados?
+        id: secrets
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_DB_PASSWORD" ]; then
+            echo "::warning::Sem SUPABASE_ACCESS_TOKEN / SUPABASE_DB_PASSWORD: publique à mão (ver README, seção Online)."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: supabase/setup-cli@v1
+        if: steps.secrets.outputs.ok == 'true'
+        with:
+          version: latest
+      - name: Migrações
+        if: steps.secrets.outputs.ok == 'true'
+        run: |
+          supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+          supabase db push --password "$SUPABASE_DB_PASSWORD"
+      - name: Edge Functions
+        if: steps.secrets.outputs.ok == 'true'
+        run: |
+          for fn in auth chests dog-balance; do
+            supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --no-verify-jwt
+          done
+      - name: Conferir
+        if: steps.secrets.outputs.ok == 'true'
+        run: node scripts/health-check.mjs

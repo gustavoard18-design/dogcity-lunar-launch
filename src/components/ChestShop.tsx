@@ -4,11 +4,16 @@ import { CHESTS, CHEST_LIMITS, CHEST_TREASURY, type ChestStatus, chestName, ches
 import { GUEST_PROVIDER } from '../lib/storage';
 import { L, fmtNumber } from '../lib/i18n';
 import { LunarDust, Stardust } from './GameIcon';
+import LegalLinks, { supportUrl } from './LegalLinks';
 
 interface ChestShopProps {
   profile: PlayerProfile;
   status: ChestStatus | null;
   busy: boolean;
+  /** Carteira assinada (sessão no servidor): exigida para comprar. */
+  verified: boolean;
+  verifying: boolean;
+  onVerify(): void;
   onOrder(chestId: string): void;
   onPayXverse(): void;
   onSubmitTxid(txid: string): void;
@@ -18,7 +23,7 @@ interface ChestShopProps {
 const CHEST_ICON: Record<string, string> = { supply: '📦', orbital: '🛰️', legendary: '👑' };
 
 /** Loja de baús pagos com DOG: chances publicadas, limite por carteira e o passo a passo do pagamento. */
-export default function ChestShop({ profile, status, busy, onOrder, onPayXverse, onSubmitTxid, onCancel }: ChestShopProps) {
+export default function ChestShop({ profile, status, busy, verified, verifying, onVerify, onOrder, onPayXverse, onSubmitTxid, onCancel }: ChestShopProps) {
   const guest = profile.provider === GUEST_PROVIDER;
   const pending = profile.chestPending;
   const usedToday = status?.limits.usedToday ?? 0;
@@ -50,6 +55,19 @@ export default function ChestShop({ profile, status, busy, onOrder, onPayXverse,
             es: 'Conecta una billetera Bitcoin (Xverse, OKX o Kray) para comprar cofres con DOG.',
           })}
         </div>
+      ) : !verified ? (
+        <div className="rounded-xl border border-amber-300/40 bg-amber-400/10 px-3 py-3 text-xs text-slate-200 flex flex-wrap items-center gap-2">
+          <span className="flex-1 min-w-[12rem]">
+            {L({
+              en: 'Sign a free message with your wallet to buy chests (only you can order for your address).',
+              pt: 'Assine uma mensagem grátis com a carteira para comprar baús (só você faz pedidos para o seu endereço).',
+              es: 'Firma un mensaje gratis con tu billetera para comprar cofres (solo tú haces pedidos para tu dirección).',
+            })}
+          </span>
+          <button onClick={onVerify} disabled={verifying} className="btn-primary px-3 py-1.5 text-[11px] disabled:opacity-50">
+            {verifying ? L({ en: 'Waiting…', pt: 'Aguardando…', es: 'Esperando…' }) : L({ en: 'Sign message', pt: 'Assinar mensagem', es: 'Firmar mensaje' })}
+          </button>
+        </div>
       ) : pending ? (
         <PendingOrder profile={profile} busy={busy} onPayXverse={onPayXverse} onSubmitTxid={onSubmitTxid} onCancel={onCancel} />
       ) : null}
@@ -75,7 +93,7 @@ export default function ChestShop({ profile, status, busy, onOrder, onPayXverse,
             </table>
             <button
               onClick={() => onOrder(chest.id)}
-              disabled={guest || busy || !!pending || limitReached}
+              disabled={guest || !verified || busy || !!pending || limitReached}
               className="btn-primary mt-auto pt-2 py-2 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {L({ en: 'Buy', pt: 'Comprar', es: 'Comprar' })}
@@ -101,12 +119,20 @@ export default function ChestShop({ profile, status, busy, onOrder, onPayXverse,
         })}{' '}
         <span className="font-mono break-all">{CHEST_TREASURY}</span>
       </p>
+      <p className="mt-1 text-[10px] text-slate-500">
+        {L({ en: 'Chest did not open after 2 hours?', pt: 'O baú não abriu depois de 2 horas?', es: '¿El cofre no se abrió después de 2 horas?' })}{' '}
+        <a href={supportUrl(pending ? `Chest ${pending.orderId} txid ${pending.txid ?? '-'}` : undefined)} target="_blank" rel="noreferrer" className="underline hover:text-slate-300">
+          {L({ en: 'Contact support', pt: 'Fale com o suporte', es: 'Contacta al soporte' })}
+        </a>
+        {' · '}
+        <LegalLinks inline />
+      </p>
     </div>
   );
 }
 
 /** Pedido aberto: pagar (Xverse ou manual com txid), aguardar a confirmação ou cancelar. */
-function PendingOrder({ profile, busy, onPayXverse, onSubmitTxid, onCancel }: Omit<ChestShopProps, 'status' | 'onOrder'>) {
+function PendingOrder({ profile, busy, onPayXverse, onSubmitTxid, onCancel }: Pick<ChestShopProps, 'profile' | 'busy' | 'onPayXverse' | 'onSubmitTxid' | 'onCancel'>) {
   const pending = profile.chestPending!;
   const [txid, setTxid] = useState('');
   const [copied, setCopied] = useState(false);

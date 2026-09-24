@@ -29,7 +29,11 @@ import {
 } from './lib/chests';
 import { loadProfile, createProfile, saveProfile } from './lib/storage';
 import { getRouteCost, getTier, isRouteUnlocked } from './lib/economy';
-import { fetchDistrictLeaderboard, fetchDogInfo, fetchEventLeaderboard, onlineEnabled, submitScore } from './lib/online';
+import { fetchDistrictLeaderboard, fetchDogInfo, fetchEventLeaderboard, onlineEnabled, submitEnabled, submitScore } from './lib/online';
+import { authErrorText, dropSession, getSession, sessionToken, verifyWallet } from './lib/auth';
+import { pullCloud, startCloudSync } from './lib/cloud';
+import VerifyBanner from './components/VerifyBanner';
+import LegalLinks from './components/LegalLinks';
 import { claimMission, ensureDailyMissions, rerollMissions } from './lib/missions';
 import { applyLaunchResult, equipCosmetic, purchaseCosmetic, purchaseUpgrade } from './lib/progress';
 import { COSMETICS, UPGRADES } from './lib/shop';
@@ -227,6 +231,53 @@ export default function App() {
     [notify]
   );
 
+  // ── Sessão assinada e progresso na nuvem ───────────────────────────────────
+  const [, setSessionTick] = useState(0);
+  const [verifying, setVerifying] = useState(false);
+  useEffect(() => {
+    startCloudSync();
+    const onSession = () => setSessionTick(t => t + 1);
+    window.addEventListener('dogcity:session', onSession);
+    return () => window.removeEventListener('dogcity:session', onSession);
+  }, []);
+  const verified = !!profile && profile.provider !== GUEST_PROVIDER && getSession(profile.address)?.kind === 'wallet';
+
+  /** Compara com a nuvem; se ela estiver na frente (outro aparelho), troca o perfil. */
+  const syncFromCloud = useCallback(
+    async (address: string) => {
+      const r = await pullCloud(address);
+      if (r.kind !== 'restored') return;
+      setProfile(p => {
+        if (!p || p.address !== address) return p;
+        // Mantém o que foi lido agora da carteira (saldo e lote) e confere a sequência do dia.
+        const merged = { ...r.profile, provider: p.provider, dogBalance: p.dogBalance, dogBalanceSource: p.dogBalanceSource, dogOnchain: p.dogOnchain, tier: p.tier };
+        const streak = applyDailyStreak(merged);
+        const next = unlockAchievements(streak?.profile ?? merged).profile;
+        saveProfile(next);
+        return next;
+      });
+      notify(L({ en: 'Progress restored from the cloud.', pt: 'Progresso recuperado da nuvem.', es: 'Progreso recuperado de la nube.' }), 'astronaut');
+    },
+    [notify]
+  );
+
+  const verifyNow = useCallback(
+    async (address: string, provider: string) => {
+      setVerifying(true);
+      const r = await verifyWallet(address, provider);
+      setVerifying(false);
+      if (r.ok) {
+        track('wallet_verified', { wallet: provider });
+        notify(L({ en: 'Wallet verified!', pt: 'Carteira verificada!', es: '¡Billetera verificada!' }), 'medal');
+        void syncFromCloud(address);
+      } else {
+        notify(authErrorText(r.reason), 'escudo');
+      }
+      return r.ok;
+    },
+    [notify, syncFromCloud]
+  );
+
   // ── Baús pagos com DOG ──────────────────────────────────────────────────────
   const [chestStatus, setChestStatus] = useState<ChestStatus | null>(null);
   const [chestBusy, setChestBusy] = useState(false);
@@ -263,8 +314,12 @@ export default function App() {
   const checkPendingChest = useCallback(async () => {
     const pending = profile?.chestPending;
     if (!profile || !pending?.txid) return;
-    const r = await claimChest(pending.orderId, pending.txid);
-    if (r.kind === 'paid') {
+    const token = getSession(profile.address)?.token;
+    if (!token) return;
+    const r = await claimChest(token, pending.orderId, pending.txid);
+    if (r.kind === 'session') {
+      dropSession(profile.address);
+    } else if (r.kind === 'paid') {
       creditChest(r.order);
       void refreshChests(profile.address);
     } else if (r.kind === 'rejected') {
@@ -272,7 +327,7 @@ export default function App() {
       commit({ ...profile, chestPending: { ...pending, txid: null } });
       notify(`${L({ en: 'Payment not accepted', pt: 'Pagamento não aceito', es: 'Pago no aceptado' })}: ${r.reason}`, 'escudo');
     }
-  }, [profile, creditChest, refreshChests, commit, notify]);
+  }, [profile, creditChest, refreshChests, commit, notify, verified]);
 
   // Ao entrar com carteira real: limites, pedidos pagos ainda não creditados (outro aparelho) e o pendente.
   useEffect(() => {
@@ -280,7 +335,7 @@ export default function App() {
     let alive = true;
     refreshChests(profile.address).then(st => {
       if (!alive || !st) return;
-      for (const o of st.orders) if (o.status === 'paid' && o.reward) creditChest(o);
+      for (const o of [...st.orders, ...(st.paid ?? [])]) if (o.status === 'paid' && o.reward) creditChest(o);
     });
     return () => {
       alive = false;
@@ -289,18 +344,23 @@ export default function App() {
 
   // Pagamento enviado: confere a cada minuto até o baú abrir.
   useEffect(() => {
-    if (!profile?.chestPending?.txid) return;
+    if (!profile?.chestPending?.txid || !verified) return;
     void checkPendingChest();
     const timer = setInterval(() => void checkPendingChest(), 60_000);
     return () => clearInterval(timer);
-  }, [profile?.chestPending?.txid]);
+  }, [profile?.chestPending?.txid, verified]);
 
   const orderChest = async (chestId: string) => {
     if (!profile || chestBusy) return;
+    const token = getSession(profile.address)?.token;
+    if (!token) return;
     setChestBusy(true);
-    const r = await createChestOrder(profile.address, chestId);
+    const r = await createChestOrder(token, profile.address, chestId);
     setChestBusy(false);
-    if (r.kind === 'ok' || r.kind === 'open') {
+    if (r.kind === 'session') {
+      dropSession(profile.address);
+      notify(L({ en: 'Verify your wallet again to buy chests.', pt: 'Verifique a carteira de novo para comprar baús.', es: 'Verifica la billetera de nuevo para comprar cofres.' }), 'escudo');
+    } else if (r.kind === 'ok' || r.kind === 'open') {
       const o = r.order;
       commit({ ...profile, chestPending: { orderId: o.id, chestId: o.chest_id, priceDog: Number(o.price_dog), txid: o.txid, createdAt: o.created_at } });
       if (r.kind === 'open') notify(L({ en: 'You already have an open chest order.', pt: 'Você já tem um pedido de baú aberto.', es: 'Ya tienes un pedido de cofre abierto.' }), 'medal');
@@ -332,14 +392,17 @@ export default function App() {
 
   const cancelChest = async () => {
     if (!profile?.chestPending || chestBusy) return;
+    const token = getSession(profile.address)?.token;
+    if (!token) return;
     setChestBusy(true);
-    await cancelChestOrder(profile.chestPending.orderId);
+    await cancelChestOrder(token, profile.chestPending.orderId);
     setChestBusy(false);
     commit({ ...profile, chestPending: undefined });
     void refreshChests(profile.address);
   };
 
-  const handleConnect = (wallet: WalletConnection) => {
+  /** `fresh`: o jogador acabou de conectar (pede a assinatura); false ao reabrir depois de trocar o idioma. */
+  const handleConnect = (wallet: WalletConnection, fresh = true) => {
     const existing = loadProfile(wallet.address);
     const base = existing
       ? { ...existing, provider: wallet.provider }
@@ -356,6 +419,11 @@ export default function App() {
         : L({ en: `Your pilot ${next.dog.name} is ready!`, pt: `Seu piloto ${next.dog.name} está pronto!`, es: `¡Tu piloto ${next.dog.name} está listo!` }),
       'astronaut'
     );
+    // Carteira real: assinatura de login (uma vez a cada 30 dias) e progresso da nuvem.
+    if (wallet.provider !== GUEST_PROVIDER && onlineEnabled) {
+      if (getSession(wallet.address)?.kind === 'wallet') void syncFromCloud(wallet.address);
+      else if (fresh) window.setTimeout(() => void verifyNow(wallet.address, wallet.provider), 400);
+    }
     // Carteira real: busca saldo DOG on-chain, ranking e lote no DogCity; recalcula a patente.
     if (wallet.provider !== GUEST_PROVIDER) {
       fetchDogInfo(wallet.address).then(info => {
@@ -383,7 +451,7 @@ export default function App() {
   // Depois de trocar o idioma (a página recarrega), reabre o hangar no mesmo piloto.
   useEffect(() => {
     const resume = takeResume();
-    if (resume) handleConnect({ address: resume.address, provider: resume.provider, connected: true });
+    if (resume) handleConnect({ address: resume.address, provider: resume.provider, connected: true }, false);
   }, []);
 
   const startRoute = (route: Route, challenge: Challenge | null = null) => {
@@ -453,8 +521,8 @@ export default function App() {
       hits: outcome.hits,
     });
     commit(next);
-    if (outcome.success) {
-      void submitScore({ address: next.address, dogName: next.dog.name, tier: next.tier, routeId: session.route.id, score: outcome.score, title: next.title, style: next.nameStyle });
+    if (outcome.success && submitEnabled) {
+      void sessionToken(next.address, next.provider).then(token => submitScore({ token, address: next.address, dogName: next.dog.name, tier: next.tier, routeId: session.route.id, score: outcome.score, title: next.title, style: next.nameStyle }));
     }
     setSession({ ...session, summary });
     if (summary.levelsGained > 0) {
@@ -734,7 +802,7 @@ export default function App() {
               </div>
             </div>
           )}
-          <ConnectWallet onConnect={handleConnect} />
+          <ConnectWallet onConnect={w => handleConnect(w)} />
         </>
       ) : (
         <>
@@ -782,6 +850,9 @@ export default function App() {
               </div>
 
               <div className="lg:col-span-2 order-1 lg:order-2">
+                {realWallet && !verified && onlineEnabled && (
+                  <VerifyBanner busy={verifying} onVerify={() => void verifyNow(profile.address, profile.provider)} />
+                )}
                 {pendingChallenge && (
                   <ChallengeCard challenge={pendingChallenge} profile={profile} onAccept={acceptChallenge} onDismiss={() => setPendingChallenge(null)} />
                 )}
@@ -824,6 +895,9 @@ export default function App() {
                         profile={profile}
                         status={chestStatus}
                         busy={chestBusy}
+                        verified={verified}
+                        verifying={verifying}
+                        onVerify={() => void verifyNow(profile.address, profile.provider)}
                         onOrder={orderChest}
                         onPayXverse={payChestXverse}
                         onSubmitTxid={submitChestTxid}
@@ -844,7 +918,7 @@ export default function App() {
             {profile.dogBalanceSource === 'real'
               ? L({ en: 'DOG balance read from the blockchain', pt: 'saldo DOG lido da blockchain', es: 'saldo DOG leído de la blockchain' })
               : L({ en: 'simulated DOG balance', pt: 'saldo DOG simulado', es: 'saldo DOG simulado' })}
-            , {L({ en: 'no on-chain transactions', pt: 'sem transações on-chain', es: 'sin transacciones on-chain' })}
+            <LegalLinks className="mt-2" />
           </footer>
         </>
       )}

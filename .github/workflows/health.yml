@@ -1,0 +1,39 @@
+name: Health check
+
+# Confere a cada hora o site e o backend. Se algo cair, abre (ou comenta) um
+# chamado "Health check falhou" no repositório: o GitHub avisa por e-mail.
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.x
+      - name: Conferir site e backend
+        id: health
+        run: |
+          set -o pipefail
+          node scripts/health-check.mjs | tee report.txt
+      - name: Abrir chamado quando falhar
+        if: failure() && steps.health.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TITLE="Health check falhou"
+          BODY="$(printf 'Execução: %s/%s/actions/runs/%s\n\n```\n%s\n```' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" "$(cat report.txt)")"
+          NUM=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number')
+          if [ -n "$NUM" ]; then
+            gh issue comment "$NUM" --repo "$GITHUB_REPOSITORY" --body "$BODY"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body "$BODY"
+          fi
