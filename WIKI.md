@@ -157,7 +157,7 @@ As artes ficam em `public/art/astro-N.webp`, `public/art/rocket-N.webp` e `publi
 
 `npm test` roda `src/lib/game-rules.test.ts` (Vitest + jsdom). Ele cobre economia, pontuação, efeitos dos atributos, aplicação de resultados, missões (renovação, progresso, troca e level up ao resgatar), loja, migração de perfis v1, rodízio e bônus do evento semanal, e conquistas (contadores, desbloqueio, resgate e migração).
 
-Também cobre tutorial, molduras de nome (inclusive o visual no cartão de compartilhamento) pódio do evento, idiomas e nome do astronauta (47 testes). O CI (`.github/workflows/ci.yml`) roda typecheck, testes e build em Node 22 e 24, e publica no GitHub Pages a cada push em `main`/`master` (o build usa `base: './'`).
+Também cobre tutorial, molduras de nome (inclusive o visual no cartão de compartilhamento) pódio do evento, idiomas e nome do astronauta e identidade DogData (50 testes). O CI (`.github/workflows/ci.yml`) roda typecheck, testes e build em Node 22 e 24, e publica no GitHub Pages a cada push em `main`/`master` (o build usa `base: './'`).
 
 ## 15. Próximos passos sugeridos
 

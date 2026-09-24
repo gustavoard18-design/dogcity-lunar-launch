@@ -4,6 +4,8 @@
 - **Editar o nome do astronauta**: lápis ao lado do nome no perfil (2 a 20 caracteres; letras com acento, números, espaço e - _ ' .). O ranking online mostra o nome novo a partir do próximo voo concluído.
 - Seletor de idioma com menu próprio, escuro e legível (o menu nativo ficava cinza claro sobre branco).
 - A vitrine da Loja e da Oficina volta às artes 2D originais do foguete, com o formato mudando a cada fase.
+- **Identidade DogData**: quem tem perfil no DogData aparece com o **avatar Ordinal** e o **@handle** escolhidos lá, no perfil do jogo e no ranking (com link para a página da carteira no DogData).
+- **Lote no DogCity completo**: rua, número, zona e prestígio (estrelas) no cartão do lote.
 
 ## 2.2.0 (setembro de 2026): três idiomas
 - **Inglês como idioma padrão**, com **português** e **espanhol** no seletor 🌐 (tela inicial e topo do hangar). A escolha fica salva no navegador; trocar recarrega o jogo e volta ao hangar do mesmo piloto.

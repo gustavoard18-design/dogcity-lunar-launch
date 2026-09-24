@@ -1,4 +1,5 @@
-import type { DogOnchainInfo, LeaderboardEntry, Tier } from '../types';
+import type { DogDataIdentity, DogOnchainInfo, LeaderboardEntry, Tier } from '../types';
+import { sanitizeIdentity } from './dogdata';
 
 /**
  * Backend online (Supabase): ranking semanal e saldo real de DOG.
@@ -142,9 +143,44 @@ export async function fetchDogInfo(address: string): Promise<DogOnchainInfo | nu
     if (!res.ok) return null;
     const body = (await res.json()) as Partial<DogOnchainInfo>;
     if (typeof body.balance !== 'number') return null;
-    return { balance: body.balance, rank: body.rank ?? null, dogcity: body.dogcity ?? null, updatedAt: new Date().toISOString() };
+    return {
+      balance: body.balance,
+      rank: body.rank ?? null,
+      dogcity: body.dogcity ?? null,
+      identity: sanitizeIdentity(body.identity),
+      updatedAt: new Date().toISOString(),
+    };
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Identidade DogData (handle e avatar Ordinal) de vários endereços, para o
+ * ranking. Endereço sem identidade não volta no mapa. Falhas viram mapa vazio.
+ */
+export async function fetchIdentities(addresses: string[]): Promise<Record<string, DogDataIdentity>> {
+  const list = [...new Set(addresses)].slice(0, 25);
+  if (!onlineEnabled || list.length === 0) return {};
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 12000);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/dog-balance?addresses=${list.map(encodeURIComponent).join(',')}`, {
+      headers: { apikey: SUPABASE_KEY },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) return {};
+    const body = (await res.json()) as { identities?: Record<string, unknown> };
+    const out: Record<string, DogDataIdentity> = {};
+    for (const [address, raw] of Object.entries(body.identities ?? {})) {
+      const identity = sanitizeIdentity(raw);
+      if (identity && list.includes(address)) out[address] = identity;
+    }
+    return out;
+  } catch {
+    return {};
   } finally {
     clearTimeout(timer);
   }
