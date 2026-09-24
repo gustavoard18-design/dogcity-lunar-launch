@@ -20,8 +20,8 @@ Depois de gerar: conferir o modelo de vários ângulos, corrigir orientação/in
 
 `rocket-art.mjs` fotografa o foguete 3D do jogo (componente `Rocket`, com as peças da Oficina) e grava em `public/art`:
 
-- `rocket-1..5.webp`: vitrine de cada fase da Oficina, com cenário;
-- `cutout-rocket.webp` e `sprite-rocket.webp`: recorte e ícone com fundo transparente.
+- `cutout-rocket.webp` e `sprite-rocket.webp`: recorte (tela inicial) e ícone, com fundo transparente;
+- com `--tiers`, também `rocket-1..5.webp` (vitrine de cada fase da Oficina). A vitrine publicada usa as artes 2D originais, com o formato do foguete mudando a cada fase, então não rode com `--tiers` sem querer trocá-las.
 
 Rodar com `npm run dev` ativo e Playwright instalado (`npm i --no-save playwright`): `node scripts/art/rocket-art.mjs`. As peças e cores de cada fase ficam em `rocket-art.tsx` (página servida pelo Vite em `/scripts/art/rocket-art.html`, fora do build). No Chrome headless (SwiftShader) leva uns 2 minutos.
 

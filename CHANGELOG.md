@@ -1,5 +1,10 @@
 # Novidades
 
+## 2.3.0 (setembro de 2026)
+- **Editar o nome do astronauta**: lápis ao lado do nome no perfil (2 a 20 caracteres; letras com acento, números, espaço e - _ ' .). O ranking online mostra o nome novo a partir do próximo voo concluído.
+- Seletor de idioma com menu próprio, escuro e legível (o menu nativo ficava cinza claro sobre branco).
+- A vitrine da Loja e da Oficina volta às artes 2D originais do foguete, com o formato mudando a cada fase.
+
 ## 2.2.0 (setembro de 2026): três idiomas
 - **Inglês como idioma padrão**, com **português** e **espanhol** no seletor 🌐 (tela inicial e topo do hangar). A escolha fica salva no navegador; trocar recarrega o jogo e volta ao hangar do mesmo piloto.
 - Tudo traduzido: telas, missão e tutorial, rotas, eventos, conquistas, títulos, missões, Loja, Oficina, molduras, ranking, Diário, cartão e texto de compartilhamento, mensagens de carteira.
@@ -7,7 +12,7 @@
 - Prévia do link (imagem e textos), manifesto do app e descrição da página em inglês.
 
 ## 2.1.1 (setembro de 2026): ajustes para o lançamento
-- **Foguete Bitcoin também nas artes 2D**: vitrine da Oficina (5 fases, com as peças instaladas), tela inicial e ícones agora mostram o mesmo foguete do 3D.
+- **Foguete Bitcoin também nas artes 2D**: tela inicial e ícones agora mostram o mesmo foguete do 3D.
 - **Moldura de nome no cartão de compartilhamento**: o nome sai com a mesma moldura escolhida no perfil.
 - **Carteiras no celular**: Xverse e OKX ganham o botão "Abrir no app", que abre o jogo no navegador interno da carteira.
 - Quem instalou o app recebe as artes novas: cada publicação usa um cache novo no aparelho.

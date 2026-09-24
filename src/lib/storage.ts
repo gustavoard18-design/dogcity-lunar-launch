@@ -107,6 +107,26 @@ export function createProfile(address: string, provider: string, dogBalance: num
   return withMissions;
 }
 
+export const PILOT_NAME_MIN = 2;
+export const PILOT_NAME_MAX = 20;
+
+/** Nome do piloto limpo (espaços aparados e únicos) ou null se inválido. */
+export function sanitizePilotName(raw: string): string | null {
+  const name = raw.normalize('NFC').trim().replace(/\s+/g, ' ');
+  const length = [...name].length;
+  if (length < PILOT_NAME_MIN || length > PILOT_NAME_MAX) return null;
+  // Letras de qualquer idioma, números, espaço e - _ ' .
+  if (!/^[\p{L}\p{N}][\p{L}\p{N} _'.-]*$/u.test(name)) return null;
+  return name;
+}
+
+/** Troca o nome do astronauta. Null se o nome for inválido. */
+export function renamePilot(profile: PlayerProfile, raw: string): PlayerProfile | null {
+  const name = sanitizePilotName(raw);
+  if (!name) return null;
+  return { ...profile, dog: { ...profile.dog, name } };
+}
+
 function generateDogName(): string {
   const prefixes = ['Astro', 'Cosmo', 'Luna', 'Nova', 'Orbit', 'Star', 'Comet', 'Nebula', 'Solar', 'Rocket'];
   const suffixes = ['paw', 'tail', 'bark', 'howl', 'woof', 'zoom', 'dash', 'flash', 'bolt', 'spark'];

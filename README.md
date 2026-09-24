@@ -62,6 +62,7 @@ Toda segunda-feira entra uma rota especial, em rodízio: **Chuva de Meteoros**, 
 - **Loja**: pelagens, capacetes e rastros do motor. Itens mais raros evoluem a arte do astronauta.
 - **Ranking semanal**: geral e do evento, com títulos e molduras.
 - **Diário**: carreira do piloto (voos, orbes, anéis, rotas) e histórico.
+- **Nome do astronauta**: editável pelo lápis no perfil.
 
 ---
 

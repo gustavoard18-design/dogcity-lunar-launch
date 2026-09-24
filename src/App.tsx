@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { LaunchOutcome, LaunchSummary, PlayerProfile, Route } from './types';
 import { WalletConnection, getMockDogBalance } from './lib/wallet';
-import { GUEST_PROVIDER, providerLabel } from './lib/storage';
+import { GUEST_PROVIDER, providerLabel, renamePilot } from './lib/storage';
 import { getEventByRoute } from './lib/events';
 import LanguageSwitcher, { takeResume } from './components/LanguageSwitcher';
 import { loadProfile, createProfile, saveProfile } from './lib/storage';
@@ -290,6 +290,22 @@ export default function App() {
     );
   };
 
+  const handleRename = (name: string) => {
+    if (!profile) return;
+    const next = renamePilot(profile, name);
+    if (!next) return;
+    commit(next);
+    sfx.click();
+    notify(
+      L({
+        en: `Your astronaut is now ${next.dog.name}! The leaderboard updates on your next completed flight.`,
+        pt: `Seu astronauta agora se chama ${next.dog.name}! O ranking atualiza no próximo voo concluído.`,
+        es: `¡Tu astronauta ahora se llama ${next.dog.name}! La clasificación se actualiza en tu próximo vuelo completado.`,
+      }),
+      'astronaut'
+    );
+  };
+
   const handleReroll = () => {
     if (!profile) return;
     const next = rerollMissions(profile);
@@ -484,7 +500,7 @@ export default function App() {
           <main className="relative z-10 max-w-6xl mx-auto px-4 py-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-1 order-2 lg:order-1">
-                <PlayerProfileCard profile={profile} />
+                <PlayerProfileCard profile={profile} onRename={handleRename} />
               </div>
 
               <div className="lg:col-span-2 order-1 lg:order-2">

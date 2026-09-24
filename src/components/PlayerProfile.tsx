@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { PlayerProfile, Stat } from '../types';
 import { getTierColor } from '../lib/economy';
 import { MAX_STAT_LEVEL, STAT_INFO } from '../lib/stats';
@@ -5,14 +6,95 @@ import { astronautArt, astronautTier } from '../lib/evolution';
 import GameIcon, { LunarDust, Stardust, TIER_INFO, statIcon } from './GameIcon';
 import { titleText } from '../lib/achievements';
 import PilotName from './PilotName';
-import { breedLabel } from '../lib/storage';
+import { PILOT_NAME_MAX, PILOT_NAME_MIN, breedLabel, sanitizePilotName } from '../lib/storage';
 import { L, locale } from '../lib/i18n';
 
 interface PlayerProfileProps {
   profile: PlayerProfile;
+  /** Troca o nome do astronauta (sem ela, o nome não é editável). */
+  onRename?: (name: string) => void;
 }
 
-export default function PlayerProfileCard({ profile }: PlayerProfileProps) {
+/** Nome do piloto com o lápis para editar; Enter salva, Esc cancela. */
+function EditableName({ name, style, onRename }: { name: string; style?: string; onRename?: (name: string) => void }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const clean = draft === null ? null : sanitizePilotName(draft);
+
+  if (draft === null || !onRename) {
+    return (
+      <h2 className="flex items-center gap-1.5 font-display text-xl sm:text-2xl text-white leading-tight min-w-0">
+        <span className="truncate">
+          <PilotName name={name} style={style} />
+        </span>
+        {onRename && (
+          <button
+            type="button"
+            onClick={() => setDraft(name)}
+            className="shrink-0 rounded-md p-1 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            aria-label={L({ en: 'Edit name', pt: 'Editar nome', es: 'Editar nombre' })}
+            title={L({ en: 'Edit name', pt: 'Editar nome', es: 'Editar nombre' })}
+          >
+            <PencilIcon />
+          </button>
+        )}
+      </h2>
+    );
+  }
+
+  const save = () => {
+    if (!clean) return;
+    if (clean !== name) onRename(clean);
+    setDraft(null);
+  };
+  return (
+    <form
+      onSubmit={e => {
+        e.preventDefault();
+        save();
+      }}
+      className="mt-0.5"
+    >
+      <div className="flex items-center gap-1.5">
+        <input
+          autoFocus
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onKeyDown={e => e.key === 'Escape' && setDraft(null)}
+          maxLength={PILOT_NAME_MAX + 10}
+          aria-label={L({ en: 'Astronaut name', pt: 'Nome do astronauta', es: 'Nombre del astronauta' })}
+          aria-invalid={!clean}
+          className={`min-w-0 flex-1 rounded-lg bg-[#081229] border px-2 py-1 font-display text-base text-white outline-none focus:ring-2 ${
+            clean ? 'border-sky-300/50 focus:ring-sky-400/40' : 'border-red-400/70 focus:ring-red-400/30'
+          }`}
+        />
+        <button type="submit" disabled={!clean} className="btn-primary shrink-0 px-2.5 py-1 text-xs disabled:opacity-40" aria-label={L({ en: 'Save name', pt: 'Salvar nome', es: 'Guardar nombre' })}>
+          ✓
+        </button>
+        <button type="button" onClick={() => setDraft(null)} className="btn-ghost shrink-0 px-2.5 py-1 text-xs" aria-label={L({ en: 'Cancel', pt: 'Cancelar', es: 'Cancelar' })}>
+          ✕
+        </button>
+      </div>
+      <p className={`mt-1 text-[10px] ${clean ? 'text-slate-500' : 'text-red-300'}`}>
+        {L({
+          en: `${PILOT_NAME_MIN}–${PILOT_NAME_MAX} characters: letters, numbers, space and - _ ' .`,
+          pt: `${PILOT_NAME_MIN} a ${PILOT_NAME_MAX} caracteres: letras, números, espaço e - _ ' .`,
+          es: `${PILOT_NAME_MIN} a ${PILOT_NAME_MAX} caracteres: letras, números, espacio y - _ ' .`,
+        })}
+      </p>
+    </form>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
+export default function PlayerProfileCard({ profile, onRename }: PlayerProfileProps) {
   const { dog } = profile;
   const { tier } = astronautTier(dog);
   const onchain = profile.dogBalanceSource === 'real' ? profile.dogOnchain : undefined;
@@ -31,9 +113,7 @@ export default function PlayerProfileCard({ profile }: PlayerProfileProps) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-[10px] tracking-[0.3em] text-slate-500">{L({ en: 'PILOT', pt: 'PILOTO', es: 'PILOTO' })}</div>
-          <h2 className="font-display text-xl sm:text-2xl text-white leading-tight truncate">
-            <PilotName name={dog.name} style={profile.nameStyle} />
-          </h2>
+          <EditableName name={dog.name} style={profile.nameStyle} onRename={onRename} />
           {profile.title ? (
             <p className="text-xs text-amber-300 truncate" title={L({ en: 'Pilot title (change it in the Missions tab)', pt: 'Título do piloto (troque na aba Missões)', es: 'Título del piloto (cámbialo en la pestaña Misiones)' })}>«{titleText(profile.title)}»</p>
           ) : (
