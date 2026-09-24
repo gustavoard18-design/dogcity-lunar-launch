@@ -97,6 +97,10 @@ export function migrateProfile(raw: Partial<PlayerProfile>): PlayerProfile {
     title: raw.title && raw.achievements?.[raw.title] && getAchievementDef(raw.title) ? raw.title : undefined,
     nameStyle: raw.nameStyle,
     podiums: raw.podiums ?? [],
+    streak: raw.streak ?? { count: 0, best: 0, lastDay: '' },
+    season: raw.season ?? { id: '', points: 0, tier: 0 },
+    seasonFrames: raw.seasonFrames ?? [],
+    districtWins: raw.districtWins ?? [],
   };
 }
 

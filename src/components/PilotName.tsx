@@ -7,7 +7,7 @@ export default function PilotName({ name, style, className = '' }: { name: strin
   return (
     <span className={`inline-flex items-center gap-1 max-w-full ${f.frame ?? ''} ${className}`}>
       {f.badge && <span className="not-italic shrink-0" aria-hidden>{f.badge}</span>}
-      <span className={`truncate ${f.text}`}>{name}</span>
+      <span className={`truncate ${f.text}`} style={f.textStyle}>{name}</span>
     </span>
   );
 }

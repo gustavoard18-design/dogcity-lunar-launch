@@ -13,6 +13,7 @@ import Particles, { ParticleApi } from '../three/Particles';
 import { SkyBackground, SpeedStreaks, StudioEnvironment } from '../three/SpaceBits';
 import { makeRockGeometry } from '../three/rocks';
 import { DeepField, DriftingSatellite, ROCK_TINT } from '../three/DeepSpace';
+import { flightRandom } from '../lib/rng';
 
 export interface FlightInput {
   pointerX: number;
@@ -54,6 +55,8 @@ interface FlightWorldProps {
   onHud(h: FlightHud): void;
   onEvent(e: FlightEvent): void;
   onDone(r: FlightResult): void;
+  /** Semente dos sorteios (mesma semente = mesmos asteroides, orbes e anéis; base do desafio). */
+  seed: number;
 }
 
 const BX = 6.5;
@@ -92,7 +95,8 @@ function useRockGeometries() {
   );
 }
 
-export default function FlightWorld({ route, tuning, look, startShield, inputRef, abortRef, onHud, onEvent, onDone }: FlightWorldProps) {
+export default function FlightWorld({ route, tuning, look, startShield, inputRef, abortRef, onHud, onEvent, onDone, seed }: FlightWorldProps) {
+  const rng = useMemo(() => flightRandom(seed), [seed]);
   const camera = useThree(s => s.camera) as THREE.PerspectiveCamera;
   const aspect = useThree(s => s.size.width / s.size.height);
   // Em telas em pé a área de voo encolhe na horizontal para o foguete não sair do quadro.
@@ -219,23 +223,23 @@ export default function FlightWorld({ route, tuning, look, startShield, inputRef
         const a = spawnFrom(s.asteroids);
         if (!a) break;
         a.active = true;
-        const aimed = Math.random() < tuning.aimedHazards;
-        const x = aimed ? s.pos.x + (Math.random() - 0.5) * 2 : (Math.random() * 2 - 1) * bx * 1.25;
-        const y = aimed ? s.pos.y + (Math.random() - 0.5) * 2 : (Math.random() * 2 - 1) * BY * 1.3;
-        a.p.set(x, y, SPAWN_Z - Math.random() * 20);
-        a.s = 0.8 + Math.random() * (1.0 + route.difficulty * 0.3);
-        a.rot.set(Math.random() * 6, Math.random() * 6, Math.random() * 6);
-        a.spin.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(2);
+        const aimed = rng.hazard() < tuning.aimedHazards;
+        const x = aimed ? s.pos.x + (rng.hazard() - 0.5) * 2 : (rng.hazard() * 2 - 1) * bx * 1.25;
+        const y = aimed ? s.pos.y + (rng.hazard() - 0.5) * 2 : (rng.hazard() * 2 - 1) * BY * 1.3;
+        a.p.set(x, y, SPAWN_Z - rng.hazard() * 20);
+        a.s = 0.8 + rng.hazard() * (1.0 + route.difficulty * 0.3);
+        a.rot.set(rng.hazard() * 6, rng.hazard() * 6, rng.hazard() * 6);
+        a.spin.set(rng.hazard() - 0.5, rng.hazard() - 0.5, rng.hazard() - 0.5).multiplyScalar(2);
       }
 
       s.acc.orb += tuning.orbRate * dt;
       if (s.acc.orb >= 6) {
         s.acc.orb -= 6;
-        const x0 = (Math.random() * 2 - 1) * bx * 0.85;
-        const y0 = (Math.random() * 2 - 1) * BY * 0.85;
-        const x1 = THREE.MathUtils.clamp(x0 + (Math.random() * 2 - 1) * 5, -bx, bx);
-        const y1 = THREE.MathUtils.clamp(y0 + (Math.random() * 2 - 1) * 3, -BY, BY);
-        const wave = Math.random() < 0.5;
+        const x0 = (rng.orb() * 2 - 1) * bx * 0.85;
+        const y0 = (rng.orb() * 2 - 1) * BY * 0.85;
+        const x1 = THREE.MathUtils.clamp(x0 + (rng.orb() * 2 - 1) * 5, -bx, bx);
+        const y1 = THREE.MathUtils.clamp(y0 + (rng.orb() * 2 - 1) * 3, -BY, BY);
+        const wave = rng.orb() < 0.5;
         for (let i = 0; i < 7; i++) {
           const o = spawnFrom(s.orbList);
           if (!o) break;
@@ -253,11 +257,11 @@ export default function FlightWorld({ route, tuning, look, startShield, inputRef
 
       s.acc.ring += dt;
       if (s.acc.ring >= 5 / (route.ringRateMult ?? 1)) {
-        s.acc.ring = Math.random() * 1.5;
+        s.acc.ring = rng.ring() * 1.5;
         const r = spawnFrom(s.ringList);
         if (r) {
           r.active = true;
-          r.p.set((Math.random() * 2 - 1) * bx * 0.7, (Math.random() * 2 - 1) * BY * 0.7, SPAWN_Z);
+          r.p.set((rng.ring() * 2 - 1) * bx * 0.7, (rng.ring() * 2 - 1) * BY * 0.7, SPAWN_Z);
           r.s = 0;
           s.spawned += 3;
         }
@@ -269,7 +273,7 @@ export default function FlightWorld({ route, tuning, look, startShield, inputRef
         const sh = spawnFrom(s.shieldList);
         if (sh) {
           sh.active = true;
-          sh.p.set((Math.random() * 2 - 1) * bx * 0.8, (Math.random() * 2 - 1) * BY * 0.8, SPAWN_Z);
+          sh.p.set((rng.shield() * 2 - 1) * bx * 0.8, (rng.shield() * 2 - 1) * BY * 0.8, SPAWN_Z);
         }
       }
     }

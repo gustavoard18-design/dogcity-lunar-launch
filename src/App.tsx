@@ -6,9 +6,18 @@ import { WalletConnection, getMockDogBalance } from './lib/wallet';
 import { GUEST_PROVIDER, providerLabel, renamePilot } from './lib/storage';
 import { getEventByRoute } from './lib/events';
 import LanguageSwitcher, { takeResume } from './components/LanguageSwitcher';
+import { track } from './lib/analytics';
+import { type Challenge, challengeOutcome, challengeRoute, takeChallengeFromLocation } from './lib/challenge';
+import { newSeed } from './lib/rng';
+import { applyDailyStreak, type StreakReward } from './lib/streak';
+import { SEASON_TIERS, applySeasonPoints, seasonName } from './lib/seasons';
+import { DISTRICT_PRIZE, applyDistrictPrize, playerDistrict } from './lib/districts';
+import ChallengeCard from './components/ChallengeCard';
+import StreakPanel from './components/StreakPanel';
+import SeasonPanel from './components/SeasonPanel';
 import { loadProfile, createProfile, saveProfile } from './lib/storage';
 import { getRouteCost, getTier, isRouteUnlocked } from './lib/economy';
-import { fetchDogInfo, fetchEventLeaderboard, onlineEnabled, submitScore } from './lib/online';
+import { fetchDistrictLeaderboard, fetchDogInfo, fetchEventLeaderboard, onlineEnabled, submitScore } from './lib/online';
 import { claimMission, ensureDailyMissions, rerollMissions } from './lib/missions';
 import { applyLaunchResult, equipCosmetic, purchaseCosmetic, purchaseUpgrade } from './lib/progress';
 import { COSMETICS, UPGRADES } from './lib/shop';
@@ -46,6 +55,9 @@ interface Session {
   route: Route;
   paidCost: number;
   summary: LaunchSummary | null;
+  /** Semente dos sorteios do voo (a mesma do desafio, quando há um). */
+  seed: number;
+  challenge: Challenge | null;
 }
 
 const LUNAR_DUST = () => L({ en: 'Lunar Dust', pt: 'Pó Lunar', es: 'Polvo Lunar' });
@@ -115,6 +127,35 @@ export default function App() {
     };
   }, [profile?.address]);
 
+  // Guerra de distritos: se o distrito do piloto venceu a semana passada, paga o prêmio uma vez.
+  const district = profile ? playerDistrict(profile) : null;
+  useEffect(() => {
+    if (!profile || !district || !onlineEnabled) return;
+    const lastWeek = pastEventWeeks(new Date(), 1)[0].weekStart;
+    if (profile.districtWins.includes(lastWeek)) return;
+    let alive = true;
+    fetchDistrictLeaderboard(1, 1)
+      .then(top => {
+        if (!alive || !top[0]) return;
+        const next = applyDistrictPrize(profile, lastWeek, top[0].district);
+        if (!next) return;
+        commit(next);
+        sfx.levelUp();
+        notify(
+          `🏙️ ${L({
+            en: `${district} won the district war! +${DISTRICT_PRIZE.stardust} Stardust · +${DISTRICT_PRIZE.lunarDust} Lunar Dust`,
+            pt: `${district} venceu a guerra de distritos! +${DISTRICT_PRIZE.stardust} Stardust · +${DISTRICT_PRIZE.lunarDust} Pó Lunar`,
+            es: `¡${district} ganó la guerra de distritos! +${DISTRICT_PRIZE.stardust} Stardust · +${DISTRICT_PRIZE.lunarDust} Polvo Lunar`,
+          })}`,
+          'trophy'
+        );
+      })
+      .catch(() => {}); // servidor fora do ar ou sem a migração: tenta na próxima entrada
+    return () => {
+      alive = false;
+    };
+  }, [profile?.address, district]);
+
   // Fora da missão toca o ambiente do hangar (a missão troca o clima sozinha).
   useEffect(() => {
     if (!session) music.play('hangar');
@@ -145,7 +186,11 @@ export default function App() {
     const timer = setInterval(() => {
       setProfile(p => {
         if (!p) return p;
-        const next = ensureDailyMissions(p);
+        const renewed = ensureDailyMissions(p);
+        // O dia virou com o jogo aberto: conta a sequência também.
+        const streak = applyDailyStreak(renewed);
+        const next = streak?.profile ?? renewed;
+        if (streak) streakNotice(streak.day, streak.reward);
         if (next !== p) saveProfile(next);
         return next;
       });
@@ -153,12 +198,34 @@ export default function App() {
     return () => clearInterval(timer);
   }, [profile?.address]);
 
+  const streakNotice = useCallback(
+    (day: number, reward: StreakReward) => {
+      track('streak_claim', { day });
+      window.setTimeout(
+        () =>
+          notify(
+            `🔥 ${L({ en: `Day ${day} streak`, pt: `Sequência de ${day} ${day === 1 ? 'dia' : 'dias'}`, es: `Racha de ${day} ${day === 1 ? 'día' : 'días'}` })}: +${reward.stardust} Stardust${
+              reward.lunarDust ? ` · +${reward.lunarDust} ${LUNAR_DUST()}` : ''
+            }`,
+            'orb'
+          ),
+        3600
+      );
+    },
+    [notify]
+  );
+
   const handleConnect = (wallet: WalletConnection) => {
     const existing = loadProfile(wallet.address);
-    const next = existing
+    const base = existing
       ? { ...existing, provider: wallet.provider }
       : createProfile(wallet.address, wallet.provider, getMockDogBalance(wallet.address));
+    // Primeira entrada do dia: conta a sequência e paga a recompensa.
+    const streak = applyDailyStreak(base);
+    const next = streak?.profile ?? base;
     commit(next);
+    if (streak) streakNotice(streak.day, streak.reward);
+    track('wallet_connect', { wallet: wallet.provider === GUEST_PROVIDER ? 'guest' : wallet.provider });
     notify(
       existing
         ? L({ en: `Welcome back, ${next.dog.name}!`, pt: `Bem-vindo de volta, ${next.dog.name}!`, es: `¡Bienvenido de nuevo, ${next.dog.name}!` })
@@ -179,15 +246,27 @@ export default function App() {
     }
   };
 
+  // Desafio recebido por link (?c=…): fica esperando o jogador aceitar no hangar.
+  const [pendingChallenge, setPendingChallenge] = useState<Challenge | null>(() => takeChallengeFromLocation());
+  useEffect(() => {
+    if (pendingChallenge) track('challenge_opened', { route: pendingChallenge.routeId });
+  }, []);
+
+  useEffect(() => {
+    track('app_open', { installed: window.matchMedia?.('(display-mode: standalone)').matches ?? false });
+  }, []);
+
   // Depois de trocar o idioma (a página recarrega), reabre o hangar no mesmo piloto.
   useEffect(() => {
     const resume = takeResume();
     if (resume) handleConnect({ address: resume.address, provider: resume.provider, connected: true });
   }, []);
 
-  const startRoute = (route: Route) => {
-    if (!profile || !isRouteUnlocked(route, profile.dog.level)) return;
-    const cost = getRouteCost(route, profile);
+  const startRoute = (route: Route, challenge: Challenge | null = null) => {
+    // Desafio vale em qualquer rota, mesmo ainda bloqueada, e sai de graça para quem não pode pagar.
+    if (!profile || (!challenge && !isRouteUnlocked(route, profile.dog.level))) return;
+    const fullCost = getRouteCost(route, profile);
+    const cost = challenge && profile.stardust < fullCost ? 0 : fullCost;
     if (profile.stardust < cost) return;
     if (!hasWebGL()) {
       notify(L({ en: 'This browser cannot render 3D (WebGL is off). Try Chrome or turn on hardware acceleration.', pt: 'Este navegador não consegue desenhar o 3D (WebGL desligado). Tente o Chrome ou ative a aceleração de hardware.', es: 'Este navegador no puede mostrar el 3D (WebGL desactivado). Prueba Chrome o activa la aceleración por hardware.' }), 'rocket');
@@ -195,9 +274,20 @@ export default function App() {
     }
     sfx.unlock();
     sfx.click();
+    if (profile.stats.launches === 0) track('first_flight', { route: route.id });
+    track('flight_start', { route: route.id, level: profile.dog.level });
     // O custo é debitado já na entrada: só volta se cancelar antes da decolagem.
     commit({ ...profile, stardust: profile.stardust - cost });
-    setSession({ id: Date.now(), route, paidCost: cost, summary: null });
+    setSession({ id: Date.now(), route, paidCost: cost, summary: null, seed: challenge?.seed ?? newSeed(), challenge });
+  };
+
+  const acceptChallenge = () => {
+    if (!pendingChallenge) return;
+    const route = challengeRoute(pendingChallenge.routeId);
+    if (!route) return;
+    track('challenge_accepted', { route: route.id });
+    startRoute(route, pendingChallenge);
+    setPendingChallenge(null);
   };
 
   const handleCancel = () => {
@@ -208,7 +298,36 @@ export default function App() {
 
   const handleFinish = (outcome: LaunchOutcome) => {
     if (!profile || !session || session.summary) return;
-    const { profile: next, summary } = applyLaunchResult(profile, session.route, outcome, session.paidCost);
+    const result = applyLaunchResult(profile, session.route, outcome, session.paidCost);
+    // Temporada do mês: pontos do voo e níveis do passe (pagos na hora).
+    const season = applySeasonPoints(result.profile, outcome.score, outcome.success);
+    const next = season.profile;
+    const summary = { ...result.summary, seasonPoints: season.points, seasonTiers: season.tiers };
+    for (const tier of season.tiers) track('season_tier', { tier });
+    if (season.tiers.length) {
+      const last = SEASON_TIERS[season.tiers[season.tiers.length - 1] - 1];
+      window.setTimeout(
+        () =>
+          notify(
+            season.frame
+              ? L({
+                  en: `Season pass complete! «${seasonName(season.frame)}» frame unlocked`,
+                  pt: `Passe da temporada completo! Moldura «${seasonName(season.frame)}» liberada`,
+                  es: `¡Pase de temporada completo! Marco «${seasonName(season.frame)}» desbloqueado`,
+                })
+              : `${L({ en: 'Season tier', pt: 'Nível da temporada', es: 'Nivel de temporada' })} ${season.tiers[season.tiers.length - 1]}: +${last.stardust} Stardust${last.lunarDust ? ` · +${last.lunarDust} ${LUNAR_DUST()}` : ''}`,
+            'medal'
+          ),
+        2400
+      );
+    }
+    if (session.challenge) track('challenge_result', { route: session.route.id, result: challengeOutcome(session.challenge, outcome.score, outcome.success) });
+    track(outcome.success ? 'flight_complete' : outcome.aborted ? 'flight_aborted' : 'flight_lost', {
+      route: session.route.id,
+      score: outcome.score,
+      quality: Math.round((outcome.score / session.route.maxScore) * 100),
+      hits: outcome.hits,
+    });
     commit(next);
     if (outcome.success) {
       void submitScore({ address: next.address, dogName: next.dog.name, tier: next.tier, routeId: session.route.id, score: outcome.score, title: next.title, style: next.nameStyle });
@@ -388,7 +507,9 @@ export default function App() {
           onFinish={handleFinish}
           onCancel={handleCancel}
           onExit={() => setSession(null)}
-          onRetry={() => startRoute(session.route)}
+          onRetry={() => startRoute(session.route, session.challenge)}
+          seed={session.seed}
+          challenge={session.challenge}
         />
       </Suspense>
       </ErrorBoundary>
@@ -457,7 +578,21 @@ export default function App() {
       </AnimatePresence>
 
       {!profile ? (
-        <ConnectWallet onConnect={handleConnect} />
+        <>
+          {pendingChallenge && (
+            <div className="fixed top-3 inset-x-0 z-30 flex justify-center px-4 pointer-events-none">
+              <div className="hud-panel px-4 py-2 text-sm text-white text-center">
+                ⚔️{' '}
+                {L({
+                  en: `${pendingChallenge.name} challenged you: ${pendingChallenge.score} pts. Enter the game to accept!`,
+                  pt: `${pendingChallenge.name} te desafiou: ${pendingChallenge.score} pts. Entre no jogo para aceitar!`,
+                  es: `${pendingChallenge.name} te desafió: ${pendingChallenge.score} pts. ¡Entra al juego para aceptar!`,
+                })}
+              </div>
+            </div>
+          )}
+          <ConnectWallet onConnect={handleConnect} />
+        </>
       ) : (
         <>
           <header className="sticky top-0 z-20 border-b border-sky-400/15 bg-[#050d22]/70 backdrop-blur-xl shadow-[0_1px_20px_rgba(56,189,248,0.08)]">
@@ -504,6 +639,9 @@ export default function App() {
               </div>
 
               <div className="lg:col-span-2 order-1 lg:order-2">
+                {pendingChallenge && (
+                  <ChallengeCard challenge={pendingChallenge} profile={profile} onAccept={acceptChallenge} onDismiss={() => setPendingChallenge(null)} />
+                )}
                 <nav className="flex gap-2 mb-4 overflow-x-auto pb-2 -mx-1 px-1">
                   {TABS.map(tab => {
                     const badge = tab.id === 'missions' && (profile.dailyMissions.some(m => m.completed && !m.claimed) || hasClaimableAchievement(profile));
@@ -530,6 +668,8 @@ export default function App() {
                     {activeTab === 'launch' && <RouteSelector profile={profile} onSelectRoute={startRoute} />}
                     {activeTab === 'missions' && (
                       <>
+                        <StreakPanel profile={profile} />
+                        <SeasonPanel profile={profile} />
                         <MissionsPanel profile={profile} onClaimReward={handleClaimMission} onReroll={handleReroll} />
                         <NameFramesPanel profile={profile} onSelect={handleSetNameStyle} />
                         <AchievementsPanel profile={profile} onClaim={handleClaimAchievement} onSetTitle={handleSetTitle} />
@@ -537,7 +677,7 @@ export default function App() {
                     )}
                     {activeTab === 'upgrades' && <UpgradeShop profile={profile} onPurchase={handleUpgrade} />}
                     {activeTab === 'cosmetics' && <CosmeticShop profile={profile} onPurchase={handleBuyCosmetic} onEquip={handleEquip} />}
-                    {activeTab === 'leaderboard' && <WeeklyLeaderboard playerAddress={profile.address} />}
+                    {activeTab === 'leaderboard' && <WeeklyLeaderboard playerAddress={profile.address} playerDistrict={playerDistrict(profile)} />}
                     {activeTab === 'history' && <LaunchHistory profile={profile} />}
                   </motion.div>
                 </AnimatePresence>

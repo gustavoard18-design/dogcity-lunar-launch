@@ -1,5 +1,8 @@
 import type { PlayerProfile } from '../types';
+import type { CSSProperties } from 'react';
 import { ACHIEVEMENTS, getAchievementDef } from './achievements';
+import { STREAK_FRAME_DAYS } from './streak';
+import { isSeasonId, seasonId, seasonName, seasonTheme } from './seasons';
 import { L } from './i18n';
 
 /**
@@ -22,6 +25,8 @@ export interface NameFrame {
   badge?: string;
   /** Mesmo visual no cartão de compartilhamento (canvas). */
   card: CardStyle;
+  /** Estilo inline do texto (cores que mudam, como as das temporadas). */
+  textStyle?: CSSProperties;
 }
 
 /** Estilo do nome desenhado em canvas: cores do degradê, brilho e moldura. */
@@ -98,10 +103,52 @@ export const NAME_FRAMES: NameFrame[] = [
     badge: '👑',
     card: { colors: ['#fef9c3', '#fcd34d', '#fef9c3'], border: 'rgba(252,211,77,0.9)', glow: 'rgba(252,211,77,0.55)' },
   },
+  {
+    id: 'streak',
+    name: L({ en: 'Eternal Flame', pt: 'Chama Eterna', es: 'Llama Eterna' }),
+    requirement: L({ en: `Play ${STREAK_FRAME_DAYS} days in a row`, pt: `Jogue ${STREAK_FRAME_DAYS} dias seguidos`, es: `Juega ${STREAK_FRAME_DAYS} días seguidos` }),
+    unlocked: p => p.streak.best >= STREAK_FRAME_DAYS,
+    text: `${gradient} from-amber-200 via-orange-400 to-red-400 name-shimmer`,
+    badge: '🔥',
+    card: { colors: ['#fde68a', '#fb923c', '#f87171'], glow: 'rgba(251,146,60,0.55)' },
+  },
+  {
+    id: 'district_champ',
+    name: L({ en: 'District Champion', pt: 'Distrito Campeão', es: 'Distrito Campeón' }),
+    requirement: L({ en: 'Your DogCity district wins a weekly district war', pt: 'Seu distrito do DogCity vence uma guerra de distritos', es: 'Tu distrito de DogCity gana una guerra de distritos' }),
+    unlocked: p => p.districtWins.length > 0,
+    text: 'text-white',
+    frame: 'px-2 rounded-lg border border-orange-300/80 shadow-[0_0_14px_rgba(247,147,26,0.5)] bg-orange-400/10',
+    badge: '🏙️',
+    card: { colors: ['#ffffff'], border: 'rgba(253,186,116,0.9)', glow: 'rgba(247,147,26,0.5)' },
+  },
 ];
 
+/** Moldura exclusiva de uma temporada (id season_YYYY_MM), nas cores do tema do mês. */
+function seasonFrame(id: string): NameFrame | undefined {
+  const theme = seasonTheme(id);
+  if (!theme) return undefined;
+  return {
+    id,
+    name: seasonName(id),
+    requirement: L({ en: 'Reach tier 10 of this season pass', pt: 'Chegue ao nível 10 do passe desta temporada', es: 'Llega al nivel 10 del pase de esta temporada' }),
+    unlocked: p => p.seasonFrames.includes(id),
+    text: 'bg-clip-text text-transparent name-shimmer',
+    textStyle: { backgroundImage: `linear-gradient(90deg, ${theme.colors.join(', ')})` },
+    badge: '🌙',
+    card: { colors: [...theme.colors], glow: `${theme.colors[1]}99` },
+  };
+}
+
 export function getNameFrame(id?: string | null): NameFrame | undefined {
-  return id ? NAME_FRAMES.find(f => f.id === id) : undefined;
+  if (!id) return undefined;
+  return NAME_FRAMES.find(f => f.id === id) ?? (isSeasonId(id) ? seasonFrame(id) : undefined);
+}
+
+/** Molduras que o painel mostra: as fixas, a da temporada atual e as de temporadas já conquistadas. */
+export function nameFramesFor(profile: PlayerProfile, now: Date = new Date()): NameFrame[] {
+  const seasons = [...new Set([seasonId(now), ...profile.seasonFrames])].map(seasonFrame).filter((f): f is NameFrame => Boolean(f));
+  return [...NAME_FRAMES, ...seasons];
 }
 
 /** Escolhe (ou tira, com `null`) a moldura. Só vale moldura desbloqueada. */

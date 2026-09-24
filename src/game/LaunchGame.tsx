@@ -16,6 +16,8 @@ import { titleText } from '../lib/achievements';
 import { FLIGHT_TIP_TEXT, FLIGHT_TIP_TIMELINE, FlightTip, TUTORIAL_GAUGE_SLOWDOWN, isTutorialPending, markTutorialDone } from '../lib/tutorial';
 import GameIcon, { Difficulty, EjectIcon, HeartIcon, PLANET_ICON, Stardust } from '../components/GameIcon';
 import { L } from '../lib/i18n';
+import { track } from '../lib/analytics';
+import type { Challenge } from '../lib/challenge';
 
 type Phase = PadPhase | 'flight' | 'result';
 
@@ -29,6 +31,10 @@ interface LaunchGameProps {
   onCancel(): void;
   onExit(): void;
   onRetry(): void;
+  /** Semente dos sorteios do voo. */
+  seed: number;
+  /** Desafio aceito (compara o resultado com o de quem desafiou). */
+  challenge?: Challenge | null;
 }
 
 const ANGLE_MIN = 15;
@@ -43,7 +49,7 @@ function qualityLabel(q: number, perfect: boolean) {
   return { text: L({ en: 'WEAK', pt: 'FRACO', es: 'DÉBIL' }), cls: 'text-red-400' };
 }
 
-export default function LaunchGame({ route, profile, paidCost, summary, canRetry, onFinish, onCancel, onExit, onRetry }: LaunchGameProps) {
+export default function LaunchGame({ route, profile, paidCost, summary, canRetry, onFinish, onCancel, onExit, onRetry, seed, challenge }: LaunchGameProps) {
   const tuning = useMemo(() => getGameTuning(profile.dog, route), [profile.dog, route]);
   const look = useMemo(() => getLook(profile.dog), [profile.dog]);
 
@@ -63,6 +69,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
   const [flightTip, setFlightTip] = useState<FlightTip | null>(null);
   const tipsSeen = useRef(new Set<FlightTip>());
   const skipTutorial = useCallback(() => {
+    track('tutorial_skip');
     markTutorialDone(profile.address);
     setTutorial(false);
     setFlightTip(null);
@@ -304,6 +311,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
             onHud={setHud}
             onEvent={onEvent}
             onDone={onDone}
+            seed={seed}
           />
         ) : (
           <PadScene route={route} look={look} phaseRef={phaseRef} aimRef={aimRef} onLiftoffDone={onLiftoffDone} />
@@ -580,7 +588,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
       </AnimatePresence>
 
       {phase === 'result' && summary && (
-        <ResultScreen route={route} summary={summary} pilotName={profile.dog.name} pilotTitle={titleText(profile.title) || undefined} pilotStyle={profile.nameStyle} canRetry={canRetry} onRetry={onRetry} onExit={onExit} />
+        <ResultScreen route={route} summary={summary} pilotName={profile.dog.name} pilotTitle={titleText(profile.title) || undefined} pilotStyle={profile.nameStyle} seed={seed} challenge={challenge} canRetry={canRetry} onRetry={onRetry} onExit={onExit} />
       )}
     </div>
   );

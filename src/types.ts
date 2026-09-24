@@ -100,6 +100,14 @@ export interface PlayerProfile {
   nameStyle?: string;
   /** Pódios do evento semanal já premiados (mais recente primeiro). */
   podiums: PodiumRecord[];
+  /** Sequência de dias jogando (dia local YYYY-MM-DD da última entrada). */
+  streak: { count: number; best: number; lastDay: string };
+  /** Temporada mensal em curso: pontos e último nível do passe já recebido. */
+  season: { id: string; points: number; tier: number };
+  /** Molduras de temporadas completas (ids season_YYYY_MM). */
+  seasonFrames: string[];
+  /** Semanas (weekStart ISO) em que o distrito do piloto venceu a guerra de distritos. */
+  districtWins: string[];
 }
 
 export interface PodiumRecord {
@@ -197,6 +205,9 @@ export interface LaunchSummary {
   eventBonus?: { stardust: number; lunarDust: number };
   /** Conquistas desbloqueadas por este voo. */
   newAchievements: string[];
+  /** Pontos de temporada ganhos e níveis do passe alcançados neste voo. */
+  seasonPoints?: number;
+  seasonTiers?: number[];
 }
 
 export interface LeaderboardEntry {
