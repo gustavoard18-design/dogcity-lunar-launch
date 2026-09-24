@@ -17,6 +17,7 @@ import { UPGRADES, getNextUpgrade } from './shop';
 import { gaugeQuality, getGameTuning } from './stats';
 import { createProfile, getEventLeaderboard, loadProfile, migrateProfile, saveProfile } from './storage';
 import { astronautTier, rocketTier } from './evolution';
+import { isTutorialPending, markTutorialDone } from './tutorial';
 import { EVENTS, getCurrentEvent, getEventBonus, getWeekIndex, msUntilNextEvent } from './events';
 import { ACHIEVEMENTS, claimAchievement, setTitle, statsFromHistory, titleText, unlockAchievements } from './achievements';
 
@@ -411,5 +412,16 @@ describe('títulos, secretas e ranking do evento', () => {
     expect(board).toHaveLength(1);
     expect(board[0]).toMatchObject({ weekScore: 120, totalLaunches: 1 });
     expect(getEventLeaderboard(event.route.id, new Date(2026, 8, 30, 12))).toHaveLength(0);
+  });
+});
+
+describe('tutorial do primeiro voo', () => {
+  it('aparece para piloto novo e some depois de concluído ou para quem já voou', () => {
+    expect(isTutorialPending(profile)).toBe(true);
+    markTutorialDone(profile.address);
+    expect(isTutorialPending(profile)).toBe(false);
+    const other = createProfile('bc1qoutro', 'Convidado', 10);
+    const { profile: flown } = applyLaunchResult(other, LOW, outcome(), LOW.cost);
+    expect(isTutorialPending(flown)).toBe(false);
   });
 });

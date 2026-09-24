@@ -11,6 +11,8 @@ import PadScene, { AimState, PadPhase } from './PadScene';
 import FlightWorld, { FlightEvent, FlightHud, FlightInput } from './FlightWorld';
 import type { FlightResult } from '../lib/scoring';
 import ResultScreen from './ResultScreen';
+import { titleText } from '../lib/achievements';
+import { FLIGHT_TIP_TEXT, FLIGHT_TIP_TIMELINE, FlightTip, TUTORIAL_GAUGE_SLOWDOWN, isTutorialPending, markTutorialDone } from '../lib/tutorial';
 import GameIcon, { Difficulty, EjectIcon, HeartIcon, PLANET_ICON, Stardust } from '../components/GameIcon';
 
 type Phase = PadPhase | 'flight' | 'result';
@@ -54,6 +56,15 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
   const [hud, setHud] = useState<FlightHud | null>(null);
   const [hitFlash, setHitFlash] = useState(0);
   const [showHelp, setShowHelp] = useState(true);
+  // Tutorial do primeiro voo (dicas passo a passo e medidores mais lentos).
+  const [tutorial, setTutorial] = useState(() => isTutorialPending(profile));
+  const [flightTip, setFlightTip] = useState<FlightTip | null>(null);
+  const tipsSeen = useRef(new Set<FlightTip>());
+  const skipTutorial = useCallback(() => {
+    markTutorialDone(profile.address);
+    setTutorial(false);
+    setFlightTip(null);
+  }, [profile.address]);
   const inputRef = useRef<FlightInput>({ pointerX: 0, pointerY: 0, pointerActive: false, keys: { up: false, down: false, left: false, right: false } });
   const abortRef = useRef(false);
   const launchRef = useRef({ quality: 0, perfect: false });
@@ -77,7 +88,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
     const loop = (now: number) => {
       const dt = (now - last) / 1000;
       last = now;
-      t += dt * tuning.gaugeSpeed * (phase === 'power' ? 1.35 : 1);
+      t += dt * tuning.gaugeSpeed * (phase === 'power' ? 1.35 : 1) * (tutorial ? TUTORIAL_GAUGE_SLOWDOWN : 1);
       const wave = 0.5 - 0.5 * Math.cos(t * Math.PI * 2);
       if (phase === 'angle') {
         const a = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * wave;
@@ -94,7 +105,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [phase, tuning.gaugeSpeed]);
+  }, [phase, tuning.gaugeSpeed, tutorial]);
 
   const showPopup = (q: number, perfect: boolean) => {
     const l = qualityLabel(q, perfect);
@@ -167,15 +178,39 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
     return () => clearTimeout(t);
   }, [phase]);
 
+  // Tutorial: dicas do voo em sequência; ao terminar o primeiro voo, não aparece mais.
+  const showTip = useCallback((tip: FlightTip) => {
+    if (tipsSeen.current.has(tip)) return;
+    tipsSeen.current.add(tip);
+    setFlightTip(tip);
+  }, []);
+  useEffect(() => {
+    if (!tutorial) return;
+    if (phase === 'result') {
+      markTutorialDone(profile.address);
+      setFlightTip(null);
+      return;
+    }
+    if (phase !== 'flight') return;
+    const timers = FLIGHT_TIP_TIMELINE.map(([s, tip]) => window.setTimeout(() => showTip(tip), s * 1000));
+    timers.push(window.setTimeout(() => setFlightTip(null), 24000));
+    return () => timers.forEach(clearTimeout);
+  }, [phase, tutorial, profile.address, showTip]);
+
   useEffect(() => () => engineSound.stop(), []);
+
+  const comboTipRef = useRef<() => void>();
+  const hitTipRef = useRef<() => void>();
+  comboTipRef.current = tutorial ? () => showTip('combo') : undefined;
+  hitTipRef.current = tutorial ? () => showTip('hit') : undefined;
 
   const onEvent = useCallback((e: FlightEvent) => {
     switch (e.type) {
-      case 'pickup': sfx.pickup(e.combo); break;
+      case 'pickup': sfx.pickup(e.combo); if (e.combo === 6) comboTipRef.current?.(); break;
       case 'ring': sfx.ring(); engineSound.set(1.2); window.setTimeout(() => engineSound.set(0.6), 1600); break;
       case 'shield': sfx.shield(); break;
       case 'shieldBreak': sfx.shieldBreak(); break;
-      case 'hit': sfx.hit(); setHitFlash(Date.now()); break;
+      case 'hit': sfx.hit(); setHitFlash(Date.now()); hitTipRef.current?.(); break;
       case 'crash': sfx.explosion(); engineSound.stop(); setHitFlash(Date.now()); break;
       case 'arrive': sfx.success(); engineSound.stop(); break;
     }
@@ -474,7 +509,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
             </div>
           )}
           <AnimatePresence>
-            {showHelp && (
+            {showHelp && !tutorial && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -488,8 +523,63 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
         </>
       )}
 
+      {/* Tutorial do primeiro voo */}
+      {tutorial && phase === 'brief' && (
+        <div className="absolute top-24 sm:top-6 inset-x-0 flex justify-center px-4 pointer-events-none">
+          <Coach text="Primeiro voo? Eu te guio passo a passo. Toque em Iniciar sequência." onSkip={skipTutorial} />
+        </div>
+      )}
+      {tutorial && phase === 'angle' && (
+        <div className="absolute left-3 sm:left-6 bottom-[205px] sm:bottom-[275px] max-w-[min(20rem,calc(100vw-1.5rem))]">
+          <Coach arrow="left" text="O ponteiro sobe e desce. Toque em TRAVAR quando ele passar pela faixa VERDE (a amarela é perfeita)." onSkip={skipTutorial} />
+        </div>
+      )}
+      {tutorial && phase === 'power' && (
+        <div className="absolute right-3 sm:right-6 bottom-[290px] sm:bottom-[360px] max-w-[min(20rem,calc(100vw-1.5rem))]">
+          <Coach arrow="right" text="Agora a força: trave quando a barra estiver na zona DOURADA." onSkip={skipTutorial} />
+        </div>
+      )}
+      {tutorial && phase === 'countdown' && (
+        <div className="absolute bottom-20 inset-x-0 flex justify-center px-4">
+          <Coach text="Mira e força boas dão um voo melhor. Perfeito nos dois ganha um escudo!" onSkip={skipTutorial} />
+        </div>
+      )}
+      <AnimatePresence>
+        {tutorial && phase === 'flight' && flightTip && (
+          <motion.div
+            key={flightTip}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="absolute top-36 sm:top-20 inset-x-0 flex justify-center px-4"
+          >
+            <Coach text={FLIGHT_TIP_TEXT[flightTip]} onSkip={skipTutorial} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {phase === 'result' && summary && (
-        <ResultScreen route={route} summary={summary} canRetry={canRetry} onRetry={onRetry} onExit={onExit} />
+        <ResultScreen route={route} summary={summary} pilotName={profile.dog.name} pilotTitle={titleText(profile.title) || undefined} canRetry={canRetry} onRetry={onRetry} onExit={onExit} />
+      )}
+    </div>
+  );
+}
+
+/** Balão de dica do tutorial, com o DOG e o botão de pular. */
+function Coach({ text, arrow, onSkip }: { text: string; arrow?: 'left' | 'right'; onSkip(): void }) {
+  return (
+    <div className="relative pointer-events-auto hud-panel flex items-start gap-3 px-4 py-3 max-w-md border-amber-300/60 shadow-[0_0_24px_rgba(252,211,77,0.25)]">
+      <img src={`${import.meta.env.BASE_URL}dog-face.png`} alt="" draggable={false} className="w-10 h-10 rounded-full ring-2 ring-amber-300/70 shrink-0" />
+      <div className="min-w-0">
+        <div className="text-[10px] tracking-[0.2em] text-amber-300 mb-0.5">DICA DO DOG</div>
+        <p className="text-sm text-white leading-snug">{text}</p>
+        <button onClick={onSkip} className="mt-1 text-[11px] text-slate-400 hover:text-white underline underline-offset-2">
+          Pular dicas
+        </button>
+      </div>
+      {/* Seta apontando para o medidor logo abaixo */}
+      {arrow && (
+        <span className={`absolute -bottom-2 ${arrow === 'left' ? 'left-8' : 'right-8'} w-4 h-4 rotate-45 bg-[#0b1733] border-r border-b border-amber-300/60`} />
       )}
     </div>
   );

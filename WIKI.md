@@ -99,7 +99,12 @@ Upgrades custam `base × 1.45^(nível−2)` (bases: potência 40, precisão 45, 
 - **Títulos:** toda conquista resgatada pode virar o título do piloto (`profile.title`, escolhido no painel). Ele aparece no perfil e no ranking. O servidor guarda só o id da conquista (validado por padrão `^[a-z0-9_]{1,24}$`), nunca texto livre.
 - A aba Diário mostra a carreira do piloto: contadores de vida, rotas concluídas e eventos vencidos.
 
-## 9. Persistência (`lib/storage.ts`)
+## 9. Tutorial e compartilhamento
+
+- **Tutorial do primeiro voo** (`lib/tutorial.ts`): só para quem nunca voou (`stats.launches === 0`). Mostra balões "Dica do DOG" no briefing, ao lado de cada medidor (com seta), na contagem e em sequência durante o voo (pilotar, orbes, anéis, asteroides), além de dicas por evento (primeira batida, combo de 6). Os medidores oscilam 30% mais devagar. "Pular dicas" ou o fim do primeiro voo gravam `dogcity_tutorial_done_<endereço>`.
+- **Compartilhar resultado** (`lib/shareCard.ts`): a tela de resultado gera um cartão 1080×1080 em canvas com a arte do céu, o DOG, o planeta, a pontuação, estrelas, orbes/anéis/casco, o piloto e o título, e o link do jogo. No celular abre o menu de compartilhar do sistema (`navigator.share` com arquivo); no computador baixa o JPEG.
+
+## 10. Persistência (`lib/storage.ts`)
 
 - `localStorage['dogcity_game_state']`: perfis por endereço (`version: 2`).
 - `migrateProfile` aceita perfis da v1 ou corrompidos: completa campos, limita atributos a 1–10, recalcula `xpToNext` e troca missões inexistentes.
@@ -107,11 +112,11 @@ Upgrades custam `base × 1.45^(nível−2)` (bases: potência 40, precisão 45, 
 - `migrateProfile` também completa `stats`, `achievements` e `eventWins` em perfis que não têm esses campos.
 - Toda leitura e escrita é protegida por `try/catch`. Com armazenamento bloqueado, o jogo continua em memória.
 
-## 10. Áudio (`lib/audio.ts`)
+## 11. Áudio (`lib/audio.ts`)
 
 Todo o som é sintetizado com WebAudio: osciladores e ruído marrom filtrado. O `AudioContext` nasce no primeiro clique. O botão 🔊 no topo silencia, e a preferência fica salva.
 
-## 11. Evolução visual (`lib/evolution.ts`)
+## 12. Evolução visual (`lib/evolution.ts`)
 
 | Fase | Astronauta (pts de raridade equipados, máx 12) | Foguete (soma dos 4 atributos, 4–40) |
 |---|---|---|
@@ -123,13 +128,13 @@ Todo o som é sintetizado com WebAudio: osciladores e ruído marrom filtrado. O 
 
 As artes ficam em `public/art/astro-N.webp`, `public/art/rocket-N.webp` e `public/art/icons/*.webp`. A Loja funciona como provador (mostra a fase que o item daria) e a Oficina mostra a prévia do próximo nível.
 
-## 12. Testes
+## 13. Testes
 
 `npm test` roda `src/lib/game-rules.test.ts` (Vitest + jsdom). Ele cobre economia, pontuação, efeitos dos atributos, aplicação de resultados, missões (renovação, progresso, troca e level up ao resgatar), loja, migração de perfis v1, rodízio e bônus do evento semanal, e conquistas (contadores, desbloqueio, resgate e migração).
 
 O CI (`.github/workflows/ci.yml`) roda typecheck, testes e build em Node 22 e 24, e publica no GitHub Pages a cada push em `main`/`master` (o build usa `base: './'`).
 
-## 13. Próximos passos sugeridos
+## 14. Próximos passos sugeridos
 
 - Molduras ou cores de nome desbloqueadas por conquistas raras.
 - Recompensa para o top 3 do ranking do evento ao fim da semana (exige rotina no servidor).
