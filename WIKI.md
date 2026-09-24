@@ -161,4 +161,4 @@ Também cobre tutorial, molduras de nome (inclusive o visual no cartão de compa
 
 ## 15. Próximos passos sugeridos
 
-- Testar as carteiras Xverse e OKX com as extensões reais e pelo "Abrir no app" no celular (o código segue a documentação de cada uma, mas não foi testado com as carteiras instaladas).
+- Xverse testada com a carteira real (setembro de 2026). Falta testar a OKX e a Kray com as extensões reais e o "Abrir no app" no celular (o código segue a documentação de cada uma e passa em `scripts/qa/wallets.mjs` com provedores simulados).
