@@ -39,6 +39,7 @@ Usam `puppeteer-core` com o Chrome instalado (`npm i --no-save puppeteer-core`) 
 | `hangar-tabs.mjs [pasta] [mobile]` | Prints de todas as abas do hangar. |
 | `card.mjs` | Gera cartões de compartilhamento de exemplo. |
 | `musiccheck.mjs` | Mede o volume da trilha em cada clima (intercepta a saída de áudio). |
+| `wallets.mjs` | Conexão das carteiras com provedores simulados (Kray, Xverse, OKX): aprovar, recusar, endereço Ordinals e a volta da OKX para a API própria. Sai com erro se algum cenário falhar. |
 | `pwacheck.mjs` | Confere manifesto, instalabilidade, service worker e modo offline (rodar com `npm run preview -- --port 4173`). |
 
 Os scripts fixam o idioma em português (clicam nos botões pelo texto). Em `npm run dev` o jogo não envia scores ao ranking online, então esses testes não sujam o ranking real.

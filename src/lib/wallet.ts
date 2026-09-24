@@ -1,4 +1,4 @@
-import { AddressPurpose, getProviders, request } from '@sats-connect/core';
+import { AddressPurpose, RpcErrorCode, getProviders, request } from '@sats-connect/core';
 import type { WalletConnection } from '../types';
 import { GUEST_PROVIDER } from './storage';
 import { L } from './i18n';
@@ -82,7 +82,14 @@ async function satsConnectAddress(keyword: string, name: string): Promise<string
     { purposes: [AddressPurpose.Ordinals, AddressPurpose.Payment], message: L({ en: 'Connect to DogCity Lunar Launch (read-only access to your address)', pt: 'Conectar ao DogCity Lunar Launch (somente leitura do endereço)', es: 'Conectar a DogCity Lunar Launch (solo lectura de la dirección)' }) },
     provider?.id
   );
-  if (res.status !== 'success') throw Object.assign(new Error(L({ en: `${name} rejected the connection.`, pt: `${name} recusou a conexão.`, es: `${name} rechazó la conexión.` })), { rejected: true });
+  if (res.status !== 'success') {
+    // Só a recusa do jogador é recusa; outros erros (ex.: provedor que não fala o
+    // protocolo do sats-connect) deixam a OKX tentar a API própria.
+    if (res.error.code === RpcErrorCode.USER_REJECTION) {
+      throw Object.assign(new Error(L({ en: `${name} rejected the connection.`, pt: `${name} recusou a conexão.`, es: `${name} rechazó la conexión.` })), { rejected: true });
+    }
+    throw new Error(L({ en: `${name} could not connect (${res.error.message}).`, pt: `${name} não conseguiu conectar (${res.error.message}).`, es: `${name} no pudo conectar (${res.error.message}).` }));
+  }
   const accounts = res.result;
   const ordinals = accounts.find(a => a.purpose === AddressPurpose.Ordinals) ?? accounts[0];
   if (!ordinals?.address) throw new Error(L({ en: `${name} did not return an address.`, pt: `${name} não retornou um endereço.`, es: `${name} no devolvió una dirección.` }));
