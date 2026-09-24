@@ -567,7 +567,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
       </AnimatePresence>
 
       {phase === 'result' && summary && (
-        <ResultScreen route={route} summary={summary} pilotName={profile.dog.name} pilotTitle={titleText(profile.title) || undefined} canRetry={canRetry} onRetry={onRetry} onExit={onExit} />
+        <ResultScreen route={route} summary={summary} pilotName={profile.dog.name} pilotTitle={titleText(profile.title) || undefined} pilotStyle={profile.nameStyle} canRetry={canRetry} onRetry={onRetry} onExit={onExit} />
       )}
     </div>
   );

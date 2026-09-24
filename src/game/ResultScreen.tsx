@@ -11,6 +11,7 @@ interface ResultScreenProps {
   summary: LaunchSummary;
   pilotName: string;
   pilotTitle?: string;
+  pilotStyle?: string;
   canRetry: boolean;
   onRetry(): void;
   onExit(): void;
@@ -32,12 +33,12 @@ function useCountUp(target: number, ms = 1200) {
   return value;
 }
 
-export default function ResultScreen({ route, summary, pilotName, pilotTitle, canRetry, onRetry, onExit }: ResultScreenProps) {
+export default function ResultScreen({ route, summary, pilotName, pilotTitle, pilotStyle, canRetry, onRetry, onExit }: ResultScreenProps) {
   const [sharing, setSharing] = useState<'idle' | 'busy' | 'shared' | 'downloaded' | 'error'>('idle');
   const share = async () => {
     setSharing('busy');
     try {
-      const r = await shareFlight({ route, summary, pilotName, pilotTitle });
+      const r = await shareFlight({ route, summary, pilotName, pilotTitle, pilotStyle });
       setSharing(r === 'cancelled' ? 'idle' : r);
     } catch {
       setSharing('error');
