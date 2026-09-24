@@ -3,7 +3,7 @@ import puppeteer from 'puppeteer-core';
 
 const URL = process.argv[2] ?? 'http://localhost:5173';
 const browser = await puppeteer.launch({
-  executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  executablePath: process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe',
   headless: 'new',
   args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
   defaultViewport: { width: 1280, height: 800 },

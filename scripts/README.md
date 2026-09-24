@@ -27,7 +27,7 @@ Rodar com `npm run dev` ativo e Playwright instalado (`npm i --no-save playwrigh
 
 ## `qa/`: testes automáticos no navegador
 
-Usam `puppeteer-core` com o Chrome instalado (`npm i --no-save puppeteer-core`) e o jogo rodando em `http://localhost:5173` (`npm run dev`). O Chrome headless com `--use-angle=swiftshader` roda a ~6 fps, então os voos demoram bem mais que no jogo real.
+Usam `puppeteer-core` com o Chrome instalado (`npm i --no-save puppeteer-core`) e o jogo rodando em `http://localhost:5173` (`npm run dev`). O caminho do Chrome vem de `CHROME_PATH` (padrão: o Chrome do Windows). Em máquina lenta, `play.mjs` aceita `QA_VIEWPORT=800x450` e `QA_FLIGHT_SECONDS=560`; `QA_LEVEL=7` libera todas as rotas. O Chrome headless com `--use-angle=swiftshader` roda a ~6 fps, então os voos demoram bem mais que no jogo real.
 
 | Script | O que faz |
 |---|---|
