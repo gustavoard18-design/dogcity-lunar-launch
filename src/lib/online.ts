@@ -46,20 +46,36 @@ export interface ScoreSubmission {
   score: number;
   /** Id da conquista usada como título (opcional). */
   title?: string;
+  /** Id da moldura de nome (opcional). */
+  style?: string;
+}
+
+/** Função inexistente no servidor (migração ainda não aplicada). */
+const missingFn = (e: unknown) => String(e).includes('PGRST202');
+
+/** Tenta cada chamada em ordem, passando para a próxima só se a função não existir no servidor. */
+async function firstAvailable<T>(calls: (() => Promise<T>)[]): Promise<T> {
+  for (let i = 0; i < calls.length; i++) {
+    try {
+      return await calls[i]();
+    } catch (e) {
+      if (i === calls.length - 1 || !missingFn(e)) throw e;
+    }
+  }
+  throw new Error('nenhuma função disponível');
 }
 
 /** Envia um voo concluído. Falhas são silenciosas: o ranking local continua valendo. */
 export async function submitScore(s: ScoreSubmission): Promise<boolean> {
   if (!submitEnabled) return false;
+  const args = { p_address: s.address, p_dog_name: s.dogName, p_tier: s.tier, p_route: s.routeId, p_score: s.score };
   try {
-    const args = { p_address: s.address, p_dog_name: s.dogName, p_tier: s.tier, p_route: s.routeId, p_score: s.score };
-    try {
-      await rpc('submit_score', { ...args, p_title: s.title ?? null });
-    } catch (e) {
-      // Servidor sem a migração de títulos: envia no formato antigo.
-      if (!String(e).includes('PGRST202')) throw e;
-      await rpc('submit_score', args);
-    }
+    // Formato mais novo primeiro; servidores sem as migrações recebem o formato antigo.
+    await firstAvailable([
+      () => rpc('submit_score_v2', { ...args, p_title: s.title ?? null, p_style: s.style ?? null }),
+      () => rpc('submit_score', { ...args, p_title: s.title ?? null }),
+      () => rpc('submit_score', args),
+    ]);
     return true;
   } catch (e) {
     console.warn('[online] envio de score falhou', e);
@@ -71,7 +87,8 @@ interface LeaderboardRow {
   address: string;
   dog_name: string;
   tier: Tier;
-  title: string | null;
+  title?: string | null;
+  style?: string | null;
   week_score: number;
   best_score?: number;
   total_launches: number;
@@ -82,6 +99,7 @@ const toEntry = (r: LeaderboardRow): LeaderboardEntry => ({
   dogName: r.dog_name,
   tier: r.tier,
   title: r.title ?? undefined,
+  style: r.style ?? undefined,
   weekScore: r.week_score,
   bestScore: r.best_score ?? r.week_score,
   totalLaunches: Number(r.total_launches),
@@ -89,13 +107,22 @@ const toEntry = (r: LeaderboardRow): LeaderboardEntry => ({
 
 /** Top da semana no servidor. Lança erro se o servidor não responder. */
 export async function fetchWeeklyLeaderboard(limit = 20): Promise<LeaderboardEntry[]> {
-  const rows = await rpc<LeaderboardRow[]>('weekly_leaderboard', { p_limit: limit });
+  const rows = await firstAvailable([
+    () => rpc<LeaderboardRow[]>('weekly_leaderboard_v2', { p_limit: limit }),
+    () => rpc<LeaderboardRow[]>('weekly_leaderboard', { p_limit: limit }),
+  ]);
   return rows.map(toEntry);
 }
 
-/** Top da semana na rota do evento (`totalLaunches` = voos nessa rota na semana). */
-export async function fetchEventLeaderboard(routeId: string, limit = 20): Promise<LeaderboardEntry[]> {
-  const rows = await rpc<LeaderboardRow[]>('event_leaderboard', { p_route: routeId, p_limit: limit });
+/**
+ * Ranking da rota do evento numa semana (0 = atual, 1 = passada...).
+ * `totalLaunches` = voos nessa rota na semana.
+ */
+export async function fetchEventLeaderboard(routeId: string, limit = 20, weeksAgo = 0): Promise<LeaderboardEntry[]> {
+  const calls = [() => rpc<LeaderboardRow[]>('event_leaderboard_v2', { p_route: routeId, p_weeks_ago: weeksAgo, p_limit: limit })];
+  // A função antiga só sabe a semana atual.
+  if (weeksAgo === 0) calls.push(() => rpc<LeaderboardRow[]>('event_leaderboard', { p_route: routeId, p_limit: limit }));
+  const rows = await firstAvailable(calls);
   return rows.map(toEntry);
 }
 

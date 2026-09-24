@@ -18,6 +18,8 @@ import { gaugeQuality, getGameTuning } from './stats';
 import { createProfile, getEventLeaderboard, loadProfile, migrateProfile, saveProfile } from './storage';
 import { astronautTier, rocketTier } from './evolution';
 import { isTutorialPending, markTutorialDone } from './tutorial';
+import { NAME_FRAMES, setNameStyle } from './frames';
+import { PODIUM_PRIZES, applyPodiumPrize, pastEventWeeks } from './podium';
 import { EVENTS, getCurrentEvent, getEventBonus, getWeekIndex, msUntilNextEvent } from './events';
 import { ACHIEVEMENTS, claimAchievement, setTitle, statsFromHistory, titleText, unlockAchievements } from './achievements';
 
@@ -423,5 +425,37 @@ describe('tutorial do primeiro voo', () => {
     const other = createProfile('bc1qoutro', 'Convidado', 10);
     const { profile: flown } = applyLaunchResult(other, LOW, outcome(), LOW.cost);
     expect(isTutorialPending(flown)).toBe(false);
+  });
+});
+
+describe('molduras de nome e pódio do evento', () => {
+  it('só dá para usar moldura desbloqueada', () => {
+    expect(setNameStyle(profile, 'mars')).toBeNull();
+    const withMars = { ...profile, achievements: { route_mars: { unlockedAt: 'x', claimed: true } } };
+    expect(setNameStyle(withMars, 'mars')!.nameStyle).toBe('mars');
+    expect(setNameStyle(withMars, null)!.nameStyle).toBeUndefined();
+    expect(NAME_FRAMES.every(f => /^[a-z0-9_]{1,24}$/.test(f.id))).toBe(true);
+  });
+
+  it('semanas a conferir são as encerradas, com o evento de cada uma', () => {
+    const weeks = pastEventWeeks(new Date(2026, 8, 30, 10));
+    expect(weeks[0].weeksAgo).toBe(1);
+    expect(weeks[0].event.id).toBe('solar-storm');
+    expect(new Date(weeks[0].weekStart).getDate()).toBe(21);
+    expect(new Set(weeks.map(w => w.weekStart)).size).toBe(weeks.length);
+  });
+
+  it('prêmio do pódio sai uma vez por semana e libera moldura e conquista', () => {
+    const [week] = pastEventWeeks(new Date(2026, 8, 30, 10));
+    const r = applyPodiumPrize(profile, week, 1)!;
+    expect(r.profile.stardust).toBe(profile.stardust + PODIUM_PRIZES[1].stardust);
+    expect(r.profile.lunarDust).toBe(profile.lunarDust + PODIUM_PRIZES[1].lunarDust);
+    expect(applyPodiumPrize(r.profile, week, 1)).toBeNull();
+    expect(applyPodiumPrize(profile, week, 4)).toBeNull();
+    expect(setNameStyle(r.profile, 'champion')).not.toBeNull();
+    expect(unlockAchievements(r.profile).unlocked.map(a => a.id)).toEqual(expect.arrayContaining(['podium_1', 'champion_1']));
+    const second = applyPodiumPrize(profile, week, 2)!;
+    expect(setNameStyle(second.profile, 'podium')).not.toBeNull();
+    expect(setNameStyle(second.profile, 'champion')).toBeNull();
   });
 });

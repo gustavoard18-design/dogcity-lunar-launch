@@ -47,6 +47,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'level_10', title: 'Comandante da Base', description: 'Alcance o nível 10', icon: 'medal', target: 10, progress: p => p.dog.level, reward: { stardust: 300, lunarDust: 6 } },
   { id: 'max_stat', title: 'Engenharia Máxima', description: `Leve um atributo ao nível ${MAX_STAT_LEVEL}`, icon: 'propulsores', target: MAX_STAT_LEVEL, progress: p => Math.max(p.dog.power, p.dog.accuracy, p.dog.luck, p.dog.speed), reward: { stardust: 250, lunarDust: 5 } },
   { id: 'collector_6', title: 'Colecionador', description: 'Tenha 6 itens da Loja', icon: 'capacete', target: 6, progress: p => p.ownedCosmetics.length, reward: { stardust: 150, lunarDust: 3 } },
+  { id: 'podium_1', title: 'No Pódio', description: 'Fique no top 3 de um evento semanal', icon: 'medal', target: 1, progress: p => p.podiums.length, reward: { stardust: 150, lunarDust: 5 } },
+  { id: 'champion_1', title: 'Campeão Semanal', description: 'Vença um evento semanal', icon: 'trophy', target: 1, progress: p => p.podiums.filter(x => x.place === 1).length, reward: { stardust: 300, lunarDust: 10 } },
   // Secretas
   { id: 'secret_crashes', secret: true, title: 'Aprendendo a Cair', description: 'Perca a nave 10 vezes', icon: 'escudo', target: 10, progress: p => p.stats.crashes, reward: { stardust: 100, lunarDust: 3 } },
   { id: 'secret_close', secret: true, title: 'Por um Fio', description: 'Conclua um voo com só 1 ponto de casco', icon: 'escudo', target: 1, progress: p => p.stats.closeCalls, reward: { stardust: 120, lunarDust: 3 } },

@@ -1,0 +1,31 @@
+# Novidades
+
+## 2.1.0 (setembro de 2026): lançamento
+
+### Jogo
+- **Evento semanal**: uma rota especial por semana, em rodízio de 5 (Chuva de Meteoros, Anéis de Saturno, Tempestade Solar, Caçada ao Cometa e Maratona Marciana), com bônus por qualidade mínima.
+- **Pódio do evento**: o top 3 da semana ganha Stardust, Pó Lunar e moldura de nome exclusiva, entregues ao entrar no jogo.
+- **Conquistas**: 28 metas permanentes (4 secretas); cada uma vira um **título** do piloto.
+- **Molduras de nome**: 7 estilos para o nome no perfil e no ranking.
+- **Ranking** com abas Geral e Evento, títulos e molduras.
+- **Tutorial do primeiro voo** com dicas passo a passo e medidores mais lentos.
+- **Compartilhar resultado**: imagem do voo para mandar nas redes.
+- **Diário**: carreira do piloto com os números de toda a vida.
+
+### Visual e som
+- Foguete **Bitcoin** e **DOG astronauta** em 3D, gerados a partir das artes (3D AI Studio); o DOG embarca com um pulo e aparece na escotilha.
+- Base Lunar nova: crateras, pedras, cordilheiras com a Terra nascendo, torre de serviço, holofotes, jipe, painéis solares.
+- Fundo do voo com rochas gigantes, satélite e asteroides variados por rota.
+- Suavização de bordas, sombras de contato e mais nitidez em telas de alta densidade.
+- **Trilha sonora** gerada em tempo real (hangar, base e voo), com botão próprio.
+
+### Plataforma
+- **Instalável como app** (PWA) e funcionando offline com o que já foi carregado.
+- Ranking online e dados DOG reais (saldo, holder, Genesis, lote no DogCity) via Supabase e DogData; carteiras Kray, Xverse e OKX.
+- Prévia do link com imagem (WhatsApp, X, Discord).
+- Se o 3D falhar no aparelho, o jogo avisa e devolve o custo da missão.
+- O modo de desenvolvimento não envia scores ao ranking real.
+- CI em Node 22 e 24; 40 testes das regras do jogo.
+
+## 2.0.0 (setembro de 2026)
+- Jogo 3D completo com as artes oficiais: mira e força por timing, voo pilotável, 4 rotas, Oficina, Loja, missões diárias, evolução visual e ranking local.

@@ -1,0 +1,63 @@
+import type { PlayerProfile } from '../types';
+import { NAME_FRAMES } from '../lib/frames';
+import { PODIUM_PRIZES } from '../lib/podium';
+import PilotName from './PilotName';
+import { LockIcon } from './GameIcon';
+
+interface NameFramesPanelProps {
+  profile: PlayerProfile;
+  onSelect: (id: string | null) => void;
+}
+
+/** Molduras de nome: prévia com o nome do piloto, como desbloquear e botão de usar. */
+export default function NameFramesPanel({ profile, onSelect }: NameFramesPanelProps) {
+  const open = NAME_FRAMES.filter(f => f.unlocked(profile)).length;
+  return (
+    <div className="panel mt-4">
+      <div className="flex items-baseline justify-between mb-1">
+        <h3 className="font-display text-lg text-white">Molduras de nome</h3>
+        <span className="text-sm text-slate-300">
+          <b className="text-white font-display">{open}</b>/{NAME_FRAMES.length}
+        </span>
+      </div>
+      <p className="text-[11px] text-slate-500 mb-4">
+        Aparecem no seu perfil e no ranking. As de pódio vêm do top 3 do evento semanal (1º: +{PODIUM_PRIZES[1].stardust} Stardust e +{PODIUM_PRIZES[1].lunarDust} Pó Lunar).
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {NAME_FRAMES.map(f => {
+          const unlocked = f.unlocked(profile);
+          const active = profile.nameStyle === f.id;
+          return (
+            <button
+              key={f.id}
+              disabled={!unlocked}
+              onClick={() => onSelect(active ? null : f.id)}
+              className={`text-left p-3 rounded-2xl border transition-colors ${
+                active
+                  ? 'bg-amber-400/10 border-amber-300/60'
+                  : unlocked
+                    ? 'bg-white/[0.04] border-white/10 hover:border-sky-300/50'
+                    : 'bg-white/[0.02] border-white/5 cursor-not-allowed'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className={`font-display text-sm min-w-0 ${unlocked ? '' : 'opacity-40 grayscale'}`}>
+                  <PilotName name={profile.dog.name} style={f.id} />
+                </span>
+                {unlocked ? (
+                  <span className={`text-[11px] shrink-0 ${active ? 'text-amber-200' : 'text-slate-400'}`}>{active ? '★ Em uso' : 'Usar'}</span>
+                ) : (
+                  <LockIcon size={14} />
+                )}
+              </div>
+              <div className="text-[11px] mt-1">
+                <span className="text-slate-200">{f.name}</span>
+                <span className="text-slate-500"> · {f.requirement}</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

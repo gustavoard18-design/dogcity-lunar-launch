@@ -4,6 +4,7 @@ import { MAX_STAT_LEVEL, STAT_INFO } from '../lib/stats';
 import { astronautArt, astronautTier } from '../lib/evolution';
 import GameIcon, { LunarDust, Stardust, TIER_INFO, statIcon } from './GameIcon';
 import { titleText } from '../lib/achievements';
+import PilotName from './PilotName';
 
 interface PlayerProfileProps {
   profile: PlayerProfile;
@@ -28,7 +29,9 @@ export default function PlayerProfileCard({ profile }: PlayerProfileProps) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-[10px] tracking-[0.3em] text-slate-500">PILOTO</div>
-          <h2 className="font-display text-xl sm:text-2xl text-white leading-tight truncate">{dog.name}</h2>
+          <h2 className="font-display text-xl sm:text-2xl text-white leading-tight truncate">
+            <PilotName name={dog.name} style={profile.nameStyle} />
+          </h2>
           {profile.title ? (
             <p className="text-xs text-amber-300 truncate" title="Título do piloto (troque na aba Missões)">«{titleText(profile.title)}»</p>
           ) : (

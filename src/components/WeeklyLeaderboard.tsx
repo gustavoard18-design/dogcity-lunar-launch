@@ -6,6 +6,7 @@ import { getTierColor } from '../lib/economy';
 import { getCurrentEvent } from '../lib/events';
 import { titleText } from '../lib/achievements';
 import GameIcon, { PLANET_ICON, TIER_INFO } from './GameIcon';
+import PilotName from './PilotName';
 
 interface WeeklyLeaderboardProps {
   playerAddress?: string;
@@ -88,7 +89,9 @@ export default function WeeklyLeaderboard({ playerAddress }: WeeklyLeaderboardPr
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-white text-sm font-semibold truncate">{entry.dogName}</span>
+                  <span className="text-white text-sm font-semibold truncate min-w-0">
+                    <PilotName name={entry.dogName} style={entry.style} />
+                  </span>
                   <span className={`inline-flex items-center gap-1 text-[10px] ${getTierColor(entry.tier)}`}>
                     <GameIcon name={TIER_INFO[entry.tier].icon} size={14} />
                     {TIER_INFO[entry.tier].label}
@@ -120,7 +123,7 @@ export default function WeeklyLeaderboard({ playerAddress }: WeeklyLeaderboardPr
         {isOnline
           ? board === 'general'
             ? 'Ranking global: todos os pilotos, reinicia toda segunda-feira. Só voos concluídos contam.'
-            : `Só voos concluídos na rota ${event.name} nesta semana. O evento e o ranking trocam na segunda-feira.`
+            : `Só voos concluídos na rota ${event.name} nesta semana. O top 3 ganha Stardust, Pó Lunar e moldura de nome quando o evento troca, na segunda-feira.`
           : 'Sem conexão com o servidor: mostrando o ranking local deste navegador (pilotos “bot” são simulados).'}
       </p>
     </div>

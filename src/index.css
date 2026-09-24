@@ -420,3 +420,19 @@ html, body {
   0%, 100% { opacity: 0.55; transform: scale(1.05) translate(0, 0); }
   50% { opacity: 0.25; transform: scale(1) translate(-1.5%, 1%); }
 }
+
+/* Molduras de nome com brilho correndo pelo gradiente */
+@keyframes name-shimmer {
+  to {
+    background-position: 200% center;
+  }
+}
+.name-shimmer {
+  background-size: 200% auto;
+  animation: name-shimmer 3.5s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .name-shimmer {
+    animation: none;
+  }
+}

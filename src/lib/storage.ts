@@ -94,6 +94,8 @@ export function migrateProfile(raw: Partial<PlayerProfile>): PlayerProfile {
     achievements: raw.achievements ?? {},
     eventWins: raw.eventWins ?? [],
     title: raw.title && raw.achievements?.[raw.title] && getAchievementDef(raw.title) ? raw.title : undefined,
+    nameStyle: raw.nameStyle,
+    podiums: raw.podiums ?? [],
   };
 }
 
@@ -168,6 +170,7 @@ export function getEventLeaderboard(routeId: string, now: Date = new Date()): Le
         dogName: p.dog.name,
         tier: p.tier,
         title: p.title,
+        style: p.nameStyle,
         weekScore: runs.reduce((m, l) => Math.max(m, l.score), 0),
         bestScore: runs.reduce((m, l) => Math.max(m, l.score), 0),
         totalLaunches: runs.length,
@@ -187,6 +190,7 @@ function updateLeaderboard(profile: PlayerProfile): void {
     totalLaunches: profile.launches.length,
     weekScore: getWeeklyBest(profile),
     title: profile.title,
+    style: profile.nameStyle,
   });
   writeJson(LEADERBOARD_KEY, entries.slice(-50));
 }

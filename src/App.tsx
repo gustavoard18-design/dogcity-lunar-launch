@@ -5,7 +5,7 @@ import { LaunchOutcome, LaunchSummary, PlayerProfile, Route } from './types';
 import { WalletConnection, getMockDogBalance } from './lib/wallet';
 import { loadProfile, createProfile, saveProfile } from './lib/storage';
 import { getRouteCost, getTier, isRouteUnlocked } from './lib/economy';
-import { fetchDogInfo, submitScore } from './lib/online';
+import { fetchDogInfo, fetchEventLeaderboard, onlineEnabled, submitScore } from './lib/online';
 import { claimMission, ensureDailyMissions, rerollMissions } from './lib/missions';
 import { applyLaunchResult, equipCosmetic, purchaseCosmetic, purchaseUpgrade } from './lib/progress';
 import { COSMETICS, UPGRADES } from './lib/shop';
@@ -15,16 +15,22 @@ import { cutoutArt } from './lib/evolution';
 import { isMuted, setMuted, sfx } from './lib/audio';
 import { isMusicEnabled, music, setMusicEnabled } from './lib/music';
 import { usePwaInstall } from './lib/pwa';
+import { setNameStyle, getNameFrame } from './lib/frames';
+import { applyPodiumPrize, pastEventWeeks } from './lib/podium';
+import type { PodiumRecord } from './types';
 import ConnectWallet from './components/ConnectWallet';
 import PlayerProfileCard from './components/PlayerProfile';
 import RouteSelector from './components/RouteSelector';
 import MissionsPanel from './components/MissionsPanel';
 import AchievementsPanel from './components/AchievementsPanel';
+import NameFramesPanel from './components/NameFramesPanel';
 import UpgradeShop from './components/UpgradeShop';
 import CosmeticShop from './components/CosmeticShop';
 import WeeklyLeaderboard from './components/WeeklyLeaderboard';
 import LaunchHistory from './components/LaunchHistory';
 import SpaceBackdrop from './components/SpaceBackdrop';
+import ErrorBoundary from './components/ErrorBoundary';
+import { hasWebGL } from './lib/webgl';
 import GameIcon, { IconName, LunarDust, SpeakerIcon, Stardust, statIcon } from './components/GameIcon';
 
 const LaunchGame = lazy(() => import('./game/LaunchGame'));
@@ -57,6 +63,48 @@ export default function App() {
   const [musicOn, setMusicOn] = useState(isMusicEnabled());
   const [iosHelp, setIosHelp] = useState(false);
   const pwa = usePwaInstall();
+  const [podiumWin, setPodiumWin] = useState<PodiumRecord[] | null>(null);
+
+  // Pódio do evento: ao entrar, confere as últimas semanas e entrega o prêmio uma vez.
+  useEffect(() => {
+    if (!profile || !onlineEnabled) return;
+    const address = profile.address;
+    let alive = true;
+    (async () => {
+      const found: { week: ReturnType<typeof pastEventWeeks>[number]; place: number }[] = [];
+      for (const week of pastEventWeeks()) {
+        if (profile.podiums.some(p => p.weekStart === week.weekStart)) continue;
+        try {
+          const top = await fetchEventLeaderboard(week.event.route.id, 3, week.weeksAgo);
+          const i = top.findIndex(e => e.address === address);
+          if (i >= 0) found.push({ week, place: i + 1 });
+        } catch {
+          return; // servidor fora do ar ou sem a migração: tenta na próxima entrada
+        }
+      }
+      if (!alive || found.length === 0) return;
+      setProfile(p => {
+        if (!p || p.address !== address) return p;
+        let next = p;
+        const won: PodiumRecord[] = [];
+        for (const f of found) {
+          const r = applyPodiumPrize(next, f.week, f.place);
+          if (r) {
+            next = r.profile;
+            won.push(r.record);
+          }
+        }
+        if (won.length === 0) return p;
+        const checked = unlockAchievements(next).profile;
+        saveProfile(checked);
+        setPodiumWin(won);
+        return checked;
+      });
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [profile?.address]);
 
   // Fora da missão toca o ambiente do hangar (a missão troca o clima sozinha).
   useEffect(() => {
@@ -121,6 +169,10 @@ export default function App() {
     if (!profile || !isRouteUnlocked(route, profile.dog.level)) return;
     const cost = getRouteCost(route, profile);
     if (profile.stardust < cost) return;
+    if (!hasWebGL()) {
+      notify('Este navegador não consegue desenhar o 3D (WebGL desligado). Tente o Chrome ou ative a aceleração de hardware.', 'rocket');
+      return;
+    }
     sfx.unlock();
     sfx.click();
     // O custo é debitado já na entrada: só volta se cancelar antes da decolagem.
@@ -139,7 +191,7 @@ export default function App() {
     const { profile: next, summary } = applyLaunchResult(profile, session.route, outcome, session.paidCost);
     commit(next);
     if (outcome.success) {
-      void submitScore({ address: next.address, dogName: next.dog.name, tier: next.tier, routeId: session.route.id, score: outcome.score, title: next.title });
+      void submitScore({ address: next.address, dogName: next.dog.name, tier: next.tier, routeId: session.route.id, score: outcome.score, title: next.title, style: next.nameStyle });
     }
     setSession({ ...session, summary });
     if (summary.levelsGained > 0) {
@@ -181,6 +233,15 @@ export default function App() {
     const { reward } = result;
     notify(`${getAchievementDef(id)?.title}: +${reward.stardust} Stardust${reward.lunarDust ? ` · +${reward.lunarDust} Pó Lunar` : ''}`, 'trophy');
     confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+  };
+
+  const handleSetNameStyle = (id: string | null) => {
+    if (!profile) return;
+    const next = setNameStyle(profile, id);
+    if (!next) return;
+    commit(next);
+    sfx.click();
+    notify(id ? `Moldura «${getNameFrame(id)?.name}» no seu nome` : 'Moldura removida', 'medal');
   };
 
   const handleSetTitle = (id: string | null) => {
@@ -251,6 +312,18 @@ export default function App() {
 
   if (profile && session) {
     return (
+      <ErrorBoundary
+        fallback={() => (
+          <SceneCrash
+            refund={session.summary ? 0 : session.paidCost}
+            onBack={() => {
+              // Quebrou antes do resultado: devolve o custo da missão.
+              if (!session.summary) commit({ ...profile, stardust: profile.stardust + session.paidCost });
+              setSession(null);
+            }}
+          />
+        )}
+      >
       <Suspense fallback={<LoadingScreen />}>
         <LaunchGame
           key={session.id}
@@ -265,6 +338,7 @@ export default function App() {
           onRetry={() => startRoute(session.route)}
         />
       </Suspense>
+      </ErrorBoundary>
     );
   }
 
@@ -291,6 +365,44 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {podiumWin && (
+          <motion.div
+            key="podium"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onAnimationComplete={() => {
+              sfx.levelUp();
+              confetti({ particleCount: 160, spread: 90, origin: { y: 0.55 }, zIndex: 100 });
+            }}
+          >
+            <motion.div initial={{ scale: 0.8, y: 20 }} animate={{ scale: 1, y: 0 }} className="hud-panel w-full max-w-sm p-6 text-center">
+              <div className="text-5xl mb-2">{podiumWin[0].place === 1 ? '👑' : '🏅'}</div>
+              <div className="font-display text-xl text-white mb-1">Pódio do evento!</div>
+              {podiumWin.map(w => (
+                <div key={w.weekStart} className="mt-3 rounded-xl bg-white/[0.05] border border-white/10 p-3">
+                  <div className="text-sm text-slate-200">
+                    <b className="text-amber-300">{w.place}º lugar</b> em {w.eventName}
+                  </div>
+                  <div className="flex justify-center gap-3 mt-1 text-sm">
+                    <span className="text-amber-300"><Stardust value={w.stardust} sign="+" /></span>
+                    <span className="text-violet-300"><LunarDust value={w.lunarDust} sign="+" /></span>
+                  </div>
+                </div>
+              ))}
+              <p className="text-[11px] text-slate-400 mt-3">
+                {podiumWin.some(w => w.place === 1) ? 'Moldura «Campeão do Evento» desbloqueada!' : 'Moldura «Pódio» desbloqueada!'} Escolha na aba Missões.
+              </p>
+              <button onClick={() => setPodiumWin(null)} className="btn-primary w-full py-3 mt-4">
+                Receber prêmio
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {!profile ? (
         <ConnectWallet onConnect={handleConnect} />
       ) : (
@@ -301,9 +413,9 @@ export default function App() {
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500/40 via-sky-700/30 to-blue-900/40 ring-2 ring-sky-300/50 shadow-[0_0_18px_rgba(56,189,248,0.45)] overflow-hidden">
                   <img src={`${import.meta.env.BASE_URL}dog-face.png`} alt="DOG" className="w-full h-full object-contain scale-110 translate-y-0.5" draggable={false} />
                 </div>
-                <h1 className="font-display text-lg bg-gradient-to-r from-sky-300 via-white to-amber-300 bg-clip-text text-transparent">DOGCITY</h1>
+                <h1 className="hidden sm:block font-display text-lg bg-gradient-to-r from-sky-300 via-white to-amber-300 bg-clip-text text-transparent">DOGCITY</h1>
               </div>
-              <div className="flex items-center gap-2 sm:gap-3 text-sm">
+              <div className="flex items-center gap-1.5 sm:gap-3 text-sm">
                 <span className="text-amber-300 font-semibold"><Stardust value={profile.stardust} /></span>
                 <span className="text-violet-300 font-semibold"><LunarDust value={profile.lunarDust} /></span>
                 {(pwa.canPrompt || pwa.showIosHelp) && (
@@ -365,6 +477,7 @@ export default function App() {
                     {activeTab === 'missions' && (
                       <>
                         <MissionsPanel profile={profile} onClaimReward={handleClaimMission} onReroll={handleReroll} />
+                        <NameFramesPanel profile={profile} onSelect={handleSetNameStyle} />
                         <AchievementsPanel profile={profile} onClaim={handleClaimAchievement} onSetTitle={handleSetTitle} />
                       </>
                     )}
@@ -383,6 +496,24 @@ export default function App() {
           </footer>
         </>
       )}
+    </div>
+  );
+}
+
+function SceneCrash({ refund, onBack }: { refund: number; onBack(): void }) {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center p-6 bg-[radial-gradient(ellipse_at_center,#0c2150,#030816_70%)]">
+      <div className="hud-panel max-w-sm w-full p-6 text-center">
+        <img src={cutoutArt('astronaut')} alt="" className="h-32 mx-auto object-contain mb-3 grayscale opacity-80" draggable={false} />
+        <div className="font-display text-lg text-white mb-2">Houston, temos um problema</div>
+        <p className="text-sm text-slate-300 mb-4">
+          A cena 3D falhou neste aparelho. Feche outras abas ou atualize o navegador e tente de novo.
+          {refund > 0 && <> O custo da missão (<Stardust value={refund} />) foi devolvido.</>}
+        </p>
+        <button onClick={onBack} className="btn-primary w-full py-3">
+          Voltar ao hangar
+        </button>
+      </div>
     </div>
   );
 }

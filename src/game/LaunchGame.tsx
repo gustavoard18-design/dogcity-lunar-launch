@@ -538,12 +538,12 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
         </div>
       )}
       {tutorial && phase === 'angle' && (
-        <div className="absolute left-3 sm:left-6 bottom-[205px] sm:bottom-[275px] max-w-[min(20rem,calc(100vw-1.5rem))]">
+        <div className="absolute left-3 sm:left-6 bottom-[205px] sm:bottom-[275px] max-w-[min(15.5rem,calc(100vw-1.5rem))] sm:max-w-[20rem]">
           <Coach arrow="left" text="O ponteiro sobe e desce. Toque em TRAVAR quando ele passar pela faixa VERDE (a amarela é perfeita)." onSkip={skipTutorial} />
         </div>
       )}
       {tutorial && phase === 'power' && (
-        <div className="absolute right-3 sm:right-6 bottom-[290px] sm:bottom-[360px] max-w-[min(20rem,calc(100vw-1.5rem))]">
+        <div className="absolute right-3 sm:right-6 bottom-[290px] sm:bottom-[360px] max-w-[min(15.5rem,calc(100vw-1.5rem))] sm:max-w-[20rem]">
           <Coach arrow="right" text="Agora a força: trave quando a barra estiver na zona DOURADA." onSkip={skipTutorial} />
         </div>
       )}
@@ -576,11 +576,11 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
 /** Balão de dica do tutorial, com o DOG e o botão de pular. */
 function Coach({ text, arrow, onSkip }: { text: string; arrow?: 'left' | 'right'; onSkip(): void }) {
   return (
-    <div className="relative pointer-events-auto hud-panel flex items-start gap-3 px-4 py-3 max-w-md border-amber-300/60 shadow-[0_0_24px_rgba(252,211,77,0.25)]">
-      <img src={`${import.meta.env.BASE_URL}dog-face.png`} alt="" draggable={false} className="w-10 h-10 rounded-full ring-2 ring-amber-300/70 shrink-0" />
+    <div className="relative pointer-events-auto hud-panel flex items-start gap-2.5 sm:gap-3 px-3 py-2 sm:px-4 sm:py-3 max-w-md border-amber-300/60 shadow-[0_0_24px_rgba(252,211,77,0.25)]">
+      <img src={`${import.meta.env.BASE_URL}dog-face.png`} alt="" draggable={false} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full ring-2 ring-amber-300/70 shrink-0" />
       <div className="min-w-0">
         <div className="text-[10px] tracking-[0.2em] text-amber-300 mb-0.5">DICA DO DOG</div>
-        <p className="text-sm text-white leading-snug">{text}</p>
+        <p className="text-[13px] sm:text-sm text-white leading-snug">{text}</p>
         <button onClick={onSkip} className="mt-1 text-[11px] text-slate-400 hover:text-white underline underline-offset-2">
           Pular dicas
         </button>

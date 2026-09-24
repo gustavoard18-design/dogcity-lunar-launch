@@ -81,6 +81,20 @@ export interface PlayerProfile {
   eventWins: string[];
   /** Conquista escolhida como título do piloto (aparece no perfil e no ranking). */
   title?: string;
+  /** Moldura de nome escolhida (id de NAME_FRAMES). */
+  nameStyle?: string;
+  /** Pódios do evento semanal já premiados (mais recente primeiro). */
+  podiums: PodiumRecord[];
+}
+
+export interface PodiumRecord {
+  weekStart: string;
+  routeId: string;
+  eventName: string;
+  place: 1 | 2 | 3;
+  stardust: number;
+  lunarDust: number;
+  awardedAt: string;
 }
 
 export interface LifetimeStats {
@@ -180,6 +194,8 @@ export interface LeaderboardEntry {
   simulated?: boolean;
   /** Id da conquista usada como título. */
   title?: string;
+  /** Id da moldura de nome. */
+  style?: string;
 }
 
 export type MissionType =

@@ -88,23 +88,31 @@ Upgrades custam `base × 1.45^(nível−2)` (bases: potência 40, precisão 45, 
 - O bônus sai uma vez por semana, só na rota do evento *daquela* semana, com sucesso e qualidade mínima. A semana ganha fica em `profile.eventWins`.
 - O card do evento aparece no topo da aba Lançar, com o tempo restante e o status do bônus.
 - O Ranking tem as abas **Geral** e **Evento**: a segunda mostra o melhor voo concluído de cada piloto na rota do evento, só na semana (`event_leaderboard` no servidor, `getEventLeaderboard` no modo local).
-- Ranking online: as migrações `20260924000000_event_routes.sql` e `20260924010000_event_ranking_titles.sql` adicionam as rotas de evento em `route_max_score`, o título nos envios e a função `event_leaderboard`. Sem a segunda, o cliente envia no formato antigo (fallback em `submitScore`) e o ranking do evento usa os dados locais.
+- Ranking online: as migrações `20260924000000_event_routes.sql`, `20260924010000_event_ranking_titles.sql` e `20260924020000_name_styles_podium.sql` adicionam as rotas de evento, títulos, molduras e as funções v2 (`submit_score_v2`, `weekly_leaderboard_v2`, `event_leaderboard_v2`). O cliente tenta a função mais nova e cai para as antigas se o servidor não tiver a migração (`firstAvailable` em `lib/online.ts`).
 
 ## 8. Conquistas (`lib/achievements.ts`)
 
-- 22 conquistas permanentes e 4 secretas (nome e objetivo ocultos até desbloquear), medidas sobre `profile.stats` (voos, sucessos, orbes, anéis, lançamentos perfeitos, voos sem dano, Stardust ganho e sucessos por rota), `eventWins` e o próprio perfil (nível, atributo máximo, itens da Loja).
+- 24 conquistas permanentes (incluindo "No Pódio" e "Campeão Semanal") e 4 secretas (nome e objetivo ocultos até desbloquear), medidas sobre `profile.stats` (voos, sucessos, orbes, anéis, lançamentos perfeitos, voos sem dano, Stardust ganho e sucessos por rota), `eventWins` e o próprio perfil (nível, atributo máximo, itens da Loja).
 - `unlockAchievements` roda no resultado de cada voo e em todo `commit` do App, então compras e level ups também desbloqueiam. A recompensa (Stardust e Pó Lunar) é resgatada no painel de Conquistas da aba Missões, que ganha o selo verde quando há algo para resgatar.
 - Perfis antigos sem contadores recebem uma estimativa pelo histórico (`statsFromHistory`: total de missões do piloto e sucessos dos últimos 50 voos) e já carregam as conquistas cumpridas.
 - A tela de resultado lista as conquistas desbloqueadas no voo e o bônus do evento.
 - **Títulos:** toda conquista resgatada pode virar o título do piloto (`profile.title`, escolhido no painel). Ele aparece no perfil e no ranking. O servidor guarda só o id da conquista (validado por padrão `^[a-z0-9_]{1,24}$`), nunca texto livre.
 - A aba Diário mostra a carreira do piloto: contadores de vida, rotas concluídas e eventos vencidos.
+- **Molduras de nome** (`lib/frames.ts`, `components/PilotName.tsx`): 7 estilos (Poeira Vermelha, Anéis Cósmicos, Veterano, Nebulosa, Ouro Estelar, Pódio, Campeão do Evento) desbloqueados por conquistas raras e pelo pódio. Escolhidas no painel da aba Missões; aparecem no perfil e no ranking (servidor guarda só o id, validado por padrão).
+- **Pódio do evento** (`lib/podium.ts`): ao entrar, o jogo pede ao servidor o top 3 da rota do evento das últimas 4 semanas encerradas (`event_leaderboard_v2` com `p_weeks_ago`). Se o piloto estiver no pódio e ainda não recebeu, ganha 1º 500 ✨ + 30 Pó Lunar, 2º 300 + 20, 3º 200 + 12 (registro em `profile.podiums`, uma vez por semana). Desempate: quem chegou primeiro à rota na semana. Semanas contadas no horário de Brasília.
 
 ## 9. Tutorial e compartilhamento
 
 - **Tutorial do primeiro voo** (`lib/tutorial.ts`): só para quem nunca voou (`stats.launches === 0`). Mostra balões "Dica do DOG" no briefing, ao lado de cada medidor (com seta), na contagem e em sequência durante o voo (pilotar, orbes, anéis, asteroides), além de dicas por evento (primeira batida, combo de 6). Os medidores oscilam 30% mais devagar. "Pular dicas" ou o fim do primeiro voo gravam `dogcity_tutorial_done_<endereço>`.
 - **Compartilhar resultado** (`lib/shareCard.ts`): a tela de resultado gera um cartão 1080×1080 em canvas com a arte do céu, o DOG, o planeta, a pontuação, estrelas, orbes/anéis/casco, o piloto e o título, e o link do jogo. No celular abre o menu de compartilhar do sistema (`navigator.share` com arquivo); no computador baixa o JPEG.
 
-## 10. Persistência (`lib/storage.ts`)
+## 10. Lançamento: robustez e divulgação
+
+- Sem WebGL, o jogo não cobra a missão e explica o motivo (`lib/webgl.ts`). Se a cena 3D quebrar no meio, um `ErrorBoundary` mostra uma tela amigável e devolve o custo se o voo ainda não tinha resultado.
+- Prévia do link (Open Graph e Twitter) com `public/og-image.jpg` (1200×630, desenhado com as fontes e artes do jogo).
+- Versões e novidades em `CHANGELOG.md`.
+
+## 10.1 Persistência (`lib/storage.ts`)
 
 - `localStorage['dogcity_game_state']`: perfis por endereço (`version: 2`).
 - `migrateProfile` aceita perfis da v1 ou corrompidos: completa campos, limita atributos a 1–10, recalcula `xpToNext` e troca missões inexistentes.
@@ -149,10 +157,10 @@ As artes ficam em `public/art/astro-N.webp`, `public/art/rocket-N.webp` e `publi
 
 `npm test` roda `src/lib/game-rules.test.ts` (Vitest + jsdom). Ele cobre economia, pontuação, efeitos dos atributos, aplicação de resultados, missões (renovação, progresso, troca e level up ao resgatar), loja, migração de perfis v1, rodízio e bônus do evento semanal, e conquistas (contadores, desbloqueio, resgate e migração).
 
-O CI (`.github/workflows/ci.yml`) roda typecheck, testes e build em Node 22 e 24, e publica no GitHub Pages a cada push em `main`/`master` (o build usa `base: './'`).
+Também cobre tutorial, molduras de nome e pódio do evento (40 testes). O CI (`.github/workflows/ci.yml`) roda typecheck, testes e build em Node 22 e 24, e publica no GitHub Pages a cada push em `main`/`master` (o build usa `base: './'`).
 
 ## 15. Próximos passos sugeridos
 
-- Molduras ou cores de nome desbloqueadas por conquistas raras.
-- Recompensa para o top 3 do ranking do evento ao fim da semana (exige rotina no servidor).
 - Artes 2D do foguete (vitrine da Loja/Oficina) no estilo do foguete Bitcoin 3D.
+- Testar as carteiras Xverse e OKX com as extensões reais.
+- Moldura escolhida também no cartão de compartilhamento.
