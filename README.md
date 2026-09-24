@@ -98,6 +98,7 @@ Cada push na branch `main` roda typecheck, testes e build no GitHub Actions (Nod
 
 - **Jogar agora** cria um piloto convidado com endereço único, salvo no navegador (saldo DOG simulado).
 - **Carteiras**: Kray, Xverse e OKX (via `window.krayWallet` e `@sats-connect/core`). Só o endereço Taproot/Ordinals é lido; nada é assinado nem enviado. A patente usa o saldo DOG real.
+- **No celular**: sem extensão, Xverse e OKX mostram **Abrir no app**, que abre o jogo no navegador interno da carteira (links universais de cada uma).
 
 ## 📁 Estrutura
 

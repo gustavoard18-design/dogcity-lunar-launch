@@ -157,10 +157,8 @@ As artes ficam em `public/art/astro-N.webp`, `public/art/rocket-N.webp` e `publi
 
 `npm test` roda `src/lib/game-rules.test.ts` (Vitest + jsdom). Ele cobre economia, pontuação, efeitos dos atributos, aplicação de resultados, missões (renovação, progresso, troca e level up ao resgatar), loja, migração de perfis v1, rodízio e bônus do evento semanal, e conquistas (contadores, desbloqueio, resgate e migração).
 
-Também cobre tutorial, molduras de nome e pódio do evento (40 testes). O CI (`.github/workflows/ci.yml`) roda typecheck, testes e build em Node 22 e 24, e publica no GitHub Pages a cada push em `main`/`master` (o build usa `base: './'`).
+Também cobre tutorial, molduras de nome (inclusive o visual no cartão de compartilhamento) e pódio do evento (41 testes). O CI (`.github/workflows/ci.yml`) roda typecheck, testes e build em Node 22 e 24, e publica no GitHub Pages a cada push em `main`/`master` (o build usa `base: './'`).
 
 ## 15. Próximos passos sugeridos
 
-- Artes 2D do foguete (vitrine da Loja/Oficina) no estilo do foguete Bitcoin 3D.
-- Testar as carteiras Xverse e OKX com as extensões reais.
-- Moldura escolhida também no cartão de compartilhamento.
+- Testar as carteiras Xverse e OKX com as extensões reais e pelo "Abrir no app" no celular (o código segue a documentação de cada uma, mas não foi testado com as carteiras instaladas).
