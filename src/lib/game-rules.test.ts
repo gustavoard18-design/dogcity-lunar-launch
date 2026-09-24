@@ -437,6 +437,14 @@ describe('molduras de nome e pódio do evento', () => {
     expect(NAME_FRAMES.every(f => /^[a-z0-9_]{1,24}$/.test(f.id))).toBe(true);
   });
 
+  it('toda moldura tem visual para o cartão de compartilhamento', () => {
+    for (const f of NAME_FRAMES) {
+      expect(f.card.colors.length).toBeGreaterThan(0);
+      // Moldura com borda no perfil também tem borda no cartão.
+      expect(Boolean(f.card.border)).toBe(Boolean(f.frame));
+    }
+  });
+
   it('semanas a conferir são as encerradas, com o evento de cada uma', () => {
     const weeks = pastEventWeeks(new Date(2026, 8, 30, 10));
     expect(weeks[0].weeksAgo).toBe(1);

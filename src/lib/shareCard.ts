@@ -1,6 +1,7 @@
 import type { LaunchSummary, Route } from '../types';
 import { cutoutArt, spaceBackgroundArt } from './evolution';
 import { iconUrl, PLANET_ICON } from '../components/GameIcon';
+import { getNameFrame } from './frames';
 
 /**
  * Cartão de compartilhamento do voo (JPEG 1080×1080) desenhado em canvas com as
@@ -15,6 +16,8 @@ export interface ShareInfo {
   summary: LaunchSummary;
   pilotName: string;
   pilotTitle?: string;
+  /** Id da moldura de nome escolhida (mesmo visual do perfil). */
+  pilotStyle?: string;
 }
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
@@ -58,7 +61,53 @@ function star(g: CanvasRenderingContext2D, cx: number, cy: number, r: number, fi
   g.fill();
 }
 
-export async function renderShareCard({ route, summary, pilotName, pilotTitle }: ShareInfo): Promise<Blob> {
+/** Nome do piloto com o degradê, o brilho, a moldura e o selo da moldura escolhida. */
+function drawPilotName(g: CanvasRenderingContext2D, name: string, styleId: string | undefined, x: number, y: number, maxW: number, font: string) {
+  const frame = getNameFrame(styleId);
+  const card = frame?.card;
+  g.save();
+  g.font = font;
+  let tx = x;
+  let room = maxW;
+  if (card?.border) {
+    tx += 18;
+    room -= 36;
+  }
+  if (frame?.badge) {
+    g.fillText(frame.badge, tx, y);
+    const bw = g.measureText(frame.badge).width + 12;
+    tx += bw;
+    room -= bw;
+  }
+  const w = Math.min(g.measureText(name).width, room);
+  if (card?.border) {
+    roundRect(g, x, y - 46, tx + w + 18 - x, 64, 16);
+    g.fillStyle = 'rgba(255,255,255,0.08)';
+    g.fill();
+    g.shadowColor = card.glow ?? 'transparent';
+    g.shadowBlur = 18;
+    g.strokeStyle = card.border;
+    g.lineWidth = 3;
+    g.stroke();
+    g.shadowBlur = 0;
+  }
+  const colors = card?.colors ?? ['#ffffff'];
+  if (colors.length > 1) {
+    const grad = g.createLinearGradient(tx, 0, tx + w, 0);
+    colors.forEach((c, i) => grad.addColorStop(i / (colors.length - 1), c));
+    g.fillStyle = grad;
+  } else {
+    g.fillStyle = colors[0];
+  }
+  if (card?.glow) {
+    g.shadowColor = card.glow;
+    g.shadowBlur = 16;
+  }
+  g.fillText(name, tx, y, room);
+  g.restore();
+}
+
+export async function renderShareCard({ route, summary, pilotName, pilotTitle, pilotStyle }: ShareInfo): Promise<Blob> {
   const { outcome } = summary;
   const [bg, dog, planet, orb, ring, shield] = await Promise.all([
     loadImage(spaceBackgroundArt()),
@@ -168,14 +217,12 @@ export async function renderShareCard({ route, summary, pilotName, pilotTitle }:
     g.fillText('★ LANÇAMENTO PERFEITO', X, 800);
   }
 
-  // Piloto
-  g.fillStyle = '#ffffff';
-  g.font = display(38);
-  g.fillText(pilotName, X, 880, S - X - 50);
+  // Piloto, com a moldura de nome escolhida
+  drawPilotName(g, pilotName, pilotStyle, X, 880, S - X - 50, display(38));
   if (pilotTitle) {
     g.fillStyle = '#fcd34d';
     g.font = body(26, 600);
-    g.fillText(`«${pilotTitle}»`, X, 918, S - X - 50);
+    g.fillText(`«${pilotTitle}»`, X, getNameFrame(pilotStyle)?.card.border ? 932 : 918, S - X - 50);
   }
 
   // Rodapé

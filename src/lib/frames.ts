@@ -19,6 +19,15 @@ export interface NameFrame {
   frame?: string;
   /** Ícone antes do nome. */
   badge?: string;
+  /** Mesmo visual no cartão de compartilhamento (canvas). */
+  card: CardStyle;
+}
+
+/** Estilo do nome desenhado em canvas: cores do degradê, brilho e moldura. */
+export interface CardStyle {
+  colors: string[];
+  glow?: string;
+  border?: string;
 }
 
 const has = (id: string) => (p: PlayerProfile) => Boolean(p.achievements[id]);
@@ -31,6 +40,7 @@ export const NAME_FRAMES: NameFrame[] = [
     requirement: 'Conquista "Colono de Marte"',
     unlocked: has('route_mars'),
     text: `${gradient} from-orange-300 via-red-400 to-orange-500`,
+    card: { colors: ['#fdba74', '#f87171', '#f97316'] },
   },
   {
     id: 'rings',
@@ -38,6 +48,7 @@ export const NAME_FRAMES: NameFrame[] = [
     requirement: 'Conquista "Mestre dos Anéis"',
     unlocked: has('rings_250'),
     text: `${gradient} from-pink-300 via-fuchsia-400 to-violet-400`,
+    card: { colors: ['#f9a8d4', '#e879f9', '#a78bfa'] },
   },
   {
     id: 'veteran',
@@ -45,6 +56,7 @@ export const NAME_FRAMES: NameFrame[] = [
     requirement: 'Conquista "Lenda da Plataforma"',
     unlocked: has('launches_200'),
     text: 'text-cyan-200 drop-shadow-[0_0_8px_rgba(103,232,249,0.9)]',
+    card: { colors: ['#a5f3fc'], glow: 'rgba(103,232,249,0.9)' },
   },
   {
     id: 'nebula',
@@ -52,6 +64,7 @@ export const NAME_FRAMES: NameFrame[] = [
     requirement: 'Descubra 2 conquistas secretas',
     unlocked: p => ACHIEVEMENTS.filter(a => a.secret && p.achievements[a.id]).length >= 2,
     text: `${gradient} from-fuchsia-300 via-sky-300 to-violet-300 name-shimmer`,
+    card: { colors: ['#f0abfc', '#7dd3fc', '#c4b5fd'], glow: 'rgba(196,181,253,0.6)' },
   },
   {
     id: 'gold',
@@ -59,6 +72,7 @@ export const NAME_FRAMES: NameFrame[] = [
     requirement: 'Conquista "Temporada Completa"',
     unlocked: has('events_4'),
     text: `${gradient} from-yellow-200 via-amber-400 to-yellow-200 name-shimmer`,
+    card: { colors: ['#fef08a', '#fbbf24', '#fef08a'], glow: 'rgba(251,191,36,0.5)' },
   },
   {
     id: 'podium',
@@ -68,6 +82,7 @@ export const NAME_FRAMES: NameFrame[] = [
     text: 'text-white',
     frame: 'px-2 rounded-lg border border-sky-200/70 shadow-[0_0_10px_rgba(186,230,253,0.45)] bg-sky-300/10',
     badge: '🏅',
+    card: { colors: ['#ffffff'], border: 'rgba(186,230,253,0.8)', glow: 'rgba(186,230,253,0.45)' },
   },
   {
     id: 'champion',
@@ -77,6 +92,7 @@ export const NAME_FRAMES: NameFrame[] = [
     text: `${gradient} from-yellow-100 via-amber-300 to-yellow-100 name-shimmer`,
     frame: 'px-2 rounded-lg border border-amber-300/80 shadow-[0_0_14px_rgba(252,211,77,0.55)] bg-amber-400/10',
     badge: '👑',
+    card: { colors: ['#fef9c3', '#fcd34d', '#fef9c3'], border: 'rgba(252,211,77,0.9)', glow: 'rgba(252,211,77,0.55)' },
   },
 ];
 
