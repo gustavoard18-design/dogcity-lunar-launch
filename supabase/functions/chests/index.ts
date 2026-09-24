@@ -1,9 +1,12 @@
 // Edge Function: baús pagos com DOG.
 //
 // GET  ?address=X                         limites usados e pedidos recentes da carteira
-// POST { action: 'order',  address, chestId }   reserva um baú (conta no limite)
-// POST { action: 'claim',  orderId, txid }      confere o pagamento e sorteia o conteúdo
-// POST { action: 'cancel', orderId }            cancela um pedido ainda não pago
+// POST { action: 'order',  token, chestId }         reserva um baú (conta no limite)
+// POST { action: 'claim',  token, orderId, txid }   confere o pagamento e sorteia o conteúdo
+// POST { action: 'cancel', token, orderId }         cancela um pedido ainda não pago
+//
+// `token` é a sessão da Edge Function `auth` (carteira assinada): só o dono da
+// carteira abre, cancela ou resgata os pedidos dela.
 //
 // O pagamento é conferido no DogData (transação DOG já em bloco): a carteira do
 // pedido enviou pelo menos o preço em DOG para a tesouraria, depois de criar o
@@ -11,6 +14,7 @@
 // _shared/chests.json (as mesmas que o jogo mostra).
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import config from '../_shared/chests.json' with { type: 'json' };
+import { TOKEN_RE } from '../_shared/auth-rules.ts';
 import { type Chest, PENDING_HOLD_MS, checkPayment, countsForLimit, roll, windowStarts } from '../_shared/chest-rules.ts';
 
 const DOGDATA = 'https://www.dogdata.xyz';
@@ -23,6 +27,14 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+
+async function sessionAddress(db: any, token: unknown): Promise<string | null> {
+  const t = String(token ?? '');
+  if (!TOKEN_RE.test(t)) return null;
+  const { data } = await db.rpc('session_of', { p_token: t });
+  const row = Array.isArray(data) ? data[0] : data;
+  return row?.kind === 'wallet' ? String(row.address) : null;
+}
 
 const chestById = (id: string): Chest | undefined => config.chests.find(c => c.id === id);
 
@@ -71,14 +83,24 @@ Deno.serve(async req => {
       const address = new URL(req.url).searchParams.get('address')?.trim() ?? '';
       if (!ADDRESS_RE.test(address)) return json({ error: 'endereço inválido' }, 400);
       const u = await usage(db, address);
-      return json({ limits: { ...config.limits, usedToday: u.day, usedThisWeek: u.week }, orders: u.orders.slice(0, 10) });
+      // Todos os pedidos pagos (para creditar em outro aparelho), além dos recentes.
+      const { data: paid } = await db
+        .from('chest_orders')
+        .select('id, chest_id, price_dog, status, txid, reward, created_at, paid_at')
+        .eq('address', address)
+        .eq('status', 'paid')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      return json({ limits: { ...config.limits, usedToday: u.day, usedThisWeek: u.week }, orders: u.orders.slice(0, 10), paid: paid ?? [] });
     }
 
     if (req.method !== 'POST') return json({ error: 'método não aceito' }, 405);
     const body = await req.json().catch(() => ({}));
+    const owner = await sessionAddress(db, body.token);
+    if (!owner) return json({ error: 'sessão inválida' }, 401);
 
     if (body.action === 'order') {
-      const address = String(body.address ?? '').trim();
+      const address = owner;
       const chest = chestById(String(body.chestId ?? ''));
       if (!ADDRESS_RE.test(address) || !chest) return json({ error: 'pedido inválido' }, 400);
       // Pedido aberto antigo (mais de 24 h, sem pagamento enviado) deixa de segurar a vaga.
@@ -103,7 +125,7 @@ Deno.serve(async req => {
     if (body.action === 'cancel') {
       const orderId = String(body.orderId ?? '');
       if (!UUID_RE.test(orderId)) return json({ error: 'pedido inválido' }, 400);
-      await db.from('chest_orders').update({ status: 'cancelled' }).eq('id', orderId).eq('status', 'pending').is('txid', null);
+      await db.from('chest_orders').update({ status: 'cancelled' }).eq('id', orderId).eq('address', owner).eq('status', 'pending').is('txid', null);
       return json({ ok: true });
     }
 
@@ -112,7 +134,7 @@ Deno.serve(async req => {
       const txid = String(body.txid ?? '').trim().toLowerCase();
       if (!UUID_RE.test(orderId) || !TXID_RE.test(txid)) return json({ error: 'dados inválidos' }, 400);
       const { data: order } = await db.from('chest_orders').select('*').eq('id', orderId).maybeSingle();
-      if (!order) return json({ error: 'pedido não encontrado' }, 404);
+      if (!order || order.address !== owner) return json({ error: 'pedido não encontrado' }, 404);
       if (order.status === 'paid') {
         // Idempotente: repetir o mesmo txid devolve o mesmo prêmio.
         return order.txid === txid ? json({ status: 'paid', order }) : json({ error: 'pedido já pago com outra transação' }, 409);

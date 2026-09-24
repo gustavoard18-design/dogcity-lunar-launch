@@ -1,5 +1,12 @@
 # Novidades
 
+## 2.5.0 (setembro de 2026): pronto para o lançamento
+- **Login com assinatura da carteira**: ao conectar, a carteira assina uma mensagem grátis (não move fundos). Só o dono da carteira entra no ranking, faz pedidos de baú e salva progresso com aquele endereço. Quem recusar continua jogando, com um aviso para assinar depois.
+- **Progresso na nuvem** para carteiras verificadas: o piloto volta num aparelho novo ou depois de limpar o navegador. Baús pagos são recreditados em qualquer aparelho.
+- **Termos de Uso e Política de Privacidade** (EN, PT e ES) na tela inicial, no rodapé e na loja de baús, com as chances de cada baú.
+- **Suporte**: link para abrir um chamado, já com o pedido de baú preenchido quando há um.
+- **Monitoramento**: checagem do site e do backend a cada hora, com chamado aberto automaticamente quando algo cai. Publicação automática do Supabase pelo GitHub Actions.
+
 ## 2.4.0 (setembro de 2026): engajamento e baús
 - **Desafio entre amigos**: "Desafiar um amigo" gera um link com a mesma rota e os mesmos asteroides, orbes e anéis (semente do voo). Quem abre vê o desafio no hangar (vale até em rota ainda bloqueada) e o resultado compara os dois scores.
 - **Sequência de dias**: recompensa diária num ciclo de 7 dias e a moldura 🔥 Chama Eterna aos 30 dias seguidos.

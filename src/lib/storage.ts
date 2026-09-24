@@ -31,9 +31,28 @@ export function getAllProfiles(): Record<string, PlayerProfile> {
   return readJson<Record<string, PlayerProfile>>(STORAGE_KEY, {});
 }
 
+/**
+ * Grava o perfil. Cada gravação sobe a revisão (base do progresso na nuvem:
+ * vale a cópia com a revisão maior) e avisa o sincronizador (lib/cloud).
+ */
 export function saveProfile(profile: PlayerProfile): void {
   const all = getAllProfiles();
-  all[profile.address] = profile;
+  const revision = Math.max(all[profile.address]?.revision ?? 0, profile.revision ?? 0) + 1;
+  all[profile.address] = { ...profile, revision };
+  writeJson(STORAGE_KEY, all);
+  updateLeaderboard(profile);
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('dogcity:saved', { detail: { address: profile.address } }));
+}
+
+/** Perfil guardado sem migração (como está no aparelho), para a nuvem. */
+export function storedProfile(address: string): PlayerProfile | null {
+  return getAllProfiles()[address] ?? null;
+}
+
+/** Troca o perfil do aparelho pela cópia da nuvem, mantendo a revisão dela. */
+export function replaceProfile(profile: PlayerProfile, revision: number): void {
+  const all = getAllProfiles();
+  all[profile.address] = { ...profile, revision };
   writeJson(STORAGE_KEY, all);
   updateLeaderboard(profile);
 }
@@ -103,6 +122,7 @@ export function migrateProfile(raw: Partial<PlayerProfile>): PlayerProfile {
     districtWins: raw.districtWins ?? [],
     chestPending: raw.chestPending,
     chestClaims: raw.chestClaims ?? [],
+    revision: Math.max(0, Math.floor(raw.revision ?? 0)),
   };
 }
 

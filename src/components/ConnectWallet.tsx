@@ -1,3 +1,4 @@
+import LegalLinks from './LegalLinks';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { WALLETS, WalletConnection, WalletId, connectGuest, connectWallet, isMobileBrowser, isWalletInstalled } from '../lib/wallet';
@@ -144,10 +145,13 @@ export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
             })}{' '}
             <a href="https://www.dogdata.xyz" target="_blank" rel="noreferrer" className="underline hover:text-slate-300">DogData</a>
             {L({
-              en: '). We only read your address: nothing is signed or sent.',
-              pt: '). Só lemos o endereço: nada é assinado nem enviado.',
-              es: '). Solo leemos la dirección: nada se firma ni se envía.',
+              en: '). The wallet signs a sign-in message once: it is free and moves no funds. It proves the pilot is yours and saves your progress in the cloud.',
+              pt: '). A carteira assina uma mensagem de login uma vez: é grátis e não move fundos. Isso prova que o piloto é seu e salva seu progresso na nuvem.',
+              es: '). La billetera firma un mensaje de inicio de sesión una vez: es gratis y no mueve fondos. Demuestra que el piloto es tuyo y guarda tu progreso en la nube.',
             })}
+          </p>
+          <p className="text-[11px] text-slate-500">
+            {L({ en: 'By playing you agree to the', pt: 'Ao jogar, você concorda com os', es: 'Al jugar, aceptas los' })} <LegalLinks inline />
           </p>
         </div>
       </motion.div>

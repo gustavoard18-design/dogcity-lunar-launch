@@ -112,6 +112,8 @@ export interface PlayerProfile {
   chestPending?: { orderId: string; chestId: string; priceDog: number; txid: string | null; createdAt: string };
   /** Pedidos de baú já creditados (o prêmio entra uma vez só). */
   chestClaims: string[];
+  /** Sobe a cada gravação no aparelho; na nuvem vale a cópia com a revisão maior. */
+  revision: number;
 }
 
 export interface PodiumRecord {

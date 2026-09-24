@@ -9,6 +9,7 @@ import { rpc, submitEnabled } from './online';
 
 export type AnalyticsEvent =
   | 'app_open'
+  | 'wallet_verified'
   | 'first_flight'
   | 'flight_start'
   | 'flight_complete'

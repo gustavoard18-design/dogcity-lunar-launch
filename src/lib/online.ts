@@ -1,5 +1,6 @@
 import type { DogDataIdentity, DogOnchainInfo, LeaderboardEntry, Tier } from '../types';
 import { sanitizeIdentity } from './dogdata';
+import { dropSession, isSessionError } from './auth';
 
 /**
  * Backend online (Supabase): ranking semanal e saldo real de DOG.
@@ -41,6 +42,8 @@ export async function rpc<T>(fn: string, args: Record<string, unknown>, timeoutM
 
 export interface ScoreSubmission {
   address: string;
+  /** Sessão do servidor (carteira assinada ou convidado). Sem ela o voo não entra no ranking. */
+  token: string | null;
   dogName: string;
   tier: Tier;
   routeId: string;
@@ -69,16 +72,22 @@ async function firstAvailable<T>(calls: (() => Promise<T>)[]): Promise<T> {
 /** Envia um voo concluído. Falhas são silenciosas: o ranking local continua valendo. */
 export async function submitScore(s: ScoreSubmission): Promise<boolean> {
   if (!submitEnabled) return false;
-  const args = { p_address: s.address, p_dog_name: s.dogName, p_tier: s.tier, p_route: s.routeId, p_score: s.score };
+  const common = { p_dog_name: s.dogName, p_tier: s.tier, p_route: s.routeId, p_score: s.score };
+  const args = { p_address: s.address, ...common };
+  const calls: (() => Promise<unknown>)[] = [];
+  // Com sessão: o servidor tira o endereço do token. Os formatos antigos só
+  // valem enquanto o servidor não tiver a migração das sessões.
+  if (s.token) calls.push(() => rpc('submit_score_v3', { p_token: s.token, ...common, p_title: s.title ?? null, p_style: s.style ?? null }));
+  calls.push(
+    () => rpc('submit_score_v2', { ...args, p_title: s.title ?? null, p_style: s.style ?? null }),
+    () => rpc('submit_score', { ...args, p_title: s.title ?? null }),
+    () => rpc('submit_score', args)
+  );
   try {
-    // Formato mais novo primeiro; servidores sem as migrações recebem o formato antigo.
-    await firstAvailable([
-      () => rpc('submit_score_v2', { ...args, p_title: s.title ?? null, p_style: s.style ?? null }),
-      () => rpc('submit_score', { ...args, p_title: s.title ?? null }),
-      () => rpc('submit_score', args),
-    ]);
+    await firstAvailable(calls);
     return true;
   } catch (e) {
+    if (isSessionError(e)) dropSession(s.address);
     console.warn('[online] envio de score falhou', e);
     return false;
   }

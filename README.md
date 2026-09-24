@@ -98,20 +98,25 @@ Cada push na branch `main` roda typecheck, testes e build no GitHub Actions (Nod
 
 ## 🌍 Online (Supabase)
 
-- **Ranking** (geral e do evento): voos concluídos vão para `submit_score_v2`, que recusa score acima do máximo da rota, envios em sequência rápida e títulos/molduras fora do padrão. A tabela não é acessível direto pela API. Sem conexão, o jogo mostra o ranking local.
+Passo a passo para publicar o backend, checklist do lançamento, suporte e posts prontos: [docs/LAUNCH.md](docs/LAUNCH.md).
+
+- **Login com assinatura** (Edge Function `auth`): ao conectar, a carteira assina uma mensagem de login (BIP-322, grátis, não move fundos; BIP-137 também é aceito). A função confere a assinatura com `bip322-js` e devolve um token de sessão de 30 dias; o banco guarda só o hash (`wallet_sessions`). Convidados recebem um token sem assinatura, preso ao endereço de convidado (que não é um endereço Bitcoin válido, então não serve para se passar por uma carteira). Sem a assinatura, a carteira joga normalmente, mas fica fora do ranking, da loja de baús e da nuvem.
+- **Ranking** (geral e do evento): voos concluídos vão para `submit_score_v3` com o token; o endereço vem da sessão, nunca do jogo. Por dentro ele usa `submit_score_v2`, que recusa score acima do máximo da rota, envios em sequência rápida e títulos/molduras fora do padrão. A tabela não é acessível direto pela API. Sem conexão, o jogo mostra o ranking local.
 - **Pódio do evento**: `event_leaderboard_v2` devolve o ranking de semanas passadas; o jogo confere ao entrar e entrega o prêmio uma vez.
 - **Dados DOG reais** (carteiras Kray, Xverse ou OKX): a Edge Function `dog-balance` consulta as APIs públicas do [DogData](https://www.dogdata.xyz): saldo da Rune DOG•GO•TO•THE•MOON, ranking de holder, selo Genesis e o **lote no DogCity**.
 - **Identidade DogData**: a mesma função lê o perfil público do DogData (`/api/profile`): handle e avatar Ordinal (imagem de ordinals.com, com a cópia da UniSat como reserva) e o registro do lote (rua, número, zona, prestígio). Com `?addresses=a,b,c` ela devolve só a identidade de até 25 pilotos para o ranking, com cache de 6 h na tabela `dogdata_identities`.
 - **Baús DOG**: a Edge Function `chests` cria o pedido (limite de 1 por dia e 5 por semana, no horário de Brasília), confere o pagamento no DogData (`/api/dog-rune/search-tx`: transação em bloco, saindo da carteira do pedido, com pelo menos o preço em DOG para a tesouraria `bc1qv4q4j8mjxhjxwjuc7vy6sq7c57z6rdvteql4xy`, txid nunca usado) e sorteia o conteúdo no servidor. Preços, chances e limites ficam em `supabase/functions/_shared/chests.json`, lido pelo jogo e pela função. Na Xverse o pagamento sai com um clique (`runes_transfer`); nas outras carteiras o jogador envia e cola o txid.
+- **Progresso na nuvem**: carteiras verificadas guardam uma cópia do perfil em `player_saves` (`save_progress` / `load_progress`, só com o token). Cada gravação no aparelho sobe a revisão do perfil; ao entrar vale a cópia com a revisão maior, então o progresso volta num aparelho novo ou depois de limpar o navegador. Os baús pagos também são recreditados pela lista de pedidos pagos da função `chests`.
 - **Rankings extras**: `district_leaderboard` (guerra de distritos, usa o distrito do cache do DogData) e `season_leaderboard` (temporada do mês).
 - **Métricas**: `track_event` grava eventos anônimos (id aleatório por navegador, nunca o endereço) em `analytics_events`; consultas prontas em `supabase/queries/metrics.sql`. Só o jogo publicado envia.
-- Migrações SQL e as funções em `supabase/`. Depois de mudar uma função ou criar migração: `supabase db push` e `supabase functions deploy dog-balance` / `supabase functions deploy chests`. A URL e a chave publicável ficam em `src/lib/online.ts` (ou `VITE_SUPABASE_URL` / `VITE_SUPABASE_KEY`, ver `.env.example`).
-- Limitação: o jogo roda no navegador, então as regras barram scores impossíveis, mas não impedem trapaça de quem altera o código.
+- Migrações SQL e as funções em `supabase/`. Com os segredos `SUPABASE_ACCESS_TOKEN` e `SUPABASE_DB_PASSWORD` no repositório, o workflow **Supabase deploy** publica tudo sozinho a cada push em `supabase/` na `main`. À mão: `supabase db push` e `supabase functions deploy <auth|chests|dog-balance> --no-verify-jwt`.
+- **Monitoramento**: o workflow **Health check** roda `scripts/health-check.mjs` a cada hora (site, rankings, `dog-balance`, `chests`, `auth`) e abre o chamado "Health check falhou" quando algo cai. A URL e a chave publicável ficam em `src/lib/online.ts` (ou `VITE_SUPABASE_URL` / `VITE_SUPABASE_KEY`, ver `.env.example`).
+- Limitação: o jogo roda no navegador, então as regras barram scores impossíveis e envios em nome de outra carteira, mas não impedem que alguém altere o código para mandar scores altos (dentro do máximo da rota) da própria carteira.
 
 ## 🔗 Carteira
 
 - **Jogar agora** cria um piloto convidado com endereço único, salvo no navegador (saldo DOG simulado).
-- **Carteiras**: Kray, Xverse e OKX (via `window.krayWallet` e `@sats-connect/core`). Só o endereço Taproot/Ordinals é lido; nada é assinado nem enviado. A patente usa o saldo DOG real.
+- **Carteiras**: Kray, Xverse e OKX (via `window.krayWallet` e `@sats-connect/core`). O jogo usa o endereço Taproot/Ordinals e pede uma única assinatura de login (grátis, sem mover fundos). A patente usa o saldo DOG real.
 - **No celular**: sem extensão, Xverse e OKX mostram **Abrir no app**, que abre o jogo no navegador interno da carteira (links universais de cada uma).
 
 ## 📁 Estrutura
