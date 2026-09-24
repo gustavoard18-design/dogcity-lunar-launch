@@ -208,6 +208,35 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
 
   useEffect(() => () => engineSound.stop(), []);
 
+  // Celular (principalmente navegadores internos de carteira no iPhone): trava a
+  // página do hangar por trás do jogo. Sem isso, arrastar o dedo rola a página, a
+  // barra do navegador aparece e some e a tela do voo sobe e desce.
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const y = window.scrollY;
+    const prev = { html: html.style.cssText, body: body.style.cssText };
+    html.style.overflow = 'hidden';
+    html.style.overscrollBehavior = 'none';
+    Object.assign(body.style, { position: 'fixed', top: `-${y}px`, left: '0', right: '0', width: '100%', overflow: 'hidden', overscrollBehavior: 'none' });
+    return () => {
+      html.style.cssText = prev.html;
+      body.style.cssText = prev.body;
+      window.scrollTo(0, y);
+    };
+  }, []);
+
+  // Durante a pilotagem nenhum toque rola ou dá zoom (no resultado a rolagem volta).
+  const rootRef = useRef<HTMLDivElement>(null);
+  const blockTouch = phase !== 'result';
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || !blockTouch) return;
+    const stop = (e: TouchEvent) => e.cancelable && e.preventDefault();
+    el.addEventListener('touchmove', stop, { passive: false });
+    return () => el.removeEventListener('touchmove', stop);
+  }, [blockTouch]);
+
   // Trilha: tensão na base, ritmo de voo (tom do planeta, andamento da dificuldade), calma no resultado.
   useEffect(() => {
     if (phase === 'liftoff' || phase === 'flight') music.play('flight', route.destination, route.difficulty);
@@ -297,7 +326,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
   };
 
   return (
-    <div className="fixed inset-0 bg-black select-none touch-none" onPointerMove={onPointerMove} onPointerDown={onPointerMove}>
+    <div ref={rootRef} className={`fixed inset-0 bg-black select-none overscroll-none ${blockTouch ? 'touch-none' : ''}`} onPointerMove={onPointerMove} onPointerDown={onPointerMove}>
       <Canvas dpr={[1, 2]} gl={{ antialias: false, powerPreference: 'high-performance' }} camera={{ fov: 55, near: 0.1, far: 3000, position: [-8, 2, 12] }}>
         <Suspense fallback={null}>
         {phase === 'flight' || phase === 'result' ? (

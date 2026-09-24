@@ -436,3 +436,28 @@ html, body {
     animation: none;
   }
 }
+
+/* Celular: o desfoque de fundo (backdrop-filter) dentro de conteúdo animado
+   falha no Safari do iPhone e nos navegadores internos das carteiras (pedaços
+   de painel somem, cantos quebram). Sem ele, os painéis ficam um pouco mais
+   opacos e os cantos luminosos sem filtro. */
+@media (hover: none) and (pointer: coarse) {
+  .panel,
+  .hud-panel,
+  [class*='backdrop-blur'] {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  .panel {
+    background:
+      radial-gradient(120% 60% at 0% 0%, rgba(56, 189, 248, 0.1), transparent 60%),
+      linear-gradient(165deg, rgba(12, 26, 58, 0.97), rgba(4, 10, 26, 0.95));
+  }
+  .hud-panel {
+    background: linear-gradient(160deg, rgba(12, 26, 56, 0.96), rgba(5, 11, 28, 0.94));
+  }
+  .panel::before,
+  .panel::after {
+    filter: none;
+  }
+}
