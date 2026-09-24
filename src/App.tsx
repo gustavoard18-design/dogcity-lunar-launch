@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { LaunchOutcome, LaunchSummary, PlayerProfile, Route } from './types';
 import { WalletConnection, getMockDogBalance } from './lib/wallet';
+import { GUEST_PROVIDER, providerLabel } from './lib/storage';
+import { getEventByRoute } from './lib/events';
+import LanguageSwitcher, { takeResume } from './components/LanguageSwitcher';
 import { loadProfile, createProfile, saveProfile } from './lib/storage';
 import { getRouteCost, getTier, isRouteUnlocked } from './lib/economy';
 import { fetchDogInfo, fetchEventLeaderboard, onlineEnabled, submitScore } from './lib/online';
@@ -32,6 +35,7 @@ import SpaceBackdrop from './components/SpaceBackdrop';
 import ErrorBoundary from './components/ErrorBoundary';
 import { hasWebGL } from './lib/webgl';
 import GameIcon, { IconName, LunarDust, SpeakerIcon, Stardust, statIcon } from './components/GameIcon';
+import { L } from './lib/i18n';
 
 const LaunchGame = lazy(() => import('./game/LaunchGame'));
 
@@ -44,13 +48,18 @@ interface Session {
   summary: LaunchSummary | null;
 }
 
+const LUNAR_DUST = () => L({ en: 'Lunar Dust', pt: 'Pó Lunar', es: 'Polvo Lunar' });
+const MUSIC_OFF = () => L({ en: 'Turn music off', pt: 'Desligar música', es: 'Apagar música' });
+const MUSIC_ON = () => L({ en: 'Turn music on', pt: 'Ligar música', es: 'Encender música' });
+const ordinalEn = (n: number) => (n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : `${n}th`);
+
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
-  { id: 'launch', label: 'Lançar', icon: 'rocket' },
-  { id: 'missions', label: 'Missões', icon: 'medal' },
-  { id: 'upgrades', label: 'Oficina', icon: 'propulsores' },
-  { id: 'cosmetics', label: 'Loja', icon: 'capacete' },
-  { id: 'leaderboard', label: 'Ranking', icon: 'trophy' },
-  { id: 'history', label: 'Diário', icon: 'acessorios' },
+  { id: 'launch', label: L({ en: 'Launch', pt: 'Lançar', es: 'Lanzar' }), icon: 'rocket' },
+  { id: 'missions', label: L({ en: 'Missions', pt: 'Missões', es: 'Misiones' }), icon: 'medal' },
+  { id: 'upgrades', label: L({ en: 'Workshop', pt: 'Oficina', es: 'Taller' }), icon: 'propulsores' },
+  { id: 'cosmetics', label: L({ en: 'Shop', pt: 'Loja', es: 'Tienda' }), icon: 'capacete' },
+  { id: 'leaderboard', label: L({ en: 'Ranks', pt: 'Ranking', es: 'Ranking' }), icon: 'trophy' },
+  { id: 'history', label: L({ en: 'Log', pt: 'Diário', es: 'Diario' }), icon: 'acessorios' },
 ];
 
 
@@ -125,7 +134,7 @@ export default function App() {
       const { profile: checked, unlocked } = unlockAchievements(next);
       saveProfile(checked);
       setProfile(checked);
-      if (unlocked.length) window.setTimeout(() => notify(`Conquista desbloqueada: ${unlocked.map(a => a.title).join(', ')}`, 'trophy'), 1600);
+      if (unlocked.length) window.setTimeout(() => notify(`${L({ en: 'Achievement unlocked', pt: 'Conquista desbloqueada', es: 'Logro desbloqueado' })}: ${unlocked.map(a => a.title).join(', ')}`, 'trophy'), 1600);
     },
     [notify]
   );
@@ -150,9 +159,14 @@ export default function App() {
       ? { ...existing, provider: wallet.provider }
       : createProfile(wallet.address, wallet.provider, getMockDogBalance(wallet.address));
     commit(next);
-    notify(existing ? `Bem-vindo de volta, ${next.dog.name}!` : `Seu piloto ${next.dog.name} está pronto!`, 'astronaut');
+    notify(
+      existing
+        ? L({ en: `Welcome back, ${next.dog.name}!`, pt: `Bem-vindo de volta, ${next.dog.name}!`, es: `¡Bienvenido de nuevo, ${next.dog.name}!` })
+        : L({ en: `Your pilot ${next.dog.name} is ready!`, pt: `Seu piloto ${next.dog.name} está pronto!`, es: `¡Tu piloto ${next.dog.name} está listo!` }),
+      'astronaut'
+    );
     // Carteira real: busca saldo DOG on-chain, ranking e lote no DogCity; recalcula a patente.
-    if (wallet.provider !== 'Convidado') {
+    if (wallet.provider !== GUEST_PROVIDER) {
       fetchDogInfo(wallet.address).then(info => {
         if (!info) return;
         setProfile(p => {
@@ -165,12 +179,18 @@ export default function App() {
     }
   };
 
+  // Depois de trocar o idioma (a página recarrega), reabre o hangar no mesmo piloto.
+  useEffect(() => {
+    const resume = takeResume();
+    if (resume) handleConnect({ address: resume.address, provider: resume.provider, connected: true });
+  }, []);
+
   const startRoute = (route: Route) => {
     if (!profile || !isRouteUnlocked(route, profile.dog.level)) return;
     const cost = getRouteCost(route, profile);
     if (profile.stardust < cost) return;
     if (!hasWebGL()) {
-      notify('Este navegador não consegue desenhar o 3D (WebGL desligado). Tente o Chrome ou ative a aceleração de hardware.', 'rocket');
+      notify(L({ en: 'This browser cannot render 3D (WebGL is off). Try Chrome or turn on hardware acceleration.', pt: 'Este navegador não consegue desenhar o 3D (WebGL desligado). Tente o Chrome ou ative a aceleração de hardware.', es: 'Este navegador no puede mostrar el 3D (WebGL desactivado). Prueba Chrome o activa la aceleración por hardware.' }), 'rocket');
       return;
     }
     sfx.unlock();
@@ -216,11 +236,18 @@ export default function App() {
     commit(result.profile);
     sfx.coin();
     const { reward } = result;
-    notify(`+${reward.stardust} Stardust · +${reward.xp} XP${reward.lunarDust ? ` · +${reward.lunarDust} Pó Lunar` : ''}`, 'orb');
+    notify(`+${reward.stardust} Stardust · +${reward.xp} XP${reward.lunarDust ? ` · +${reward.lunarDust} ${LUNAR_DUST()}` : ''}`, 'orb');
     confetti({ particleCount: 40, spread: 50, origin: { y: 0.6 } });
     if (result.levelsGained > 0) {
       sfx.levelUp();
-      notify(`${result.profile.dog.name} subiu para o nível ${result.profile.dog.level}!`, 'trophy');
+      notify(
+        L({
+          en: `${result.profile.dog.name} reached level ${result.profile.dog.level}!`,
+          pt: `${result.profile.dog.name} subiu para o nível ${result.profile.dog.level}!`,
+          es: `¡${result.profile.dog.name} subió al nivel ${result.profile.dog.level}!`,
+        }),
+        'trophy'
+      );
     }
   };
 
@@ -231,7 +258,7 @@ export default function App() {
     commit(result.profile);
     sfx.coin();
     const { reward } = result;
-    notify(`${getAchievementDef(id)?.title}: +${reward.stardust} Stardust${reward.lunarDust ? ` · +${reward.lunarDust} Pó Lunar` : ''}`, 'trophy');
+    notify(`${getAchievementDef(id)?.title}: +${reward.stardust} Stardust${reward.lunarDust ? ` · +${reward.lunarDust} ${LUNAR_DUST()}` : ''}`, 'trophy');
     confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
   };
 
@@ -241,7 +268,12 @@ export default function App() {
     if (!next) return;
     commit(next);
     sfx.click();
-    notify(id ? `Moldura «${getNameFrame(id)?.name}» no seu nome` : 'Moldura removida', 'medal');
+    notify(
+      id
+        ? L({ en: `«${getNameFrame(id)?.name}» frame on your name`, pt: `Moldura «${getNameFrame(id)?.name}» no seu nome`, es: `Marco «${getNameFrame(id)?.name}» en tu nombre` })
+        : L({ en: 'Frame removed', pt: 'Moldura removida', es: 'Marco quitado' }),
+      'medal'
+    );
   };
 
   const handleSetTitle = (id: string | null) => {
@@ -250,7 +282,12 @@ export default function App() {
     if (!next) return;
     commit(next);
     sfx.click();
-    notify(id ? `Novo título: «${titleText(id)}»` : 'Título removido', 'medal');
+    notify(
+      id
+        ? L({ en: `New title: «${titleText(id)}»`, pt: `Novo título: «${titleText(id)}»`, es: `Nuevo título: «${titleText(id)}»` })
+        : L({ en: 'Title removed', pt: 'Título removido', es: 'Título quitado' }),
+      'medal'
+    );
   };
 
   const handleReroll = () => {
@@ -259,7 +296,7 @@ export default function App() {
     if (!next) return;
     commit(next);
     sfx.click();
-    notify('Missões trocadas!', 'medal');
+    notify(L({ en: 'Missions swapped!', pt: 'Missões trocadas!', es: '¡Misiones cambiadas!' }), 'medal');
   };
 
   const handleUpgrade = (upgradeId: string) => {
@@ -269,7 +306,7 @@ export default function App() {
     if (!next || !upgrade) return;
     commit(next);
     sfx.coin();
-    notify(`${upgrade.name} instalado! ${STAT_INFO[upgrade.stat].label} ${upgrade.level}`, statIcon(upgrade.stat));
+    notify(`${upgrade.name} ${L({ en: 'installed!', pt: 'instalado!', es: '¡instalado!' })} ${STAT_INFO[upgrade.stat].label} ${upgrade.level}`, statIcon(upgrade.stat));
     confetti({ particleCount: 40, spread: 60, origin: { y: 0.6 } });
   };
 
@@ -281,7 +318,7 @@ export default function App() {
     commit(next);
     sfx.coin();
     const item = COSMETICS.find(c => c.id === id);
-    notify(`${item?.name} desbloqueado e equipado!`, item?.type === 'trail' ? 'booster' : item?.type === 'skin' ? 'astronaut' : 'capacete');
+    notify(`${item?.name} ${L({ en: 'unlocked and equipped!', pt: 'desbloqueado e equipado!', es: '¡desbloqueado y equipado!' })}`, item?.type === 'trail' ? 'booster' : item?.type === 'skin' ? 'astronaut' : 'capacete');
     confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
   };
 
@@ -301,7 +338,7 @@ export default function App() {
   const handleInstall = async () => {
     if (pwa.canPrompt) {
       const ok = await pwa.install();
-      if (ok) notify('DogCity instalado! Abra pelo ícone na tela inicial.', 'rocket');
+      if (ok) notify(L({ en: 'DogCity installed! Open it from the icon on your home screen.', pt: 'DogCity instalado! Abra pelo ícone na tela inicial.', es: '¡DogCity instalado! Ábrelo desde el icono en la pantalla de inicio.' }), 'rocket');
     } else if (pwa.showIosHelp) setIosHelp(v => !v);
   };
 
@@ -380,11 +417,11 @@ export default function App() {
           >
             <motion.div initial={{ scale: 0.8, y: 20 }} animate={{ scale: 1, y: 0 }} className="hud-panel w-full max-w-sm p-6 text-center">
               <div className="text-5xl mb-2">{podiumWin[0].place === 1 ? '👑' : '🏅'}</div>
-              <div className="font-display text-xl text-white mb-1">Pódio do evento!</div>
+              <div className="font-display text-xl text-white mb-1">{L({ en: 'Event podium!', pt: 'Pódio do evento!', es: '¡Podio del evento!' })}</div>
               {podiumWin.map(w => (
                 <div key={w.weekStart} className="mt-3 rounded-xl bg-white/[0.05] border border-white/10 p-3">
                   <div className="text-sm text-slate-200">
-                    <b className="text-amber-300">{w.place}º lugar</b> em {w.eventName}
+                    <b className="text-amber-300">{L({ en: `${ordinalEn(w.place)} place`, pt: `${w.place}º lugar`, es: `${w.place}.º lugar` })}</b> {L({ en: 'in', pt: 'em', es: 'en' })} {getEventByRoute(w.routeId)?.name ?? w.eventName}
                   </div>
                   <div className="flex justify-center gap-3 mt-1 text-sm">
                     <span className="text-amber-300"><Stardust value={w.stardust} sign="+" /></span>
@@ -393,10 +430,10 @@ export default function App() {
                 </div>
               ))}
               <p className="text-[11px] text-slate-400 mt-3">
-                {podiumWin.some(w => w.place === 1) ? 'Moldura «Campeão do Evento» desbloqueada!' : 'Moldura «Pódio» desbloqueada!'} Escolha na aba Missões.
+                {L({ en: 'Frame', pt: 'Moldura', es: 'Marco' })} «{getNameFrame(podiumWin.some(w => w.place === 1) ? 'champion' : 'podium')?.name}» {L({ en: 'unlocked! Pick it in the Missions tab.', pt: 'desbloqueada! Escolha na aba Missões.', es: '¡desbloqueado! Elígelo en la pestaña Misiones.' })}
               </p>
               <button onClick={() => setPodiumWin(null)} className="btn-primary w-full py-3 mt-4">
-                Receber prêmio
+                {L({ en: 'Claim prize', pt: 'Receber prêmio', es: 'Recibir premio' })}
               </button>
             </motion.div>
           </motion.div>
@@ -420,24 +457,25 @@ export default function App() {
                 <span className="text-violet-300 font-semibold"><LunarDust value={profile.lunarDust} /></span>
                 {(pwa.canPrompt || pwa.showIosHelp) && (
                   <div className="relative">
-                    <button onClick={handleInstall} className="btn-ghost px-3 py-1.5 text-xs whitespace-nowrap" title="Instalar o DogCity como app">
-                      <span className="inline-flex items-center gap-1.5"><InstallIcon /> <span className="hidden sm:inline">Instalar app</span></span>
+                    <button onClick={handleInstall} className="btn-ghost px-3 py-1.5 text-xs whitespace-nowrap" title={L({ en: 'Install DogCity as an app', pt: 'Instalar o DogCity como app', es: 'Instalar DogCity como app' })}>
+                      <span className="inline-flex items-center gap-1.5"><InstallIcon /> <span className="hidden sm:inline">{L({ en: 'Install app', pt: 'Instalar app', es: 'Instalar app' })}</span></span>
                     </button>
                     {iosHelp && (
                       <div className="absolute right-0 top-full mt-2 w-64 hud-panel p-3 text-xs text-slate-200 z-30">
-                        No Safari, toque em <b>Compartilhar</b> <ShareGlyph /> e depois em <b>Adicionar à Tela de Início</b>.
+                        {L({ en: 'In Safari, tap', pt: 'No Safari, toque em', es: 'En Safari, toca' })} <b>{L({ en: 'Share', pt: 'Compartilhar', es: 'Compartir' })}</b> <ShareGlyph /> {L({ en: 'and then', pt: 'e depois em', es: 'y luego' })} <b>{L({ en: 'Add to Home Screen', pt: 'Adicionar à Tela de Início', es: 'Añadir a pantalla de inicio' })}</b>.
                       </div>
                     )}
                   </div>
                 )}
-                <button onClick={toggleMusic} className={`btn-ghost px-2.5 py-1.5 text-xs ${musicOn ? '' : 'opacity-50'}`} aria-label={musicOn ? 'Desligar música' : 'Ligar música'} title={musicOn ? 'Desligar música' : 'Ligar música'}>
+                <button onClick={toggleMusic} className={`btn-ghost px-2.5 py-1.5 text-xs ${musicOn ? '' : 'opacity-50'}`} aria-label={musicOn ? MUSIC_OFF() : MUSIC_ON()} title={musicOn ? MUSIC_OFF() : MUSIC_ON()}>
                   <MusicIcon off={!musicOn} />
                 </button>
-                <button onClick={toggleMute} className="btn-ghost px-2.5 py-1.5 text-xs" aria-label={muted ? 'Ativar som' : 'Silenciar'}>
+                <button onClick={toggleMute} className="btn-ghost px-2.5 py-1.5 text-xs" aria-label={muted ? L({ en: 'Unmute', pt: 'Ativar som', es: 'Activar sonido' }) : L({ en: 'Mute', pt: 'Silenciar', es: 'Silenciar' })}>
                   <SpeakerIcon muted={muted} />
                 </button>
+                <LanguageSwitcher resume={{ address: profile.address, provider: profile.provider }} />
                 <button onClick={() => setProfile(null)} className="btn-ghost px-3 py-1.5 text-xs">
-                  Sair
+                  {L({ en: 'Exit', pt: 'Sair', es: 'Salir' })}
                 </button>
               </div>
             </div>
@@ -492,7 +530,11 @@ export default function App() {
           </main>
 
           <footer className="relative z-10 mt-12 py-6 text-center text-xs text-slate-600">
-            Base Lunar DogCity · {profile.provider} · {profile.dogBalanceSource === 'real' ? 'saldo DOG lido da blockchain' : 'saldo DOG simulado'}, sem transações on-chain
+            {L({ en: 'DogCity Lunar Base', pt: 'Base Lunar DogCity', es: 'Base Lunar DogCity' })} · {providerLabel(profile.provider)} ·{' '}
+            {profile.dogBalanceSource === 'real'
+              ? L({ en: 'DOG balance read from the blockchain', pt: 'saldo DOG lido da blockchain', es: 'saldo DOG leído de la blockchain' })
+              : L({ en: 'simulated DOG balance', pt: 'saldo DOG simulado', es: 'saldo DOG simulado' })}
+            , {L({ en: 'no on-chain transactions', pt: 'sem transações on-chain', es: 'sin transacciones on-chain' })}
           </footer>
         </>
       )}
@@ -505,13 +547,18 @@ function SceneCrash({ refund, onBack }: { refund: number; onBack(): void }) {
     <div className="fixed inset-0 flex items-center justify-center p-6 bg-[radial-gradient(ellipse_at_center,#0c2150,#030816_70%)]">
       <div className="hud-panel max-w-sm w-full p-6 text-center">
         <img src={cutoutArt('astronaut')} alt="" className="h-32 mx-auto object-contain mb-3 grayscale opacity-80" draggable={false} />
-        <div className="font-display text-lg text-white mb-2">Houston, temos um problema</div>
+        <div className="font-display text-lg text-white mb-2">{L({ en: 'Houston, we have a problem', pt: 'Houston, temos um problema', es: 'Houston, tenemos un problema' })}</div>
         <p className="text-sm text-slate-300 mb-4">
-          A cena 3D falhou neste aparelho. Feche outras abas ou atualize o navegador e tente de novo.
-          {refund > 0 && <> O custo da missão (<Stardust value={refund} />) foi devolvido.</>}
+          {L({ en: 'The 3D scene failed on this device. Close other tabs or update your browser and try again.', pt: 'A cena 3D falhou neste aparelho. Feche outras abas ou atualize o navegador e tente de novo.', es: 'La escena 3D falló en este dispositivo. Cierra otras pestañas o actualiza el navegador e inténtalo de nuevo.' })}
+          {refund > 0 && (
+            <>
+              {' '}
+              {L({ en: 'The mission cost', pt: 'O custo da missão', es: 'El coste de la misión' })} (<Stardust value={refund} />) {L({ en: 'was refunded.', pt: 'foi devolvido.', es: 'fue devuelto.' })}
+            </>
+          )}
         </p>
         <button onClick={onBack} className="btn-primary w-full py-3">
-          Voltar ao hangar
+          {L({ en: 'Back to hangar', pt: 'Voltar ao hangar', es: 'Volver al hangar' })}
         </button>
       </div>
     </div>
@@ -522,7 +569,7 @@ function LoadingScreen() {
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_center,#0c2150,#030816_70%)] text-sky-200">
       <img src={cutoutArt('astronaut')} alt="" className="h-48 object-contain animate-float drop-shadow-[0_20px_30px_rgba(56,189,248,0.35)] mb-5" draggable={false} />
-      <div className="font-display text-sm tracking-[0.3em]">PREPARANDO LANÇAMENTO</div>
+      <div className="font-display text-sm tracking-[0.3em]">{L({ en: 'PREPARING LAUNCH', pt: 'PREPARANDO LANÇAMENTO', es: 'PREPARANDO LANZAMIENTO' })}</div>
     </div>
   );
 }

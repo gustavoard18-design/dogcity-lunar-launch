@@ -1,6 +1,8 @@
 import puppeteer from 'puppeteer-core';
 const b = await puppeteer.launch({ executablePath: process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: 'new', args: ['--use-angle=swiftshader'] });
 const page = await b.newPage();
+// Os scripts clicam nos botões pelo texto em português.
+await page.evaluateOnNewDocument(() => localStorage.setItem('dogcity_lang', 'pt'));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 await page.goto('http://localhost:4173/', { waitUntil: 'networkidle2' });
 await sleep(3000);

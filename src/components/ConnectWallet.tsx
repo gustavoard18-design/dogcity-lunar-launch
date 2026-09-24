@@ -5,6 +5,8 @@ import { GAME_URL } from '../lib/shareCard';
 import { sfx } from '../lib/audio';
 import { cutoutArt } from '../lib/evolution';
 import GameIcon from './GameIcon';
+import LanguageSwitcher from './LanguageSwitcher';
+import { L } from '../lib/i18n';
 
 const walletLogo = (id: WalletId) => `${import.meta.env.BASE_URL}art/wallets/${id}.webp`;
 
@@ -24,7 +26,7 @@ function HeroArt() {
       <div className="pointer-events-none absolute inset-[8%] rounded-full bg-[radial-gradient(circle,rgba(56,189,248,0.35),rgba(37,99,235,0.18)_45%,transparent_70%)] blur-2xl" />
       <motion.img
         src={cutoutArt('rocket')}
-        alt="Foguete DOG"
+        alt={L({ en: 'DOG rocket', pt: 'Foguete DOG', es: 'Cohete DOG' })}
         draggable={false}
         animate={{ y: [0, -14, 0], rotate: [10, 12, 10] }}
         transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
@@ -32,7 +34,7 @@ function HeroArt() {
       />
       <motion.img
         src={cutoutArt('astronaut')}
-        alt="Astronauta DOG"
+        alt={L({ en: 'DOG astronaut', pt: 'Astronauta DOG', es: 'Astronauta DOG' })}
         draggable={false}
         animate={{ y: [0, -10, 0], rotate: [-3, -1.5, -3] }}
         transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
@@ -55,7 +57,7 @@ export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
     try {
       onConnect(kind === 'guest' ? await connectGuest() : await connectWallet(kind));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao conectar.');
+      setError(err instanceof Error ? err.message : L({ en: 'Could not connect.', pt: 'Falha ao conectar.', es: 'No se pudo conectar.' }));
     } finally {
       setConnecting(null);
     }
@@ -63,6 +65,7 @@ export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
 
   return (
     <div className="relative z-10 min-h-screen flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-[6vw] p-4 lg:px-[8vw]">
+      <LanguageSwitcher className="!absolute top-4 right-4 z-20" />
       <HeroArt />
       <motion.div
         initial={{ opacity: 0, y: 30 }}
@@ -71,7 +74,7 @@ export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
         className="max-w-md w-full lg:order-first"
       >
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="text-xs tracking-[0.4em] text-sky-300/90 mb-3">
-          ECOSSISTEMA DOGCITY
+          {L({ en: 'DOGCITY ECOSYSTEM', pt: 'ECOSSISTEMA DOGCITY', es: 'ECOSISTEMA DOGCITY' })}
         </motion.div>
         <h1 className="font-display text-5xl sm:text-7xl leading-[0.95] mb-2 bg-gradient-to-br from-white via-sky-200 to-amber-300 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(56,189,248,0.4)]">
           LUNAR
@@ -79,21 +82,21 @@ export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
           LAUNCH
         </h1>
         <p className="text-slate-300 mb-8 text-base sm:text-lg max-w-sm">
-          Da Base Lunar DogCity, mire, lance e pilote seu cão astronauta até a órbita da Terra, o Mar da Tranquilidade, Ceres e Marte.
+          {L({ en: 'From the DogCity Lunar Base, aim, launch and pilot your astronaut dog to Earth orbit, the Sea of Tranquility, Ceres and Mars.', pt: 'Da Base Lunar DogCity, mire, lance e pilote seu cão astronauta até a órbita da Terra, o Mar da Tranquilidade, Ceres e Marte.', es: 'Desde la Base Lunar DogCity, apunta, lanza y pilota a tu perro astronauta hasta la órbita de la Tierra, el Mar de la Tranquilidad, Ceres y Marte.' })}
         </p>
 
         <div className="panel space-y-3">
           <button onClick={() => handle('guest')} disabled={!!connecting} className="btn-primary w-full py-4 text-lg disabled:opacity-50">
             {connecting === 'guest' ? (
-              'Preparando hangar…'
+              L({ en: 'Preparing hangar…', pt: 'Preparando hangar…', es: 'Preparando hangar…' })
             ) : (
               <span className="inline-flex items-center justify-center gap-2">
-                <GameIcon name="rocket" size={30} className="-my-2 rotate-[30deg]" /> Jogar agora
+                <GameIcon name="rocket" size={30} className="-my-2 rotate-[30deg]" /> {L({ en: 'Play now', pt: 'Jogar agora', es: 'Jugar ahora' })}
               </span>
             )}
           </button>
           <button onClick={() => setShowWallets(v => !v)} disabled={!!connecting} className="btn-ghost w-full py-3 text-sm disabled:opacity-40">
-            {showWallets ? 'Fechar carteiras' : 'Conectar carteira Bitcoin'}
+            {showWallets ? L({ en: 'Close wallets', pt: 'Fechar carteiras', es: 'Cerrar billeteras' }) : L({ en: 'Connect Bitcoin wallet', pt: 'Conectar carteira Bitcoin', es: 'Conectar billetera Bitcoin' })}
           </button>
           {showWallets && (
             <div className="space-y-2">
@@ -108,19 +111,23 @@ export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
                       <div className="text-sm font-semibold text-white">
                         {w.name} {w.note && <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded border border-orange-400/40 text-orange-300">{w.note}</span>}
                       </div>
-                      <div className="text-[11px] text-slate-500">{installed ? 'Detectada' : appLink ? 'Abra o jogo pelo app' : 'Não instalada'}</div>
+                      <div className="text-[11px] text-slate-500">{installed
+                          ? L({ en: 'Detected', pt: 'Detectada', es: 'Detectada' })
+                          : appLink
+                            ? L({ en: 'Open the game in the app', pt: 'Abra o jogo pelo app', es: 'Abre el juego en la app' })
+                            : L({ en: 'Not installed', pt: 'Não instalada', es: 'No instalada' })}</div>
                     </div>
                     {installed ? (
                       <button onClick={() => handle(w.id)} disabled={!!connecting} className="btn-primary px-3 py-1.5 text-xs disabled:opacity-50">
-                        {connecting === w.id ? 'Aguardando…' : 'Conectar'}
+                        {connecting === w.id ? L({ en: 'Waiting…', pt: 'Aguardando…', es: 'Esperando…' }) : L({ en: 'Connect', pt: 'Conectar', es: 'Conectar' })}
                       </button>
                     ) : appLink ? (
                       <a href={appLink} rel="noreferrer" className="btn-primary px-3 py-1.5 text-xs">
-                        Abrir no app ↗
+                        {L({ en: 'Open in app ↗', pt: 'Abrir no app ↗', es: 'Abrir en la app ↗' })}
                       </a>
                     ) : (
                       <a href={w.installUrl} target="_blank" rel="noreferrer" className="btn-ghost px-3 py-1.5 text-xs">
-                        Instalar ↗
+                        {L({ en: 'Install ↗', pt: 'Instalar ↗', es: 'Instalar ↗' })}
                       </a>
                     )}
                   </div>
@@ -130,8 +137,17 @@ export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
           )}
           {error && <p className="text-xs text-red-400">{error}</p>}
           <p className="text-[11px] text-slate-500 leading-relaxed">
-            “Jogar agora” cria um piloto convidado neste navegador, com saldo DOG simulado. Com uma carteira, o saldo DOG, seu ranking de holder e seu lote no DogCity são lidos da blockchain (dados do{' '}
-            <a href="https://www.dogdata.xyz" target="_blank" rel="noreferrer" className="underline hover:text-slate-300">DogData</a>). Só lemos o endereço: nada é assinado nem enviado.
+            {L({
+              en: '“Play now” creates a guest pilot in this browser, with a simulated DOG balance. With a wallet, your DOG balance, holder rank and DogCity plot are read from the blockchain (data from',
+              pt: '“Jogar agora” cria um piloto convidado neste navegador, com saldo DOG simulado. Com uma carteira, o saldo DOG, seu ranking de holder e seu lote no DogCity são lidos da blockchain (dados do',
+              es: '“Jugar ahora” crea un piloto invitado en este navegador, con saldo DOG simulado. Con una billetera, tu saldo DOG, tu ranking de holder y tu parcela en DogCity se leen de la blockchain (datos de',
+            })}{' '}
+            <a href="https://www.dogdata.xyz" target="_blank" rel="noreferrer" className="underline hover:text-slate-300">DogData</a>
+            {L({
+              en: '). We only read your address: nothing is signed or sent.',
+              pt: '). Só lemos o endereço: nada é assinado nem enviado.',
+              es: '). Solo leemos la dirección: nada se firma ni se envía.',
+            })}
           </p>
         </div>
       </motion.div>

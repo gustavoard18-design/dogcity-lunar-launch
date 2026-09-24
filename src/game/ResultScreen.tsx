@@ -5,6 +5,7 @@ import { cutoutArt } from '../lib/evolution';
 import { getAchievementDef } from '../lib/achievements';
 import { shareFlight } from '../lib/shareCard';
 import GameIcon, { IconName, LunarDust, PLANET_ICON, Stardust, StarIcon } from '../components/GameIcon';
+import { L } from '../lib/i18n';
 
 interface ResultScreenProps {
   route: Route;
@@ -47,14 +48,18 @@ export default function ResultScreen({ route, summary, pilotName, pilotTitle, pi
   const { outcome } = summary;
   const score = useCountUp(outcome.score);
   const stars = !outcome.success ? 0 : summary.quality >= 0.85 ? 3 : summary.quality >= 0.6 ? 2 : 1;
-  const title = outcome.success ? 'MISSÃO CUMPRIDA' : outcome.aborted ? 'MISSÃO ABORTADA' : 'NAVE PERDIDA';
+  const title = outcome.success
+    ? L({ en: 'MISSION COMPLETE', pt: 'MISSÃO CUMPRIDA', es: 'MISIÓN CUMPLIDA' })
+    : outcome.aborted
+      ? L({ en: 'MISSION ABORTED', pt: 'MISSÃO ABORTADA', es: 'MISIÓN ABORTADA' })
+      : L({ en: 'SHIP LOST', pt: 'NAVE PERDIDA', es: 'NAVE PERDIDA' });
 
   const rows: [IconName, string, string, string?][] = [
-    ['radar', 'Lançamento', `${Math.round(outcome.launchQuality * 100)}%${outcome.perfectLaunch ? ' · PERFEITO' : ''}`],
-    ['orb', 'Orbes coletados', String(outcome.orbs)],
-    ['ring', 'Anéis', String(outcome.rings)],
-    ['asteroid', 'Impactos', `${outcome.hits}`, outcome.hits === 0 && outcome.success ? 'text-emerald-300' : undefined],
-    ['escudo', 'Casco restante', `${outcome.hullLeft}/${outcome.hullMax}`],
+    ['radar', L({ en: 'Launch', pt: 'Lançamento', es: 'Lanzamiento' }), `${Math.round(outcome.launchQuality * 100)}%${outcome.perfectLaunch ? ` · ${L({ en: 'PERFECT', pt: 'PERFEITO', es: 'PERFECTO' })}` : ''}`],
+    ['orb', L({ en: 'Orbs collected', pt: 'Orbes coletados', es: 'Orbes recogidos' }), String(outcome.orbs)],
+    ['ring', L({ en: 'Rings', pt: 'Anéis', es: 'Anillos' }), String(outcome.rings)],
+    ['asteroid', L({ en: 'Hits', pt: 'Impactos', es: 'Impactos' }), `${outcome.hits}`, outcome.hits === 0 && outcome.success ? 'text-emerald-300' : undefined],
+    ['escudo', L({ en: 'Hull left', pt: 'Casco restante', es: 'Casco restante' }), `${outcome.hullLeft}/${outcome.hullMax}`],
   ];
 
   return (
@@ -96,9 +101,9 @@ export default function ResultScreen({ route, summary, pilotName, pilotTitle, pi
 
         <div className="font-display text-5xl text-white leading-none">{score}</div>
         <div className="text-xs text-slate-400 mt-1 mb-1">
-          de {route.maxScore} pts · {Math.round(summary.quality * 100)}%
+          {L({ en: 'of', pt: 'de', es: 'de' })} {route.maxScore} pts · {Math.round(summary.quality * 100)}%
         </div>
-        {summary.newBest && <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 mb-2"><GameIcon name="trophy" size={18} /> NOVO RECORDE PESSOAL</div>}
+        {summary.newBest && <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 mb-2"><GameIcon name="trophy" size={18} /> {L({ en: 'NEW PERSONAL BEST', pt: 'NOVO RECORDE PESSOAL', es: 'NUEVO RÉCORD PERSONAL' })}</div>}
 
         <div className="my-3 space-y-1 text-sm">
           {rows.map(([icon, label, value, cls]) => (
@@ -120,7 +125,7 @@ export default function ResultScreen({ route, summary, pilotName, pilotTitle, pi
           </div>
           <div className="rounded-xl bg-violet-500/10 border border-violet-400/30 py-3">
             <div className="text-violet-300 font-display text-lg"><LunarDust value={summary.lunarDustGained} sign="+" size={20} /></div>
-            <div className="text-[10px] text-slate-400">Pó Lunar</div>
+            <div className="text-[10px] text-slate-400">{L({ en: 'Lunar Dust', pt: 'Pó Lunar', es: 'Polvo Lunar' })}</div>
           </div>
         </div>
 
@@ -131,7 +136,7 @@ export default function ResultScreen({ route, summary, pilotName, pilotTitle, pi
             transition={{ delay: 1 }}
             className="mb-5 rounded-xl bg-gradient-to-r from-sky-600/40 to-amber-500/40 border border-amber-300/50 py-3 font-display text-lg text-white"
           >
-            <span className="inline-flex items-center gap-2"><GameIcon name="medal" size={28} className="-my-1" /> NÍVEL {summary.newLevel}!</span>
+            <span className="inline-flex items-center gap-2"><GameIcon name="medal" size={28} className="-my-1" /> {L({ en: 'LEVEL', pt: 'NÍVEL', es: 'NIVEL' })} {summary.newLevel}!</span>
           </motion.div>
         )}
 
@@ -143,7 +148,7 @@ export default function ResultScreen({ route, summary, pilotName, pilotTitle, pi
             className="mb-4 rounded-xl border py-2.5 px-3 text-sm text-white"
             style={{ borderColor: `${route.color}99`, background: `${route.color}22` }}
           >
-            <div className="text-[10px] tracking-[0.2em] text-slate-300 mb-1">BÔNUS DO EVENTO</div>
+            <div className="text-[10px] tracking-[0.2em] text-slate-300 mb-1">{L({ en: 'EVENT BONUS', pt: 'BÔNUS DO EVENTO', es: 'BONO DEL EVENTO' })}</div>
             <span className="inline-flex items-center gap-3 font-display">
               <span className="text-amber-300"><Stardust value={summary.eventBonus.stardust} sign="+" size={20} /></span>
               <span className="text-violet-300"><LunarDust value={summary.eventBonus.lunarDust} sign="+" size={20} /></span>
@@ -157,19 +162,27 @@ export default function ResultScreen({ route, summary, pilotName, pilotTitle, pi
               <div key={id} className="flex items-center gap-2 rounded-xl bg-amber-400/10 border border-amber-300/40 px-3 py-2 text-left">
                 <GameIcon name="trophy" size={24} />
                 <div className="min-w-0">
-                  <div className="text-[10px] tracking-widest text-amber-300">CONQUISTA DESBLOQUEADA</div>
+                  <div className="text-[10px] tracking-widest text-amber-300">{L({ en: 'ACHIEVEMENT UNLOCKED', pt: 'CONQUISTA DESBLOQUEADA', es: 'LOGRO DESBLOQUEADO' })}</div>
                   <div className="text-sm text-white font-semibold truncate">{getAchievementDef(id)?.title}</div>
                 </div>
               </div>
             ))}
-            <p className="text-[11px] text-slate-400">Resgate a recompensa na aba Missões.</p>
+            <p className="text-[11px] text-slate-400">{L({ en: 'Claim the reward in the Missions tab.', pt: 'Resgate a recompensa na aba Missões.', es: 'Reclama la recompensa en la pestaña Misiones.' })}</p>
           </motion.div>
         )}
 
         <button onClick={share} disabled={sharing === 'busy'} className="btn-ghost w-full py-2.5 mb-3 text-sm disabled:opacity-50">
           <span className="inline-flex items-center justify-center gap-2">
             <ShareIcon />
-            {sharing === 'busy' ? 'Gerando imagem…' : sharing === 'downloaded' ? 'Imagem salva! Compartilhar de novo' : sharing === 'shared' ? 'Compartilhado! Mais uma vez' : sharing === 'error' ? 'Não deu, tentar de novo' : 'Compartilhar resultado'}
+            {sharing === 'busy'
+              ? L({ en: 'Creating image…', pt: 'Gerando imagem…', es: 'Generando imagen…' })
+              : sharing === 'downloaded'
+                ? L({ en: 'Image saved! Share again', pt: 'Imagem salva! Compartilhar de novo', es: '¡Imagen guardada! Compartir de nuevo' })
+                : sharing === 'shared'
+                  ? L({ en: 'Shared! One more time', pt: 'Compartilhado! Mais uma vez', es: '¡Compartido! Una vez más' })
+                  : sharing === 'error'
+                    ? L({ en: 'That failed, try again', pt: 'Não deu, tentar de novo', es: 'No funcionó, inténtalo de nuevo' })
+                    : L({ en: 'Share result', pt: 'Compartilhar resultado', es: 'Compartir resultado' })}
           </span>
         </button>
 
@@ -178,7 +191,7 @@ export default function ResultScreen({ route, summary, pilotName, pilotTitle, pi
             Hangar
           </button>
           <button onClick={onRetry} disabled={!canRetry} className="btn-primary flex-1 py-3 disabled:opacity-40 disabled:cursor-not-allowed">
-            <span className="inline-flex items-center justify-center gap-1.5"><GameIcon name="rocket" size={22} className="-my-1 rotate-[30deg]" /> Voar de novo</span>
+            <span className="inline-flex items-center justify-center gap-1.5"><GameIcon name="rocket" size={22} className="-my-1 rotate-[30deg]" /> {L({ en: 'Fly again', pt: 'Voar de novo', es: 'Volar de nuevo' })}</span>
           </button>
         </div>
       </motion.div>

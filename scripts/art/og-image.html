@@ -1,0 +1,26 @@
+<!doctype html>
+<!-- Imagem de prévia do link (public/og-image.jpg, 1200×630). Abra com `npm run dev` em
+     /scripts/art/og-image.html e fotografe o elemento #c (ver scripts/README.md). -->
+<html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+
+html,body{margin:0}
+#c{position:relative;width:1200px;height:630px;overflow:hidden;background:#070a24 url(/art/space-bg.webp) center/cover}
+#shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(5,8,28,.92) 0%,rgba(5,8,28,.75) 50%,rgba(5,8,28,.15) 80%)}
+#txt{position:absolute;left:70px;top:92px;width:780px}
+.kick{font:700 22px "Space Grotesk";letter-spacing:.06em;color:#7dd3fc}
+h1{margin:22px 0 0;font:900 104px/0.98 Orbitron,sans-serif;letter-spacing:.02em;background:linear-gradient(135deg,#fff 0%,#bae6fd 55%,#fcd34d 100%);-webkit-background-clip:text;color:transparent;filter:drop-shadow(0 0 24px rgba(56,189,248,.35))}
+p{margin:34px 0 0;font:500 26px/1.45 "Space Grotesk";color:#e2e8f0}
+.pl{display:flex;gap:22px;margin-top:34px;align-items:center}
+.pl img{width:66px;height:66px;object-fit:contain;filter:drop-shadow(0 0 12px rgba(125,211,252,.35))}
+.pl img.sat{width:78px}
+.langs{margin-left:10px;font:700 18px "Space Grotesk";color:#cbd5e1;letter-spacing:.12em;padding:8px 16px;border:1px solid rgba(125,211,252,.35);border-radius:999px;background:rgba(5,8,28,.55)}
+#dog{position:absolute;right:-8px;bottom:-12px;height:600px;filter:drop-shadow(0 30px 40px rgba(0,0,0,.6))}
+#bar{position:absolute;left:0;right:0;bottom:0;height:8px;background:#f59e0b}
+</style></head><body><div id="c"><div id="shade"></div>
+<img id="dog" src="/art/cutout-astronaut.webp">
+<div id="txt"><div class="kick">DOGCITY ECOSYSTEM</div><h1>LUNAR<br>LAUNCH</h1>
+<p>Aim, launch and pilot the DOG astronaut<br>from the Lunar Base to Earth, the Moon, Ceres and Mars.</p>
+<div class="pl"><img src="/art/ui/planet-earth.webp"><img src="/art/ui/planet-moon.webp"><img src="/art/ui/planet-ceres.webp"><img src="/art/ui/planet-mars.webp"><img class="sat" src="/art/ui/planet-saturn.webp"><div class="langs">EN · PT · ES</div></div></div>
+<div id="bar"></div></div></body></html>

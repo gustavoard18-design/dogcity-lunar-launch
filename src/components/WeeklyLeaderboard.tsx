@@ -7,12 +7,16 @@ import { getCurrentEvent } from '../lib/events';
 import { titleText } from '../lib/achievements';
 import GameIcon, { PLANET_ICON, TIER_INFO } from './GameIcon';
 import PilotName from './PilotName';
+import { L } from '../lib/i18n';
 
 interface WeeklyLeaderboardProps {
   playerAddress?: string;
 }
 
 type Board = 'general' | 'event';
+
+const flightsLabel = (n: number) =>
+  n === 1 ? L({ en: '1 flight', pt: '1 voo', es: '1 vuelo' }) : L({ en: `${n} flights`, pt: `${n} voos`, es: `${n} vuelos` });
 
 export default function WeeklyLeaderboard({ playerAddress }: WeeklyLeaderboardProps) {
   const event = getCurrentEvent();
@@ -43,10 +47,11 @@ export default function WeeklyLeaderboard({ playerAddress }: WeeklyLeaderboardPr
   return (
     <div className="panel">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-        <h3 className="font-display text-lg text-white">Ranking semanal</h3>
+        <h3 className="font-display text-lg text-white">{L({ en: 'Weekly leaderboard', pt: 'Ranking semanal', es: 'Clasificación semanal' })}</h3>
         <span className="flex items-center gap-1.5 text-[11px] text-slate-500">
           <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : status === 'loading' ? 'bg-amber-400' : 'bg-slate-500'}`} />
-          {isOnline ? 'Online' : status === 'loading' ? 'Conectando…' : 'Local'} · melhor voo concluído da semana
+          {isOnline ? 'Online' : status === 'loading' ? L({ en: 'Connecting…', pt: 'Conectando…', es: 'Conectando…' }) : 'Local'} ·{' '}
+          {L({ en: 'best completed flight this week', pt: 'melhor voo concluído da semana', es: 'mejor vuelo completado de la semana' })}
         </span>
       </div>
 
@@ -61,11 +66,11 @@ export default function WeeklyLeaderboard({ playerAddress }: WeeklyLeaderboardPr
           >
             {b === 'general' ? (
               <>
-                <GameIcon name="trophy" size={16} /> Geral
+                <GameIcon name="trophy" size={16} /> {L({ en: 'Overall', pt: 'Geral', es: 'General' })}
               </>
             ) : (
               <>
-                <GameIcon name={PLANET_ICON[event.route.destination]} size={16} /> Evento: {event.name}
+                <GameIcon name={PLANET_ICON[event.route.destination]} size={16} /> {L({ en: 'Event', pt: 'Evento', es: 'Evento' })}: {event.name}
               </>
             )}
           </button>
@@ -96,14 +101,15 @@ export default function WeeklyLeaderboard({ playerAddress }: WeeklyLeaderboardPr
                     <GameIcon name={TIER_INFO[entry.tier].icon} size={14} />
                     {TIER_INFO[entry.tier].label}
                   </span>
-                  {isPlayer && <span className="text-[10px] text-sky-300">você</span>}
+                  {isPlayer && <span className="text-[10px] text-sky-300">{L({ en: 'you', pt: 'você', es: 'tú' })}</span>}
                   {entry.simulated && <span className="text-[10px] text-slate-600">bot</span>}
                 </div>
                 <div className="text-[10px] text-slate-500 truncate">
                   {title && <span className="text-amber-300/90">«{title}» · </span>}
+                  {flightsLabel(entry.totalLaunches)} ·{' '}
                   {board === 'general'
-                    ? `${entry.totalLaunches} ${entry.totalLaunches === 1 ? 'voo' : 'voos'} · recorde ${entry.bestScore}`
-                    : `${entry.totalLaunches} ${entry.totalLaunches === 1 ? 'voo' : 'voos'} no evento esta semana`}
+                    ? `${L({ en: 'best', pt: 'recorde', es: 'récord' })} ${entry.bestScore}`
+                    : L({ en: 'in the event this week', pt: 'no evento esta semana', es: 'en el evento esta semana' })}
                 </div>
               </div>
               <div className="text-right">
@@ -116,15 +122,29 @@ export default function WeeklyLeaderboard({ playerAddress }: WeeklyLeaderboardPr
       </div>
       {entries.length === 0 && (
         <p className="text-sm text-slate-400 text-center py-6">
-          {board === 'event' ? `Ninguém concluiu ${event.name} nesta semana ainda. Seja o primeiro!` : 'Nenhum voo concluído nesta semana ainda. Seja o primeiro!'}
+          {board === 'event'
+            ? L({ en: `Nobody has completed ${event.name} this week yet. Be the first!`, pt: `Ninguém concluiu ${event.name} nesta semana ainda. Seja o primeiro!`, es: `Nadie ha completado ${event.name} esta semana todavía. ¡Sé el primero!` })
+            : L({ en: 'No completed flights this week yet. Be the first!', pt: 'Nenhum voo concluído nesta semana ainda. Seja o primeiro!', es: 'Ningún vuelo completado esta semana todavía. ¡Sé el primero!' })}
         </p>
       )}
       <p className="text-[11px] text-slate-600 mt-3">
         {isOnline
           ? board === 'general'
-            ? 'Ranking global: todos os pilotos, reinicia toda segunda-feira. Só voos concluídos contam.'
-            : `Só voos concluídos na rota ${event.name} nesta semana. O top 3 ganha Stardust, Pó Lunar e moldura de nome quando o evento troca, na segunda-feira.`
-          : 'Sem conexão com o servidor: mostrando o ranking local deste navegador (pilotos “bot” são simulados).'}
+            ? L({
+                en: 'Global leaderboard: every pilot, resets every Monday. Only completed flights count.',
+                pt: 'Ranking global: todos os pilotos, reinicia toda segunda-feira. Só voos concluídos contam.',
+                es: 'Clasificación global: todos los pilotos, se reinicia cada lunes. Solo cuentan los vuelos completados.',
+              })
+            : L({
+                en: `Only completed flights on ${event.name} this week. The top 3 win Stardust, Lunar Dust and a name frame when the event changes on Monday.`,
+                pt: `Só voos concluídos na rota ${event.name} nesta semana. O top 3 ganha Stardust, Pó Lunar e moldura de nome quando o evento troca, na segunda-feira.`,
+                es: `Solo vuelos completados en ${event.name} esta semana. El top 3 gana Stardust, Polvo Lunar y un marco de nombre cuando el evento cambia, el lunes.`,
+              })
+          : L({
+              en: 'No connection to the server: showing this browser\'s local leaderboard (“bot” pilots are simulated).',
+              pt: 'Sem conexão com o servidor: mostrando o ranking local deste navegador (pilotos “bot” são simulados).',
+              es: 'Sin conexión con el servidor: mostrando la clasificación local de este navegador (los pilotos “bot” son simulados).',
+            })}
       </p>
     </div>
   );

@@ -1,4 +1,5 @@
 import { Route, Stat } from '../types';
+import { L } from './i18n';
 
 export const MAX_STAT_LEVEL = 10;
 
@@ -10,29 +11,29 @@ export interface DogStats {
 }
 
 export const STAT_INFO: Record<Stat, { label: string; color: string; effect: string }> = {
-  power: { label: 'Potência', color: 'text-orange-400', effect: 'Medidores mais lentos e casco extra (nv 4 e 8)' },
-  accuracy: { label: 'Precisão', color: 'text-sky-400', effect: 'Zonas ideais de ângulo e força mais largas' },
-  luck: { label: 'Sorte', color: 'text-emerald-400', effect: 'Mais Stardust, escudos e ímã de coleta' },
-  speed: { label: 'Manobra', color: 'text-cyan-400', effect: 'Nave responde mais rápido aos comandos' },
+  power: { label: L({ en: 'Power', pt: 'Potência', es: 'Potencia' }), color: 'text-orange-400', effect: L({ en: 'Slower gauges and extra hull (lv 4 and 8)', pt: 'Medidores mais lentos e casco extra (nv 4 e 8)', es: 'Medidores más lentos y casco extra (nv 4 y 8)' }) },
+  accuracy: { label: L({ en: 'Accuracy', pt: 'Precisão', es: 'Precisión' }), color: 'text-sky-400', effect: L({ en: 'Wider sweet spots for angle and power', pt: 'Zonas ideais de ângulo e força mais largas', es: 'Zonas ideales de ángulo y fuerza más anchas' }) },
+  luck: { label: L({ en: 'Luck', pt: 'Sorte', es: 'Suerte' }), color: 'text-emerald-400', effect: L({ en: 'More Stardust, shields and a pickup magnet', pt: 'Mais Stardust, escudos e ímã de coleta', es: 'Más Stardust, escudos e imán de recogida' }) },
+  speed: { label: L({ en: 'Handling', pt: 'Manobra', es: 'Maniobra' }), color: 'text-cyan-400', effect: L({ en: 'Ship responds faster to your controls', pt: 'Nave responde mais rápido aos comandos', es: 'La nave responde más rápido a los controles' }) },
 };
 
 /** Peças que cada atributo instala no foguete, por nível. */
 export const UPGRADE_VISUALS: Record<Stat, [{ level: number; part: string }, { level: number; part: string }]> = {
   power: [
-    { level: 4, part: 'Propulsores laterais' },
-    { level: 8, part: 'Propulsores superaquecidos' },
+    { level: 4, part: L({ en: 'Side boosters', pt: 'Propulsores laterais', es: 'Propulsores laterales' }) },
+    { level: 8, part: L({ en: 'Overheated boosters', pt: 'Propulsores superaquecidos', es: 'Propulsores sobrecalentados' }) },
   ],
   accuracy: [
-    { level: 3, part: 'Antena de mira' },
-    { level: 6, part: 'Radar lateral' },
+    { level: 3, part: L({ en: 'Targeting antenna', pt: 'Antena de mira', es: 'Antena de puntería' }) },
+    { level: 6, part: L({ en: 'Side radar', pt: 'Radar lateral', es: 'Radar lateral' }) },
   ],
   luck: [
-    { level: 3, part: 'Faixas douradas' },
-    { level: 6, part: 'Nariz de ouro' },
+    { level: 3, part: L({ en: 'Gold bands', pt: 'Faixas douradas', es: 'Franjas doradas' }) },
+    { level: 6, part: L({ en: 'Gold nose', pt: 'Nariz de ouro', es: 'Morro de oro' }) },
   ],
   speed: [
-    { level: 3, part: 'Aletas longas' },
-    { level: 6, part: 'Aletas dianteiras' },
+    { level: 3, part: L({ en: 'Long fins', pt: 'Aletas longas', es: 'Aletas largas' }) },
+    { level: 6, part: L({ en: 'Front canards', pt: 'Aletas dianteiras', es: 'Aletas delanteras' }) },
   ],
 };
 

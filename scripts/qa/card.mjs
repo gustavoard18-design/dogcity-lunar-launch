@@ -2,6 +2,8 @@ import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
 const b = await puppeteer.launch({ executablePath: process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: 'new', args: ['--use-angle=swiftshader'] });
 const p = await b.newPage();
+// Os scripts clicam nos botões pelo texto em português.
+await p.evaluateOnNewDocument(() => localStorage.setItem('dogcity_lang', 'pt'));
 p.on('pageerror', e => console.log('ERR', e.message));
 await p.goto('http://localhost:5173', { waitUntil: 'networkidle2' });
 for (const [name, ok, title, routeIdx] of [['card-ok', true, 'Rotina de Voo', 0], ['card-fail', false, '', 1]]) {

@@ -2,6 +2,7 @@ import type { Cosmetic, PlayerProfile } from '../types';
 import { RARITY_POINTS, itemArt } from '../lib/evolution';
 import { getRarityColor, getRarityLabel, getRarityText } from '../lib/shop';
 import { LunarDust, Stardust } from './GameIcon';
+import { L } from '../lib/i18n';
 
 /** Botão de compra na cor da raridade, como nas molduras da arte. */
 const BUY_BUTTON: Record<Cosmetic['rarity'], string> = {
@@ -49,7 +50,7 @@ export default function CosmeticCard({ item, profile, trying, onTry, onPurchase,
           <p className={`text-[11px] font-semibold ${getRarityText(item.rarity)}`}>
             {getRarityLabel(item.rarity)} · +{RARITY_POINTS[item.rarity]} pt
           </p>
-          <p className="text-[10px] text-slate-400 leading-snug">{trying ? 'Provando…' : item.description}</p>
+          <p className="text-[10px] text-slate-400 leading-snug">{trying ? L({ en: 'Trying on…', pt: 'Provando…', es: 'Probando…' }) : item.description}</p>
         </div>
       </div>
 
@@ -63,7 +64,7 @@ export default function CosmeticCard({ item, profile, trying, onTry, onPurchase,
             equipped ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30' : 'bg-sky-600 hover:bg-sky-500 text-white'
           }`}
         >
-          {equipped ? '✓ Equipado' : 'Equipar'}
+          {equipped ? L({ en: '✓ Equipped', pt: '✓ Equipado', es: '✓ Equipado' }) : L({ en: 'Equip', pt: 'Equipar', es: 'Equipar' })}
         </button>
       ) : (
         <button

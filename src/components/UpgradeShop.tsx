@@ -5,6 +5,7 @@ import { STAT_ICON, iconArt } from '../lib/evolution';
 import { MAX_STAT_LEVEL, STAT_INFO, UPGRADE_VISUALS } from '../lib/stats';
 import Showcase from './Showcase';
 import { EyeIcon, LockIcon, Stardust } from './GameIcon';
+import { L } from '../lib/i18n';
 
 interface UpgradeShopProps {
   profile: PlayerProfile;
@@ -22,19 +23,19 @@ export default function UpgradeShop({ profile, onPurchase }: UpgradeShopProps) {
   return (
     <div className="panel">
       <div className="flex items-baseline justify-between mb-3">
-        <h3 className="font-display text-lg text-white">Oficina</h3>
+        <h3 className="font-display text-lg text-white">{L({ en: 'Workshop', pt: 'Oficina', es: 'Taller' })}</h3>
         <span className="text-xs text-amber-300"><Stardust value={profile.stardust} /></span>
       </div>
 
       <Showcase
         dog={dog}
         focus="rocket"
-        badge={preview ? <span className="inline-flex items-center gap-1"><EyeIcon /> Prévia: {STAT_INFO[preview].label} nv {previewLevel}</span> : <>Configuração atual</>}
+        badge={preview ? <span className="inline-flex items-center gap-1"><EyeIcon /> {L({ en: 'Preview', pt: 'Prévia', es: 'Vista previa' })}: {STAT_INFO[preview].label} {L({ en: 'lv', pt: 'nv', es: 'nv' })} {previewLevel}</span> : <>{L({ en: 'Current setup', pt: 'Configuração atual', es: 'Configuración actual' })}</>}
         footer={
           <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-            <span className="text-slate-400 mr-1">Peças instaladas (aparecem no foguete em voo):</span>
+            <span className="text-slate-400 mr-1">{L({ en: 'Installed parts (shown on the rocket in flight):', pt: 'Peças instaladas (aparecem no foguete em voo):', es: 'Piezas instaladas (aparecen en el cohete en vuelo):' })}</span>
             {installed.length === 0 ? (
-              <span className="text-slate-500">nenhuma ainda — suba os atributos para equipar o foguete</span>
+              <span className="text-slate-500">{L({ en: 'none yet — level up your stats to equip the rocket', pt: 'nenhuma ainda — suba os atributos para equipar o foguete', es: 'ninguna aún — sube los atributos para equipar el cohete' })}</span>
             ) : (
               installed.map(part => (
                 <span key={part} className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
@@ -67,10 +68,10 @@ export default function UpgradeShop({ profile, onPurchase }: UpgradeShopProps) {
                   <img src={iconArt(STAT_ICON[stat])} alt="" className="w-12 h-12 rounded-xl object-cover border border-white/10 shrink-0" draggable={false} />
                   <div className="min-w-0">
                     <h4 className={`text-sm font-semibold ${info.color}`}>
-                      {info.label} <span className="text-white">nv {level}</span>
+                      {info.label} <span className="text-white">{L({ en: 'lv', pt: 'nv', es: 'nv' })} {level}</span>
                     </h4>
                     <p className="text-xs text-slate-400">{info.effect}</p>
-                    {next && <p className="text-[11px] text-slate-500 mt-0.5">Próximo: {next.name}</p>}
+                    {next && <p className="text-[11px] text-slate-500 mt-0.5">{L({ en: 'Next', pt: 'Próximo', es: 'Siguiente' })}: {next.name}</p>}
                   </div>
                 </div>
                 {next ? (
@@ -87,7 +88,7 @@ export default function UpgradeShop({ profile, onPurchase }: UpgradeShopProps) {
                     <Stardust value={next.cost} />
                   </button>
                 ) : (
-                  <span className="shrink-0 font-display text-xs text-amber-300">MÁX</span>
+                  <span className="shrink-0 font-display text-xs text-amber-300">{L({ en: 'MAX', pt: 'MÁX', es: 'MÁX' })}</span>
                 )}
               </div>
               <div className="flex gap-0.5 mt-3">
@@ -115,7 +116,7 @@ export default function UpgradeShop({ profile, onPurchase }: UpgradeShopProps) {
                         on ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30' : 'bg-white/5 text-slate-400 border-white/10'
                       }`}
                     >
-                      {on ? '✓' : <><LockIcon size={11} className="inline -mt-0.5" /> nv {v.level}</>} {v.part}
+                      {on ? '✓' : <><LockIcon size={11} className="inline -mt-0.5" /> {L({ en: 'lv', pt: 'nv', es: 'nv' })} {v.level}</>} {v.part}
                     </span>
                   );
                 })}

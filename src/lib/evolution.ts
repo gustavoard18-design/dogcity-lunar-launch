@@ -1,5 +1,6 @@
 import type { DogAstronaut, Rarity, Stat } from '../types';
 import { getCosmetic } from './shop';
+import { L } from './i18n';
 
 /**
  * Fases visuais do astronauta e do foguete (artes em public/art).
@@ -23,19 +24,19 @@ export interface TierProgress {
 }
 
 export const ASTRONAUT_TIERS: Tier[] = [
-  { index: 1, name: 'Início', min: 0, accent: 'text-slate-200' },
-  { index: 2, name: 'Exploração', min: 2, accent: 'text-sky-300' },
-  { index: 3, name: 'Avançado', min: 5, accent: 'text-cyan-300' },
-  { index: 4, name: 'Especial', min: 8, accent: 'text-amber-300' },
-  { index: 5, name: 'Lendário', min: 11, accent: 'text-fuchsia-300' },
+  { index: 1, name: L({ en: 'Rookie', pt: 'Início', es: 'Inicio' }), min: 0, accent: 'text-slate-200' },
+  { index: 2, name: L({ en: 'Explorer', pt: 'Exploração', es: 'Exploración' }), min: 2, accent: 'text-sky-300' },
+  { index: 3, name: L({ en: 'Advanced', pt: 'Avançado', es: 'Avanzado' }), min: 5, accent: 'text-cyan-300' },
+  { index: 4, name: L({ en: 'Special', pt: 'Especial', es: 'Especial' }), min: 8, accent: 'text-amber-300' },
+  { index: 5, name: L({ en: 'Legendary', pt: 'Lendário', es: 'Legendario' }), min: 11, accent: 'text-fuchsia-300' },
 ];
 
 export const ROCKET_TIERS: Tier[] = [
-  { index: 1, name: 'Básico', min: 4, accent: 'text-slate-200' },
-  { index: 2, name: 'Aprimorado', min: 10, accent: 'text-sky-300' },
-  { index: 3, name: 'Avançado', min: 17, accent: 'text-violet-300' },
-  { index: 4, name: 'Especial', min: 25, accent: 'text-amber-300' },
-  { index: 5, name: 'Lendário', min: 33, accent: 'text-fuchsia-300' },
+  { index: 1, name: L({ en: 'Basic', pt: 'Básico', es: 'Básico' }), min: 4, accent: 'text-slate-200' },
+  { index: 2, name: L({ en: 'Upgraded', pt: 'Aprimorado', es: 'Mejorado' }), min: 10, accent: 'text-sky-300' },
+  { index: 3, name: L({ en: 'Advanced', pt: 'Avançado', es: 'Avanzado' }), min: 17, accent: 'text-violet-300' },
+  { index: 4, name: L({ en: 'Special', pt: 'Especial', es: 'Especial' }), min: 25, accent: 'text-amber-300' },
+  { index: 5, name: L({ en: 'Legendary', pt: 'Lendário', es: 'Legendario' }), min: 33, accent: 'text-fuchsia-300' },
 ];
 
 export const RARITY_POINTS: Record<Rarity, number> = { common: 1, rare: 2, epic: 3, legendary: 4 };

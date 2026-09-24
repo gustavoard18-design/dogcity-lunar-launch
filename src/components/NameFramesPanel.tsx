@@ -3,6 +3,7 @@ import { NAME_FRAMES } from '../lib/frames';
 import { PODIUM_PRIZES } from '../lib/podium';
 import PilotName from './PilotName';
 import { LockIcon } from './GameIcon';
+import { L } from '../lib/i18n';
 
 interface NameFramesPanelProps {
   profile: PlayerProfile;
@@ -15,13 +16,17 @@ export default function NameFramesPanel({ profile, onSelect }: NameFramesPanelPr
   return (
     <div className="panel mt-4">
       <div className="flex items-baseline justify-between mb-1">
-        <h3 className="font-display text-lg text-white">Molduras de nome</h3>
+        <h3 className="font-display text-lg text-white">{L({ en: 'Name frames', pt: 'Molduras de nome', es: 'Marcos de nombre' })}</h3>
         <span className="text-sm text-slate-300">
           <b className="text-white font-display">{open}</b>/{NAME_FRAMES.length}
         </span>
       </div>
       <p className="text-[11px] text-slate-500 mb-4">
-        Aparecem no seu perfil e no ranking. As de pódio vêm do top 3 do evento semanal (1º: +{PODIUM_PRIZES[1].stardust} Stardust e +{PODIUM_PRIZES[1].lunarDust} Pó Lunar).
+        {L({
+          en: `Shown on your profile and the leaderboard. Podium frames come from the weekly event top 3 (1st: +${PODIUM_PRIZES[1].stardust} Stardust and +${PODIUM_PRIZES[1].lunarDust} Lunar Dust).`,
+          pt: `Aparecem no seu perfil e no ranking. As de pódio vêm do top 3 do evento semanal (1º: +${PODIUM_PRIZES[1].stardust} Stardust e +${PODIUM_PRIZES[1].lunarDust} Pó Lunar).`,
+          es: `Aparecen en tu perfil y en la clasificación. Los de podio vienen del top 3 del evento semanal (1.º: +${PODIUM_PRIZES[1].stardust} Stardust y +${PODIUM_PRIZES[1].lunarDust} Polvo Lunar).`,
+        })}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {NAME_FRAMES.map(f => {
@@ -45,7 +50,7 @@ export default function NameFramesPanel({ profile, onSelect }: NameFramesPanelPr
                   <PilotName name={profile.dog.name} style={f.id} />
                 </span>
                 {unlocked ? (
-                  <span className={`text-[11px] shrink-0 ${active ? 'text-amber-200' : 'text-slate-400'}`}>{active ? '★ Em uso' : 'Usar'}</span>
+                  <span className={`text-[11px] shrink-0 ${active ? 'text-amber-200' : 'text-slate-400'}`}>{active ? L({ en: '★ In use', pt: '★ Em uso', es: '★ En uso' }) : L({ en: 'Use', pt: 'Usar', es: 'Usar' })}</span>
                 ) : (
                   <LockIcon size={14} />
                 )}

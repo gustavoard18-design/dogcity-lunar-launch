@@ -1,10 +1,11 @@
 import { DogAstronaut, PlayerProfile, Route, Tier } from '../types';
+import { L } from './i18n';
 
 export const ROUTES: Route[] = [
   {
     id: 'low-orbit',
-    name: 'Órbita Baixa',
-    description: 'Voo de treino até a órbita da Terra.',
+    name: L({ en: 'Low Orbit', pt: 'Órbita Baixa', es: 'Órbita Baja' }),
+    description: L({ en: 'Training flight to Earth orbit.', pt: 'Voo de treino até a órbita da Terra.', es: 'Vuelo de entrenamiento hasta la órbita de la Tierra.' }),
     cost: 10,
     difficulty: 1,
     maxScore: 100,
@@ -17,8 +18,8 @@ export const ROUTES: Route[] = [
   },
   {
     id: 'sea-of-tranquility',
-    name: 'Mar da Tranquilidade',
-    description: 'Salto até o Mar da Tranquilidade, do outro lado da Lua.',
+    name: L({ en: 'Sea of Tranquility', pt: 'Mar da Tranquilidade', es: 'Mar de la Tranquilidad' }),
+    description: L({ en: 'A leap to the Sea of Tranquility on the Moon.', pt: 'Salto até o Mar da Tranquilidade, do outro lado da Lua.', es: 'Un salto hasta el Mar de la Tranquilidad, en la Luna.' }),
     cost: 25,
     difficulty: 2,
     maxScore: 250,
@@ -31,8 +32,8 @@ export const ROUTES: Route[] = [
   },
   {
     id: 'asteroid-belt',
-    name: 'Cinturão de Asteroides',
-    description: 'Navegação perigosa entre rochas espaciais até Ceres.',
+    name: L({ en: 'Asteroid Belt', pt: 'Cinturão de Asteroides', es: 'Cinturón de Asteroides' }),
+    description: L({ en: 'A dangerous run through space rocks to Ceres.', pt: 'Navegação perigosa entre rochas espaciais até Ceres.', es: 'Navegación peligrosa entre rocas espaciales hasta Ceres.' }),
     cost: 50,
     difficulty: 3,
     maxScore: 500,
@@ -45,8 +46,8 @@ export const ROUTES: Route[] = [
   },
   {
     id: 'mars-colony',
-    name: 'Colônia de Marte',
-    description: 'A missão definitiva. Glória eterna.',
+    name: L({ en: 'Mars Colony', pt: 'Colônia de Marte', es: 'Colonia de Marte' }),
+    description: L({ en: 'The ultimate mission. Eternal glory.', pt: 'A missão definitiva. Glória eterna.', es: 'La misión definitiva. Gloria eterna.' }),
     cost: 100,
     difficulty: 4,
     maxScore: 1000,
