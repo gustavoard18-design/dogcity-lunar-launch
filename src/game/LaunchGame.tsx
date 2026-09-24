@@ -7,6 +7,7 @@ import { cutoutArt } from '../lib/evolution';
 import { gaugeQuality, getGameTuning, isPerfect } from '../lib/stats';
 import { getLook } from '../lib/shop';
 import { engineSound, sfx } from '../lib/audio';
+import { music } from '../lib/music';
 import PadScene, { AimState, PadPhase } from './PadScene';
 import FlightWorld, { FlightEvent, FlightHud, FlightInput } from './FlightWorld';
 import type { FlightResult } from '../lib/scoring';
@@ -198,6 +199,13 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
   }, [phase, tutorial, profile.address, showTip]);
 
   useEffect(() => () => engineSound.stop(), []);
+
+  // Trilha: tensão na base, ritmo de voo (tom do planeta, andamento da dificuldade), calma no resultado.
+  useEffect(() => {
+    if (phase === 'liftoff' || phase === 'flight') music.play('flight', route.destination, route.difficulty);
+    else if (phase === 'result') music.play('hangar');
+    else music.play('pad');
+  }, [phase, route.destination, route.difficulty]);
 
   const comboTipRef = useRef<() => void>();
   const hitTipRef = useRef<() => void>();

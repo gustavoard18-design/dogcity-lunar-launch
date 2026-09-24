@@ -34,6 +34,16 @@ function audio(): { ctx: AudioContext; out: GainNode } | null {
   return { ctx, out: master! };
 }
 
+/** Contexto e saída principal (a trilha sonora usa a mesma saída, então o mudo vale para ela). */
+export function audioOutput(): { ctx: AudioContext; out: GainNode } | null {
+  return audio();
+}
+
+/** O contexto só toca depois de um gesto; `true` quando já está rodando. */
+export function audioRunning(): boolean {
+  return ctx?.state === 'running';
+}
+
 function noise(c: AudioContext): AudioBuffer {
   if (!noiseBuffer) {
     noiseBuffer = c.createBuffer(1, c.sampleRate * 2, c.sampleRate);

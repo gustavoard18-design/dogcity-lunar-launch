@@ -13,6 +13,8 @@ import { STAT_INFO } from './lib/stats';
 import { claimAchievement, getAchievementDef, hasClaimableAchievement, setTitle, titleText, unlockAchievements } from './lib/achievements';
 import { cutoutArt } from './lib/evolution';
 import { isMuted, setMuted, sfx } from './lib/audio';
+import { isMusicEnabled, music, setMusicEnabled } from './lib/music';
+import { usePwaInstall } from './lib/pwa';
 import ConnectWallet from './components/ConnectWallet';
 import PlayerProfileCard from './components/PlayerProfile';
 import RouteSelector from './components/RouteSelector';
@@ -52,6 +54,14 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('launch');
   const [notification, setNotification] = useState<{ text: string; icon?: IconName; key: number } | null>(null);
   const [muted, setMutedState] = useState(isMuted());
+  const [musicOn, setMusicOn] = useState(isMusicEnabled());
+  const [iosHelp, setIosHelp] = useState(false);
+  const pwa = usePwaInstall();
+
+  // Fora da missão toca o ambiente do hangar (a missão troca o clima sozinha).
+  useEffect(() => {
+    if (!session) music.play('hangar');
+  }, [session]);
 
   const notify = useCallback((text: string, icon?: IconName) => setNotification({ text, icon, key: Date.now() }), []);
 
@@ -222,6 +232,18 @@ export default function App() {
     sfx.click();
   };
 
+  const toggleMusic = () => {
+    setMusicEnabled(!musicOn);
+    setMusicOn(!musicOn);
+  };
+
+  const handleInstall = async () => {
+    if (pwa.canPrompt) {
+      const ok = await pwa.install();
+      if (ok) notify('DogCity instalado! Abra pelo ícone na tela inicial.', 'rocket');
+    } else if (pwa.showIosHelp) setIosHelp(v => !v);
+  };
+
   const toggleMute = () => {
     setMuted(!muted);
     setMutedState(!muted);
@@ -284,6 +306,21 @@ export default function App() {
               <div className="flex items-center gap-2 sm:gap-3 text-sm">
                 <span className="text-amber-300 font-semibold"><Stardust value={profile.stardust} /></span>
                 <span className="text-violet-300 font-semibold"><LunarDust value={profile.lunarDust} /></span>
+                {(pwa.canPrompt || pwa.showIosHelp) && (
+                  <div className="relative">
+                    <button onClick={handleInstall} className="btn-ghost px-3 py-1.5 text-xs whitespace-nowrap" title="Instalar o DogCity como app">
+                      <span className="inline-flex items-center gap-1.5"><InstallIcon /> <span className="hidden sm:inline">Instalar app</span></span>
+                    </button>
+                    {iosHelp && (
+                      <div className="absolute right-0 top-full mt-2 w-64 hud-panel p-3 text-xs text-slate-200 z-30">
+                        No Safari, toque em <b>Compartilhar</b> <ShareGlyph /> e depois em <b>Adicionar à Tela de Início</b>.
+                      </div>
+                    )}
+                  </div>
+                )}
+                <button onClick={toggleMusic} className={`btn-ghost px-2.5 py-1.5 text-xs ${musicOn ? '' : 'opacity-50'}`} aria-label={musicOn ? 'Desligar música' : 'Ligar música'} title={musicOn ? 'Desligar música' : 'Ligar música'}>
+                  <MusicIcon off={!musicOn} />
+                </button>
                 <button onClick={toggleMute} className="btn-ghost px-2.5 py-1.5 text-xs" aria-label={muted ? 'Ativar som' : 'Silenciar'}>
                   <SpeakerIcon muted={muted} />
                 </button>
@@ -356,5 +393,34 @@ function LoadingScreen() {
       <img src={cutoutArt('astronaut')} alt="" className="h-48 object-contain animate-float drop-shadow-[0_20px_30px_rgba(56,189,248,0.35)] mb-5" draggable={false} />
       <div className="font-display text-sm tracking-[0.3em]">PREPARANDO LANÇAMENTO</div>
     </div>
+  );
+}
+
+function MusicIcon({ off }: { off: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M9 18V5l11-2v13" />
+      <circle cx="6" cy="18" r="3" />
+      <circle cx="17" cy="16" r="3" />
+      {off && <path d="M3 3l18 18" />}
+    </svg>
+  );
+}
+
+function InstallIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M12 3v12M7 10l5 5 5-5" />
+      <path d="M5 21h14" />
+    </svg>
+  );
+}
+
+function ShareGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline -mt-0.5" aria-hidden>
+      <path d="M12 3v12M8 7l4-4 4 4" />
+      <path d="M5 12v8h14v-8" />
+    </svg>
   );
 }

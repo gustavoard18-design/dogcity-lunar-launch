@@ -114,9 +114,26 @@ Upgrades custam `base × 1.45^(nível−2)` (bases: potência 40, precisão 45, 
 
 ## 11. Áudio (`lib/audio.ts`)
 
-Todo o som é sintetizado com WebAudio: osciladores e ruído marrom filtrado. O `AudioContext` nasce no primeiro clique. O botão 🔊 no topo silencia, e a preferência fica salva.
+Todo o som é sintetizado com WebAudio: osciladores e ruído marrom filtrado. O `AudioContext` nasce no primeiro clique. O botão 🔊 no topo silencia tudo, e a preferência fica salva.
 
-## 12. Evolução visual (`lib/evolution.ts`)
+**Trilha sonora** (`lib/music.ts`): gerada em tempo real, sem arquivos. Um agendador marca semicolcheias 0,25 s à frente, com pad (tríade + sétima desafinada), arpejo com eco, baixo e bateria sintetizados. Três climas, com crossfade:
+
+| Clima | Onde | Andamento | Camadas |
+|---|---|---|---|
+| `hangar` | login, hangar e resultado | 72 bpm, maior | pad e arpejo rarefeito |
+| `pad` | base de lançamento (briefing, mira, força, contagem) | 84 bpm, menor | pad, arpejo lento e batida de coração |
+| `flight` | decolagem e voo | 104 + 8 × dificuldade, menor; tom pelo planeta | pad, arpejo, baixo e bateria |
+
+A música usa a mesma saída dos efeitos (o 🔊 silencia tudo), tem botão próprio (🎵, preferência `dogcity_music`), só começa depois do primeiro toque e para com a aba escondida.
+
+## 12. App instalável (PWA)
+
+- `public/manifest.webmanifest` com ícones feitos da arte oficial (`icon-192/512.png`, `icon-maskable-512.png` com zona segura, `apple-touch-icon.png`, `favicon-64.png`).
+- `public/sw.js` (só no build publicado): páginas pela rede primeiro (versão nova quando online), arquivos do mesmo site e as fontes com cache primeiro e atualização por trás. O Supabase nunca passa pelo cache. Trocar `CACHE` no arquivo limpa o cache antigo.
+- Botão "Instalar app" no cabeçalho (`lib/pwa.ts`): usa o pedido de instalação do Chrome/Edge/Android (`beforeinstallprompt`); no iPhone/iPad mostra o passo a passo do Safari. Some quando o jogo já está instalado.
+- Sem internet, o jogo abre com o que já foi visitado; uma rota só roda offline depois de ter sido jogada uma vez online (modelos 3D e o código da missão entram no cache nesse momento).
+
+## 13. Evolução visual (`lib/evolution.ts`)
 
 | Fase | Astronauta (pts de raridade equipados, máx 12) | Foguete (soma dos 4 atributos, 4–40) |
 |---|---|---|
@@ -128,13 +145,13 @@ Todo o som é sintetizado com WebAudio: osciladores e ruído marrom filtrado. O 
 
 As artes ficam em `public/art/astro-N.webp`, `public/art/rocket-N.webp` e `public/art/icons/*.webp`. A Loja funciona como provador (mostra a fase que o item daria) e a Oficina mostra a prévia do próximo nível.
 
-## 13. Testes
+## 14. Testes
 
 `npm test` roda `src/lib/game-rules.test.ts` (Vitest + jsdom). Ele cobre economia, pontuação, efeitos dos atributos, aplicação de resultados, missões (renovação, progresso, troca e level up ao resgatar), loja, migração de perfis v1, rodízio e bônus do evento semanal, e conquistas (contadores, desbloqueio, resgate e migração).
 
 O CI (`.github/workflows/ci.yml`) roda typecheck, testes e build em Node 22 e 24, e publica no GitHub Pages a cada push em `main`/`master` (o build usa `base: './'`).
 
-## 14. Próximos passos sugeridos
+## 15. Próximos passos sugeridos
 
 - Molduras ou cores de nome desbloqueadas por conquistas raras.
 - Recompensa para o top 3 do ranking do evento ao fim da semana (exige rotina no servidor).
