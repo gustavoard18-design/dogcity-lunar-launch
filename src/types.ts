@@ -79,6 +79,8 @@ export interface PlayerProfile {
   achievements: Record<string, AchievementState>;
   /** Semanas (weekStart ISO) em que o bônus do evento semanal já foi ganho. */
   eventWins: string[];
+  /** Conquista escolhida como título do piloto (aparece no perfil e no ranking). */
+  title?: string;
 }
 
 export interface LifetimeStats {
@@ -89,6 +91,12 @@ export interface LifetimeStats {
   perfects: number;
   flawless: number;
   stardustEarned: number;
+  /** Naves perdidas ou voos abortados. */
+  crashes: number;
+  /** Voos concluídos com só 1 ponto de casco sobrando. */
+  closeCalls: number;
+  /** Voos feitos entre 0h e 5h (horário local). */
+  nightFlights: number;
   /** Voos concluídos com sucesso por rota. */
   routes: Record<string, number>;
 }
@@ -125,6 +133,8 @@ export interface Route {
   color: string;
   /** Multiplica a taxa de orbes (rotas de evento). */
   orbRateMult?: number;
+  /** Multiplica a frequência dos anéis de impulso (rotas de evento). */
+  ringRateMult?: number;
   /** Rota especial do evento semanal. */
   event?: boolean;
 }
@@ -168,6 +178,8 @@ export interface LeaderboardEntry {
   totalLaunches: number;
   weekScore: number;
   simulated?: boolean;
+  /** Id da conquista usada como título. */
+  title?: string;
 }
 
 export type MissionType =

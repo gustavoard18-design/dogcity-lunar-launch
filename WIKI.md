@@ -73,26 +73,31 @@ Upgrades custam `base × 1.45^(nível−2)` (bases: potência 40, precisão 45, 
 
 ## 7. Evento semanal (`lib/events.ts`)
 
-- Uma rota especial por semana, em rodízio fixo de 4 eventos. Troca na segunda-feira às 00:00 (horário local), contando a partir da semana de 05/01/2026.
-- Os eventos reaproveitam os destinos das rotas normais e mudam o ritmo com `hazardRate`, `flightSeconds` e `orbRateMult` (multiplica a taxa de orbes em `getGameTuning`).
+- Uma rota especial por semana, em rodízio fixo de 5 eventos. Troca na segunda-feira às 00:00 (horário local), contando a partir da semana de 05/01/2026.
+- Os eventos mudam o ritmo com `hazardRate`, `flightSeconds`, `orbRateMult` (multiplica a taxa de orbes em `getGameTuning`) e `ringRateMult` (anéis de impulso mais frequentes no `FlightWorld`). Saturno usa o planeta `gas` com anéis e o ícone `public/art/ui/planet-saturn.webp` (render do próprio jogo).
+- Ao incluir um evento, a posição na lista deve manter o evento da semana em curso (`índice da semana % tamanho da lista`), senão o evento troca no meio da semana.
 
 | Evento | Destino | Nível | Custo | Voo | Orbes | Bônus (qualidade mínima) |
 |---|---|---|---|---|---|---|
 | Chuva de Meteoros | Terra | 2 | 30 | 30 s | x2 | +120 ✨ +6 Pó Lunar (60%) |
+| Anéis de Saturno | Saturno | 4 | 45 | 44 s | x1.6, anéis x2.5 | +170 ✨ +8 Pó Lunar (60%) |
 | Tempestade Solar | Lua | 2 | 25 | 26 s | x2.4 | +100 ✨ +5 Pó Lunar (60%) |
 | Caçada ao Cometa | Ceres | 3 | 40 | 40 s | x1.5 | +150 ✨ +7 Pó Lunar (60%) |
 | Maratona Marciana | Marte | 5 | 60 | 50 s | x1.4 | +200 ✨ +9 Pó Lunar (55%) |
 
 - O bônus sai uma vez por semana, só na rota do evento *daquela* semana, com sucesso e qualidade mínima. A semana ganha fica em `profile.eventWins`.
 - O card do evento aparece no topo da aba Lançar, com o tempo restante e o status do bônus.
-- Ranking online: a migração `20260924000000_event_routes.sql` adiciona as rotas de evento em `route_max_score`. Sem ela, o servidor recusa esses envios e o ranking local continua valendo.
+- O Ranking tem as abas **Geral** e **Evento**: a segunda mostra o melhor voo concluído de cada piloto na rota do evento, só na semana (`event_leaderboard` no servidor, `getEventLeaderboard` no modo local).
+- Ranking online: as migrações `20260924000000_event_routes.sql` e `20260924010000_event_ranking_titles.sql` adicionam as rotas de evento em `route_max_score`, o título nos envios e a função `event_leaderboard`. Sem a segunda, o cliente envia no formato antigo (fallback em `submitScore`) e o ranking do evento usa os dados locais.
 
 ## 8. Conquistas (`lib/achievements.ts`)
 
-- 22 conquistas permanentes medidas sobre `profile.stats` (voos, sucessos, orbes, anéis, lançamentos perfeitos, voos sem dano, Stardust ganho e sucessos por rota), `eventWins` e o próprio perfil (nível, atributo máximo, itens da Loja).
+- 22 conquistas permanentes e 4 secretas (nome e objetivo ocultos até desbloquear), medidas sobre `profile.stats` (voos, sucessos, orbes, anéis, lançamentos perfeitos, voos sem dano, Stardust ganho e sucessos por rota), `eventWins` e o próprio perfil (nível, atributo máximo, itens da Loja).
 - `unlockAchievements` roda no resultado de cada voo e em todo `commit` do App, então compras e level ups também desbloqueiam. A recompensa (Stardust e Pó Lunar) é resgatada no painel de Conquistas da aba Missões, que ganha o selo verde quando há algo para resgatar.
 - Perfis antigos sem contadores recebem uma estimativa pelo histórico (`statsFromHistory`: total de missões do piloto e sucessos dos últimos 50 voos) e já carregam as conquistas cumpridas.
 - A tela de resultado lista as conquistas desbloqueadas no voo e o bônus do evento.
+- **Títulos:** toda conquista resgatada pode virar o título do piloto (`profile.title`, escolhido no painel). Ele aparece no perfil e no ranking. O servidor guarda só o id da conquista (validado por padrão `^[a-z0-9_]{1,24}$`), nunca texto livre.
+- A aba Diário mostra a carreira do piloto: contadores de vida, rotas concluídas e eventos vencidos.
 
 ## 9. Persistência (`lib/storage.ts`)
 
@@ -126,6 +131,6 @@ O CI (`.github/workflows/ci.yml`) roda typecheck, testes e build em Node 22 e 24
 
 ## 13. Próximos passos sugeridos
 
-- Ranking do evento semanal separado do ranking geral.
-- Conquistas secretas e títulos exibidos no perfil do piloto.
-- Mais eventos no rodízio (Saturno com anéis usando o planeta `gas`).
+- Molduras ou cores de nome desbloqueadas por conquistas raras.
+- Recompensa para o top 3 do ranking do evento ao fim da semana (exige rotina no servidor).
+- Artes 2D do foguete (vitrine da Loja/Oficina) no estilo do foguete Bitcoin 3D.

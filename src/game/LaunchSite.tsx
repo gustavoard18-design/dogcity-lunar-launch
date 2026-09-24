@@ -755,7 +755,7 @@ export function HoloTarget({ kind, color }: { kind: PlanetKind; color: string })
   });
   return (
     <group>
-      <Planet kind={kind} radius={0.85} spin={0.25} />
+      <Planet kind={kind} radius={0.85} spin={0.25} rings={kind === 'gas'} />
       <group ref={rings}>
         <mesh>
           <torusGeometry args={[1.35, 0.03, 8, 96, Math.PI * 1.6]} />

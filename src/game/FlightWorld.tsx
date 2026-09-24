@@ -252,7 +252,7 @@ export default function FlightWorld({ route, tuning, look, startShield, inputRef
       }
 
       s.acc.ring += dt;
-      if (s.acc.ring >= 5) {
+      if (s.acc.ring >= 5 / (route.ringRateMult ?? 1)) {
         s.acc.ring = Math.random() * 1.5;
         const r = spawnFrom(s.ringList);
         if (r) {
@@ -522,7 +522,7 @@ export default function FlightWorld({ route, tuning, look, startShield, inputRef
       <DriftingSatellite speedRef={speedRef} />
 
       <group ref={planetGroup}>
-        <Planet kind={route.destination} radius={70} spin={0.03} tilt={0.2} fog={false} />
+        <Planet kind={route.destination} radius={70} spin={0.03} tilt={0.2} fog={false} rings={route.destination === 'gas'} />
       </group>
 
       <group ref={rocketGroup}>

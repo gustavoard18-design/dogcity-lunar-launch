@@ -15,10 +15,10 @@ import { applyLaunchResult, equipCosmetic, purchaseCosmetic, purchaseUpgrade } f
 import { computeOutcome, FlightResult } from './scoring';
 import { UPGRADES, getNextUpgrade } from './shop';
 import { gaugeQuality, getGameTuning } from './stats';
-import { createProfile, loadProfile, migrateProfile, saveProfile } from './storage';
+import { createProfile, getEventLeaderboard, loadProfile, migrateProfile, saveProfile } from './storage';
 import { astronautTier, rocketTier } from './evolution';
 import { EVENTS, getCurrentEvent, getEventBonus, getWeekIndex, msUntilNextEvent } from './events';
-import { ACHIEVEMENTS, claimAchievement, statsFromHistory, unlockAchievements } from './achievements';
+import { ACHIEVEMENTS, claimAchievement, setTitle, statsFromHistory, titleText, unlockAchievements } from './achievements';
 
 const [LOW, MOON] = ROUTES;
 
@@ -361,5 +361,55 @@ describe('conquistas', () => {
     const loaded = loadProfile(profile.address)!;
     expect(loaded.eventWins).toEqual([]);
     expect(Object.keys(loaded.achievements)).toEqual(expect.arrayContaining(['launches_10', 'route_mars', 'first_success']));
+  });
+});
+
+describe('títulos, secretas e ranking do evento', () => {
+  it('só dá para usar como título uma conquista desbloqueada', () => {
+    expect(setTitle(profile, 'route_mars')).toBeNull();
+    const { profile: flown } = applyLaunchResult(profile, LOW, outcome(), LOW.cost);
+    const titled = setTitle(flown, 'first_success')!;
+    expect(titled.title).toBe('first_success');
+    expect(titleText(titled.title)).toBe('Primeiro Salto');
+    expect(setTitle(titled, null)!.title).toBeUndefined();
+  });
+
+  it('título inválido some na migração', () => {
+    const bad = migrateProfile({ ...profile, title: 'route_mars' });
+    expect(bad.title).toBeUndefined();
+  });
+
+  it('contadores das secretas: por um fio, coruja e naves perdidas', () => {
+    const night = new Date(2026, 8, 23, 2, 30);
+    const { profile: a } = applyLaunchResult(profile, LOW, outcome({ hullLeft: 1, hullMax: 3 }), LOW.cost, night);
+    expect(a.stats).toMatchObject({ closeCalls: 1, nightFlights: 1, crashes: 0 });
+    expect(a.achievements.secret_close).toBeTruthy();
+    expect(a.achievements.secret_night).toBeTruthy();
+    const { profile: b } = applyLaunchResult(a, LOW, outcome({ success: false, score: 5 }), LOW.cost, new Date(2026, 8, 23, 14));
+    expect(b.stats.crashes).toBe(1);
+  });
+
+  it('perfil com stats antigos (sem os contadores novos) é completado', () => {
+    const old = { ...profile, stats: { launches: 3, successes: 2, orbs: 5, rings: 1, perfects: 0, flawless: 0, stardustEarned: 40, routes: {} } };
+    const m = migrateProfile(old as unknown as PlayerProfile);
+    expect(m.stats).toMatchObject({ launches: 3, crashes: 0, closeCalls: 0, nightFlights: 0 });
+  });
+
+  it('evento de Saturno tem anéis mais frequentes e o rodízio mantém o evento desta semana', () => {
+    const saturn = EVENTS.find(e => e.route.destination === 'gas')!;
+    expect(saturn.route.ringRateMult).toBeGreaterThan(1);
+    expect(getCurrentEvent(new Date(2026, 8, 23)).id).toBe('solar-storm');
+  });
+
+  it('ranking local do evento só conta voos concluídos na rota, nesta semana', () => {
+    const now = new Date(2026, 8, 23, 12);
+    const event = getCurrentEvent(now);
+    const { profile: a } = applyLaunchResult(profile, event.route, outcome({ score: 120 }), event.route.cost, now);
+    const { profile: b } = applyLaunchResult(a, LOW, outcome({ score: 90 }), LOW.cost, now);
+    saveProfile(b);
+    const board = getEventLeaderboard(event.route.id, now);
+    expect(board).toHaveLength(1);
+    expect(board[0]).toMatchObject({ weekScore: 120, totalLaunches: 1 });
+    expect(getEventLeaderboard(event.route.id, new Date(2026, 8, 30, 12))).toHaveLength(0);
   });
 });

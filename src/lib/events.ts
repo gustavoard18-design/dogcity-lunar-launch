@@ -4,7 +4,8 @@ import { getQuality, getWeekStart } from './economy';
 /**
  * Evento semanal: uma rota especial que troca toda segunda-feira (00:00 local),
  * em rodízio fixo. Concluir a rota do evento com qualidade mínima rende um
- * bônus extra, uma vez por semana.
+ * bônus extra, uma vez por semana. Ao incluir um evento, escolha a posição
+ * que mantém o evento da semana em curso (índice da semana % tamanho da lista).
  */
 
 export interface WeeklyEvent {
@@ -38,6 +39,30 @@ export const EVENTS: WeeklyEvent[] = [
       hazardRate: 2.9,
       color: '#fb923c',
       orbRateMult: 2,
+      event: true,
+    },
+  },
+  {
+    id: 'saturn-rings',
+    name: 'Anéis de Saturno',
+    tagline: 'Voe pela divisão de Cassini: anéis de impulso por todo lado.',
+    minQuality: 0.6,
+    bonus: { stardust: 170, lunarDust: 8 },
+    route: {
+      id: 'event-saturn-rings',
+      name: 'Anéis de Saturno',
+      description: 'Viagem até Saturno cortando os anéis.',
+      cost: 45,
+      difficulty: 3,
+      maxScore: 600,
+      rewardMultiplier: 3.5,
+      unlockLevel: 4,
+      destination: 'gas',
+      flightSeconds: 44,
+      hazardRate: 2.0,
+      color: '#fcd34d',
+      orbRateMult: 1.6,
+      ringRateMult: 2.5,
       event: true,
     },
   },

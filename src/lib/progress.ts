@@ -56,7 +56,7 @@ export function applyLaunchResult(
     ...base,
     stardust: base.stardust + stardustEarned + (eventBonus?.stardust ?? 0),
     lunarDust: base.lunarDust + lunarDustGained + (eventBonus?.lunarDust ?? 0),
-    stats: addLaunchToStats(base.stats, outcome, route, stardustEarned),
+    stats: addLaunchToStats(base.stats, outcome, route, stardustEarned, now),
     eventWins: eventBonus ? [getWeekStart(now), ...base.eventWins] : base.eventWins,
     totalScore: base.totalScore + score,
     bestScore: success ? Math.max(base.bestScore, score) : base.bestScore,

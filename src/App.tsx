@@ -10,7 +10,7 @@ import { claimMission, ensureDailyMissions, rerollMissions } from './lib/mission
 import { applyLaunchResult, equipCosmetic, purchaseCosmetic, purchaseUpgrade } from './lib/progress';
 import { COSMETICS, UPGRADES } from './lib/shop';
 import { STAT_INFO } from './lib/stats';
-import { claimAchievement, getAchievementDef, hasClaimableAchievement, unlockAchievements } from './lib/achievements';
+import { claimAchievement, getAchievementDef, hasClaimableAchievement, setTitle, titleText, unlockAchievements } from './lib/achievements';
 import { cutoutArt } from './lib/evolution';
 import { isMuted, setMuted, sfx } from './lib/audio';
 import ConnectWallet from './components/ConnectWallet';
@@ -129,7 +129,7 @@ export default function App() {
     const { profile: next, summary } = applyLaunchResult(profile, session.route, outcome, session.paidCost);
     commit(next);
     if (outcome.success) {
-      void submitScore({ address: next.address, dogName: next.dog.name, tier: next.tier, routeId: session.route.id, score: outcome.score });
+      void submitScore({ address: next.address, dogName: next.dog.name, tier: next.tier, routeId: session.route.id, score: outcome.score, title: next.title });
     }
     setSession({ ...session, summary });
     if (summary.levelsGained > 0) {
@@ -171,6 +171,15 @@ export default function App() {
     const { reward } = result;
     notify(`${getAchievementDef(id)?.title}: +${reward.stardust} Stardust${reward.lunarDust ? ` · +${reward.lunarDust} Pó Lunar` : ''}`, 'trophy');
     confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+  };
+
+  const handleSetTitle = (id: string | null) => {
+    if (!profile) return;
+    const next = setTitle(profile, id);
+    if (!next) return;
+    commit(next);
+    sfx.click();
+    notify(id ? `Novo título: «${titleText(id)}»` : 'Título removido', 'medal');
   };
 
   const handleReroll = () => {
@@ -319,7 +328,7 @@ export default function App() {
                     {activeTab === 'missions' && (
                       <>
                         <MissionsPanel profile={profile} onClaimReward={handleClaimMission} onReroll={handleReroll} />
-                        <AchievementsPanel profile={profile} onClaim={handleClaimAchievement} />
+                        <AchievementsPanel profile={profile} onClaim={handleClaimAchievement} onSetTitle={handleSetTitle} />
                       </>
                     )}
                     {activeTab === 'upgrades' && <UpgradeShop profile={profile} onPurchase={handleUpgrade} />}

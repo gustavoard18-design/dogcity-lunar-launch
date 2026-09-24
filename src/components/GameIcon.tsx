@@ -23,6 +23,7 @@ export type IconName =
   | 'planet-moon'
   | 'planet-ceres'
   | 'planet-mars'
+  | 'planet-saturn'
   | 'propulsores'
   | 'radar'
   | 'escudo'
@@ -32,7 +33,7 @@ export type IconName =
   | 'acessorios'
   | 'modulo';
 
-const UI = new Set(['orb', 'gem', 'ring', 'asteroid', 'trophy', 'medal', 'planet-earth', 'planet-moon', 'planet-ceres', 'planet-mars']);
+const UI = new Set(['orb', 'gem', 'ring', 'asteroid', 'trophy', 'medal', 'planet-earth', 'planet-moon', 'planet-ceres', 'planet-mars', 'planet-saturn']);
 
 export function iconUrl(name: IconName): string {
   if (name === 'rocket') return `${base()}art/sprite-rocket.webp`;
@@ -51,6 +52,7 @@ const GLOW: Partial<Record<IconName, string>> = {
   'planet-moon': 'rgba(203,213,225,0.35)',
   'planet-ceres': 'rgba(214,211,209,0.3)',
   'planet-mars': 'rgba(249,115,22,0.5)',
+  'planet-saturn': 'rgba(252,211,77,0.45)',
   rocket: 'rgba(239,68,68,0.35)',
 };
 
@@ -103,7 +105,7 @@ export const PLANET_ICON: Record<PlanetKind, IconName> = {
   moon: 'planet-moon',
   ceres: 'planet-ceres',
   mars: 'planet-mars',
-  gas: 'planet-mars',
+  gas: 'planet-saturn',
 };
 
 export function routeIcon(routeId: string): IconName {

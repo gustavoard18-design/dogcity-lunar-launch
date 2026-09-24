@@ -37,13 +37,22 @@ export interface ScoreSubmission {
   tier: Tier;
   routeId: string;
   score: number;
+  /** Id da conquista usada como título (opcional). */
+  title?: string;
 }
 
 /** Envia um voo concluído. Falhas são silenciosas: o ranking local continua valendo. */
 export async function submitScore(s: ScoreSubmission): Promise<boolean> {
   if (!onlineEnabled) return false;
   try {
-    await rpc('submit_score', { p_address: s.address, p_dog_name: s.dogName, p_tier: s.tier, p_route: s.routeId, p_score: s.score });
+    const args = { p_address: s.address, p_dog_name: s.dogName, p_tier: s.tier, p_route: s.routeId, p_score: s.score };
+    try {
+      await rpc('submit_score', { ...args, p_title: s.title ?? null });
+    } catch (e) {
+      // Servidor sem a migração de títulos: envia no formato antigo.
+      if (!String(e).includes('PGRST202')) throw e;
+      await rpc('submit_score', args);
+    }
     return true;
   } catch (e) {
     console.warn('[online] envio de score falhou', e);
@@ -55,22 +64,32 @@ interface LeaderboardRow {
   address: string;
   dog_name: string;
   tier: Tier;
+  title: string | null;
   week_score: number;
-  best_score: number;
+  best_score?: number;
   total_launches: number;
 }
+
+const toEntry = (r: LeaderboardRow): LeaderboardEntry => ({
+  address: r.address,
+  dogName: r.dog_name,
+  tier: r.tier,
+  title: r.title ?? undefined,
+  weekScore: r.week_score,
+  bestScore: r.best_score ?? r.week_score,
+  totalLaunches: Number(r.total_launches),
+});
 
 /** Top da semana no servidor. Lança erro se o servidor não responder. */
 export async function fetchWeeklyLeaderboard(limit = 20): Promise<LeaderboardEntry[]> {
   const rows = await rpc<LeaderboardRow[]>('weekly_leaderboard', { p_limit: limit });
-  return rows.map(r => ({
-    address: r.address,
-    dogName: r.dog_name,
-    tier: r.tier,
-    weekScore: r.week_score,
-    bestScore: r.best_score,
-    totalLaunches: Number(r.total_launches),
-  }));
+  return rows.map(toEntry);
+}
+
+/** Top da semana na rota do evento (`totalLaunches` = voos nessa rota na semana). */
+export async function fetchEventLeaderboard(routeId: string, limit = 20): Promise<LeaderboardEntry[]> {
+  const rows = await rpc<LeaderboardRow[]>('event_leaderboard', { p_route: routeId, p_limit: limit });
+  return rows.map(toEntry);
 }
 
 /**

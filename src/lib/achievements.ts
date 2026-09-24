@@ -11,6 +11,8 @@ export type AchievementIcon = 'rocket' | 'trophy' | 'medal' | 'orb' | 'ring' | '
 
 export interface AchievementDef {
   id: string;
+  /** Secreta: nome e objetivo ficam ocultos até desbloquear. */
+  secret?: boolean;
   title: string;
   description: string;
   icon: AchievementIcon;
@@ -45,6 +47,11 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'level_10', title: 'Comandante da Base', description: 'Alcance o nível 10', icon: 'medal', target: 10, progress: p => p.dog.level, reward: { stardust: 300, lunarDust: 6 } },
   { id: 'max_stat', title: 'Engenharia Máxima', description: `Leve um atributo ao nível ${MAX_STAT_LEVEL}`, icon: 'propulsores', target: MAX_STAT_LEVEL, progress: p => Math.max(p.dog.power, p.dog.accuracy, p.dog.luck, p.dog.speed), reward: { stardust: 250, lunarDust: 5 } },
   { id: 'collector_6', title: 'Colecionador', description: 'Tenha 6 itens da Loja', icon: 'capacete', target: 6, progress: p => p.ownedCosmetics.length, reward: { stardust: 150, lunarDust: 3 } },
+  // Secretas
+  { id: 'secret_crashes', secret: true, title: 'Aprendendo a Cair', description: 'Perca a nave 10 vezes', icon: 'escudo', target: 10, progress: p => p.stats.crashes, reward: { stardust: 100, lunarDust: 3 } },
+  { id: 'secret_close', secret: true, title: 'Por um Fio', description: 'Conclua um voo com só 1 ponto de casco', icon: 'escudo', target: 1, progress: p => p.stats.closeCalls, reward: { stardust: 120, lunarDust: 3 } },
+  { id: 'secret_night', secret: true, title: 'Coruja Espacial', description: 'Voe entre meia-noite e 5h da manhã', icon: 'planet-moon', target: 1, progress: p => p.stats.nightFlights, reward: { stardust: 80, lunarDust: 2 } },
+  { id: 'secret_rich', secret: true, title: 'Cofre Cheio', description: 'Junte 5.000 Stardust de uma vez', icon: 'orb', target: 5000, progress: p => p.stardust, reward: { stardust: 0, lunarDust: 10 } },
 ];
 
 export function getAchievementDef(id: string): AchievementDef | undefined {
@@ -52,11 +59,11 @@ export function getAchievementDef(id: string): AchievementDef | undefined {
 }
 
 export function emptyStats(): LifetimeStats {
-  return { launches: 0, successes: 0, orbs: 0, rings: 0, perfects: 0, flawless: 0, stardustEarned: 0, routes: {} };
+  return { launches: 0, successes: 0, orbs: 0, rings: 0, perfects: 0, flawless: 0, stardustEarned: 0, crashes: 0, closeCalls: 0, nightFlights: 0, routes: {} };
 }
 
 /** Soma um voo aos contadores de vida. */
-export function addLaunchToStats(stats: LifetimeStats, outcome: LaunchOutcome, route: Route, stardustEarned: number): LifetimeStats {
+export function addLaunchToStats(stats: LifetimeStats, outcome: LaunchOutcome, route: Route, stardustEarned: number, now: Date = new Date()): LifetimeStats {
   const routes = { ...stats.routes };
   if (outcome.success) routes[route.id] = (routes[route.id] ?? 0) + 1;
   return {
@@ -67,6 +74,9 @@ export function addLaunchToStats(stats: LifetimeStats, outcome: LaunchOutcome, r
     perfects: stats.perfects + (outcome.perfectLaunch ? 1 : 0),
     flawless: stats.flawless + (outcome.success && outcome.hits === 0 ? 1 : 0),
     stardustEarned: stats.stardustEarned + stardustEarned,
+    crashes: stats.crashes + (outcome.success ? 0 : 1),
+    closeCalls: stats.closeCalls + (outcome.success && outcome.hullLeft === 1 && outcome.hullMax > 1 ? 1 : 0),
+    nightFlights: stats.nightFlights + (now.getHours() < 5 ? 1 : 0),
     routes,
   };
 }
@@ -93,6 +103,18 @@ export function claimAchievement(profile: PlayerProfile, id: string): { profile:
     },
     reward: def.reward,
   };
+}
+
+/** Escolhe (ou tira, com `null`) o título do piloto. Só vale conquista desbloqueada. */
+export function setTitle(profile: PlayerProfile, id: string | null): PlayerProfile | null {
+  if (id === null) return { ...profile, title: undefined };
+  if (!profile.achievements[id] || !getAchievementDef(id)) return null;
+  return { ...profile, title: id };
+}
+
+/** Texto do título a partir do id (vazio se desconhecido). */
+export function titleText(id?: string | null): string {
+  return (id && getAchievementDef(id)?.title) || '';
 }
 
 export function hasClaimableAchievement(profile: PlayerProfile): boolean {

@@ -1,7 +1,7 @@
 import { LeaderboardEntry, PlayerProfile } from '../types';
 import { getTier, getXpForLevel, getWeekStart, getDayKey, STARTING_STARDUST } from './economy';
 import { ensureDailyMissions } from './missions';
-import { statsFromHistory, unlockAchievements } from './achievements';
+import { emptyStats, getAchievementDef, statsFromHistory, unlockAchievements } from './achievements';
 import { DEFAULT_SKIN, DEFAULT_TRAIL } from './shop';
 import { MAX_STAT_LEVEL } from './stats';
 
@@ -90,9 +90,10 @@ export function migrateProfile(raw: Partial<PlayerProfile>): PlayerProfile {
     purchasedUpgrades: raw.purchasedUpgrades ?? [],
     ownedCosmetics: raw.ownedCosmetics ?? [],
     weeklyScores: raw.weeklyScores ?? [],
-    stats: raw.stats ? { ...raw.stats, routes: { ...(raw.stats.routes ?? {}) } } : statsFromHistory({ launches: raw.launches ?? [], dog: { missions: dog.missions || 0 } as PlayerProfile['dog'] }),
+    stats: raw.stats ? { ...emptyStats(), ...raw.stats, routes: { ...(raw.stats.routes ?? {}) } } : statsFromHistory({ launches: raw.launches ?? [], dog: { missions: dog.missions || 0 } as PlayerProfile['dog'] }),
     achievements: raw.achievements ?? {},
     eventWins: raw.eventWins ?? [],
+    title: raw.title && raw.achievements?.[raw.title] && getAchievementDef(raw.title) ? raw.title : undefined,
   };
 }
 
@@ -155,6 +156,27 @@ export function getLeaderboard(): LeaderboardEntry[] {
   return [...current, ...simulatedEntries()].sort((a, b) => b.weekScore - a.weekScore);
 }
 
+/** Ranking local da rota do evento nesta semana (pilotos deste navegador). */
+export function getEventLeaderboard(routeId: string, now: Date = new Date()): LeaderboardEntry[] {
+  const weekStart = new Date(getWeekStart(now)).getTime();
+  return Object.values(getAllProfiles())
+    .map(raw => {
+      const p = migrateProfile(raw);
+      const runs = p.launches.filter(l => l.route.id === routeId && l.success && new Date(l.timestamp).getTime() >= weekStart);
+      return {
+        address: p.address,
+        dogName: p.dog.name,
+        tier: p.tier,
+        title: p.title,
+        weekScore: runs.reduce((m, l) => Math.max(m, l.score), 0),
+        bestScore: runs.reduce((m, l) => Math.max(m, l.score), 0),
+        totalLaunches: runs.length,
+      };
+    })
+    .filter(e => e.totalLaunches > 0)
+    .sort((a, b) => b.weekScore - a.weekScore);
+}
+
 function updateLeaderboard(profile: PlayerProfile): void {
   const entries = readJson<LeaderboardEntry[]>(LEADERBOARD_KEY, []).filter(e => e.address !== profile.address);
   entries.push({
@@ -164,6 +186,7 @@ function updateLeaderboard(profile: PlayerProfile): void {
     bestScore: profile.bestScore,
     totalLaunches: profile.launches.length,
     weekScore: getWeeklyBest(profile),
+    title: profile.title,
   });
   writeJson(LEADERBOARD_KEY, entries.slice(-50));
 }

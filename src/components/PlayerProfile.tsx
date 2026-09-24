@@ -3,6 +3,7 @@ import { getTierColor } from '../lib/economy';
 import { MAX_STAT_LEVEL, STAT_INFO } from '../lib/stats';
 import { astronautArt, astronautTier } from '../lib/evolution';
 import GameIcon, { LunarDust, Stardust, TIER_INFO, statIcon } from './GameIcon';
+import { titleText } from '../lib/achievements';
 
 interface PlayerProfileProps {
   profile: PlayerProfile;
@@ -28,7 +29,11 @@ export default function PlayerProfileCard({ profile }: PlayerProfileProps) {
         <div className="min-w-0 flex-1">
           <div className="text-[10px] tracking-[0.3em] text-slate-500">PILOTO</div>
           <h2 className="font-display text-xl sm:text-2xl text-white leading-tight truncate">{dog.name}</h2>
-          <p className="text-xs text-slate-400">{dog.breed}</p>
+          {profile.title ? (
+            <p className="text-xs text-amber-300 truncate" title="Título do piloto (troque na aba Missões)">«{titleText(profile.title)}»</p>
+          ) : (
+            <p className="text-xs text-slate-400">{dog.breed}</p>
+          )}
           <div className={`text-sm font-bold mt-1 ${getTierColor(profile.tier)}`}>
             <GameIcon name={TIER_INFO[profile.tier].icon} size={18} className="mr-1" />
             {TIER_INFO[profile.tier].label}
