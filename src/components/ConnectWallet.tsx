@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { WALLETS, WalletConnection, WalletId, connectGuest, connectWallet, isWalletInstalled } from '../lib/wallet';
+import { WALLETS, WalletConnection, WalletId, connectGuest, connectWallet, isMobileBrowser, isWalletInstalled } from '../lib/wallet';
+import { GAME_URL } from '../lib/shareCard';
 import { sfx } from '../lib/audio';
 import { cutoutArt } from '../lib/evolution';
 import GameIcon from './GameIcon';
@@ -98,6 +99,8 @@ export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
             <div className="space-y-2">
               {WALLETS.map(w => {
                 const installed = isWalletInstalled(w.id);
+                // No celular sem a carteira: abre o jogo dentro do app dela (navegador interno).
+                const appLink = !installed && isMobileBrowser() ? w.appLink?.(GAME_URL) : undefined;
                 return (
                   <div key={w.id} className="flex items-center gap-3 rounded-xl border border-sky-400/15 bg-[#0b1733]/70 px-3 py-2.5">
                     <img src={walletLogo(w.id)} alt={w.name} className="w-9 h-9 shrink-0 rounded-lg object-cover border border-white/10" draggable={false} />
@@ -105,12 +108,16 @@ export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
                       <div className="text-sm font-semibold text-white">
                         {w.name} {w.note && <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded border border-orange-400/40 text-orange-300">{w.note}</span>}
                       </div>
-                      <div className="text-[11px] text-slate-500">{installed ? 'Detectada' : 'Não instalada'}</div>
+                      <div className="text-[11px] text-slate-500">{installed ? 'Detectada' : appLink ? 'Abra o jogo pelo app' : 'Não instalada'}</div>
                     </div>
                     {installed ? (
                       <button onClick={() => handle(w.id)} disabled={!!connecting} className="btn-primary px-3 py-1.5 text-xs disabled:opacity-50">
                         {connecting === w.id ? 'Aguardando…' : 'Conectar'}
                       </button>
+                    ) : appLink ? (
+                      <a href={appLink} rel="noreferrer" className="btn-primary px-3 py-1.5 text-xs">
+                        Abrir no app ↗
+                      </a>
                     ) : (
                       <a href={w.installUrl} target="_blank" rel="noreferrer" className="btn-ghost px-3 py-1.5 text-xs">
                         Instalar ↗

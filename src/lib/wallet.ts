@@ -14,12 +14,24 @@ export interface WalletInfo {
   name: string;
   installUrl: string;
   note?: string;
+  /** Link que abre o jogo no navegador interno do app da carteira (celular). */
+  appLink?: (gameUrl: string) => string;
 }
 
 export const WALLETS: WalletInfo[] = [
   { id: 'kray', name: 'Kray Wallet', installUrl: 'https://www.kray.space', note: 'L1 + L2' },
-  { id: 'xverse', name: 'Xverse', installUrl: 'https://www.xverse.app/download' },
-  { id: 'okx', name: 'OKX Wallet', installUrl: 'https://www.okx.com/web3' },
+  {
+    id: 'xverse',
+    name: 'Xverse',
+    installUrl: 'https://www.xverse.app/download',
+    appLink: url => `https://connect.xverse.app/browser?url=${encodeURIComponent(url)}`,
+  },
+  {
+    id: 'okx',
+    name: 'OKX Wallet',
+    installUrl: 'https://www.okx.com/web3',
+    appLink: url => `https://web3.okx.com/download?deeplink=${encodeURIComponent(`okx://wallet/dapp/url?dappUrl=${encodeURIComponent(url)}`)}`,
+  },
 ];
 
 interface KrayProvider {
@@ -43,6 +55,12 @@ function satsProvider(keyword: string) {
   } catch {
     return undefined;
   }
+}
+
+/** Celular ou tablet: extensões não existem, a carteira abre o jogo no próprio app. */
+export function isMobileBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
 }
 
 export function isWalletInstalled(id: WalletId): boolean {
@@ -69,6 +87,21 @@ async function satsConnectAddress(keyword: string, name: string): Promise<string
   return ordinals.address;
 }
 
+/** OKX: sats-connect quando registrada; senão (ou se falhar sem o usuário recusar), a API própria. */
+async function okxAddress(name: string): Promise<string> {
+  const own = window.okxwallet?.bitcoin;
+  if (satsProvider('okx')) {
+    try {
+      return await satsConnectAddress('okx', name);
+    } catch (e) {
+      if (!own || /recusou/.test((e as Error).message)) throw e;
+    }
+  }
+  if (!own) throw new Error(`${name} não encontrada.`);
+  const res = await own.connect();
+  return res?.address ?? '';
+}
+
 export async function connectWallet(id: WalletId): Promise<WalletConnection> {
   const info = WALLETS.find(w => w.id === id)!;
   if (!isWalletInstalled(id)) throw new Error(`${info.name} não encontrada. Instale a extensão ou jogue como convidado.`);
@@ -84,7 +117,7 @@ export async function connectWallet(id: WalletId): Promise<WalletConnection> {
       address = await satsConnectAddress('xverse', info.name);
       break;
     case 'okx':
-      address = satsProvider('okx') ? await satsConnectAddress('okx', info.name) : (await window.okxwallet!.bitcoin!.connect()).address;
+      address = await okxAddress(info.name);
       break;
   }
   if (!address) throw new Error(`${info.name} não retornou um endereço.`);
