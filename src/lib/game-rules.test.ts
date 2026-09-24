@@ -15,7 +15,7 @@ import { applyLaunchResult, equipCosmetic, purchaseCosmetic, purchaseUpgrade } f
 import { computeOutcome, FlightResult } from './scoring';
 import { UPGRADES, getNextUpgrade } from './shop';
 import { gaugeQuality, getGameTuning } from './stats';
-import { breedLabel, createProfile, getEventLeaderboard, loadProfile, migrateProfile, providerLabel, saveProfile } from './storage';
+import { breedLabel, createProfile, renamePilot, sanitizePilotName, getEventLeaderboard, loadProfile, migrateProfile, providerLabel, saveProfile } from './storage';
 import { L, LANGUAGES, lang } from './i18n';
 import { astronautTier, rocketTier } from './evolution';
 import { isTutorialPending, markTutorialDone } from './tutorial';
@@ -488,6 +488,30 @@ describe('idiomas', () => {
     expect(routeName({ id: 'mars-colony', name: 'Colônia de Marte' })).toBe('Mars Colony');
     expect(routeName({ id: 'event-solar-storm', name: 'Tempestade Solar' })).toBe('Solar Storm');
     expect(routeName({ id: 'rota-antiga', name: 'Rota Antiga' })).toBe('Rota Antiga');
+  });
+});
+
+describe('nome do astronauta', () => {
+  it('limpa espaços e aceita acentos, números e - _ \' .', () => {
+    expect(sanitizePilotName('  Capitão   Rabo  ')).toBe('Capitão Rabo');
+    expect(sanitizePilotName("D'Artagnan-9_X.")).toBe("D'Artagnan-9_X.");
+    expect(sanitizePilotName('Ñandú')).toBe('Ñandú');
+  });
+
+  it('recusa curto, longo, vazio ou com símbolos', () => {
+    expect(sanitizePilotName('A')).toBeNull();
+    expect(sanitizePilotName('   ')).toBeNull();
+    expect(sanitizePilotName('x'.repeat(21))).toBeNull();
+    expect(sanitizePilotName('<script>')).toBeNull();
+    expect(sanitizePilotName('-Traço')).toBeNull();
+  });
+
+  it('renomeia sem mexer no resto do perfil', () => {
+    const renamed = renamePilot(profile, ' Lua Nova ')!;
+    expect(renamed.dog.name).toBe('Lua Nova');
+    expect(renamed.dog.level).toBe(profile.dog.level);
+    expect(renamed.address).toBe(profile.address);
+    expect(renamePilot(profile, '!')).toBeNull();
   });
 });
 
