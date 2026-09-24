@@ -63,6 +63,11 @@ Toda segunda-feira entra uma rota especial, em rodízio: **Chuva de Meteoros**, 
 - **Ranking semanal**: geral e do evento, com títulos e molduras.
 - **Diário**: carreira do piloto (voos, orbes, anéis, rotas) e histórico.
 - **Nome do astronauta**: editável pelo lápis no perfil.
+- **Sequência de dias**: recompensa diária num ciclo de 7 dias; 30 dias seguidos liberam a moldura 🔥 Chama Eterna.
+- **Temporada do mês**: passe de 10 níveis (10 + score/10 pontos por voo concluído), ranking próprio e moldura exclusiva.
+- **Desafio**: no fim do voo, "Desafiar um amigo" gera um link com a mesma sequência de asteroides, orbes e anéis.
+- **Guerra de distritos**: carteiras com lote no DogCity somam pontos para o distrito (melhor voo de cada rota por piloto, por semana).
+- **Baús DOG** (aba Loja): pagos em DOG, com conteúdo sorteado (chances na tela), limite de 1 por dia e 5 por semana.
 
 ---
 
@@ -97,7 +102,10 @@ Cada push na branch `main` roda typecheck, testes e build no GitHub Actions (Nod
 - **Pódio do evento**: `event_leaderboard_v2` devolve o ranking de semanas passadas; o jogo confere ao entrar e entrega o prêmio uma vez.
 - **Dados DOG reais** (carteiras Kray, Xverse ou OKX): a Edge Function `dog-balance` consulta as APIs públicas do [DogData](https://www.dogdata.xyz): saldo da Rune DOG•GO•TO•THE•MOON, ranking de holder, selo Genesis e o **lote no DogCity**.
 - **Identidade DogData**: a mesma função lê o perfil público do DogData (`/api/profile`): handle e avatar Ordinal (imagem de ordinals.com, com a cópia da UniSat como reserva) e o registro do lote (rua, número, zona, prestígio). Com `?addresses=a,b,c` ela devolve só a identidade de até 25 pilotos para o ranking, com cache de 6 h na tabela `dogdata_identities`.
-- Migrações SQL e a função em `supabase/`. Depois de mudar a função ou criar migração: `supabase db push` e `supabase functions deploy dog-balance`. A URL e a chave publicável ficam em `src/lib/online.ts` (ou `VITE_SUPABASE_URL` / `VITE_SUPABASE_KEY`, ver `.env.example`).
+- **Baús DOG**: a Edge Function `chests` cria o pedido (limite de 1 por dia e 5 por semana, no horário de Brasília), confere o pagamento no DogData (`/api/dog-rune/search-tx`: transação em bloco, saindo da carteira do pedido, com pelo menos o preço em DOG para a tesouraria `bc1qv4q4j8mjxhjxwjuc7vy6sq7c57z6rdvteql4xy`, txid nunca usado) e sorteia o conteúdo no servidor. Preços, chances e limites ficam em `supabase/functions/_shared/chests.json`, lido pelo jogo e pela função. Na Xverse o pagamento sai com um clique (`runes_transfer`); nas outras carteiras o jogador envia e cola o txid.
+- **Rankings extras**: `district_leaderboard` (guerra de distritos, usa o distrito do cache do DogData) e `season_leaderboard` (temporada do mês).
+- **Métricas**: `track_event` grava eventos anônimos (id aleatório por navegador, nunca o endereço) em `analytics_events`; consultas prontas em `supabase/queries/metrics.sql`. Só o jogo publicado envia.
+- Migrações SQL e as funções em `supabase/`. Depois de mudar uma função ou criar migração: `supabase db push` e `supabase functions deploy dog-balance` / `supabase functions deploy chests`. A URL e a chave publicável ficam em `src/lib/online.ts` (ou `VITE_SUPABASE_URL` / `VITE_SUPABASE_KEY`, ver `.env.example`).
 - Limitação: o jogo roda no navegador, então as regras barram scores impossíveis, mas não impedem trapaça de quem altera o código.
 
 ## 🔗 Carteira
@@ -132,6 +140,10 @@ src/
     ├── wallet.ts         # convidado / Kray, Xverse, OKX
     ├── audio.ts, music.ts  # efeitos e trilha sintetizados (WebAudio)
     ├── i18n.ts           # idiomas (en/pt/es) e o helper L()
+    ├── challenge.ts, rng.ts   # desafio por link e sorteios do voo com semente
+    ├── streak.ts, seasons.ts, districts.ts  # sequência, temporadas, guerra de distritos
+    ├── chests.ts         # baús DOG (pedido, pagamento, crédito)
+    ├── analytics.ts      # métricas anônimas
     ├── shareCard.ts      # imagem de compartilhamento do voo
     └── pwa.ts, webgl.ts  # instalação como app e checagem de 3D
 ```

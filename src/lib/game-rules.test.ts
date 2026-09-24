@@ -22,6 +22,8 @@ import { challengeOutcome, challengeUrl, decodeChallenge, encodeChallenge } from
 import { STREAK_REWARDS, applyDailyStreak } from './streak';
 import { SEASON_TIERS, applySeasonPoints, isSeasonId, seasonId, seasonPoints } from './seasons';
 import { DISTRICT_PRIZE, applyDistrictPrize, playerDistrict } from './districts';
+import { checkPayment, countsForLimit, roll, windowStarts } from '../../supabase/functions/_shared/chest-rules.ts';
+import { CHESTS, CHEST_LIMITS, CHEST_TREASURY, applyChestReward, chestOdds, isTxid } from './chests';
 import { dogDataProfileUrl, inscriptionImageUrls, prestigeStars, sanitizeIdentity } from './dogdata';
 import { astronautTier, rocketTier } from './evolution';
 import { isTutorialPending, markTutorialDone } from './tutorial';
@@ -644,6 +646,86 @@ describe('guerra de distritos', () => {
     expect(applyDistrictPrize(won, week, 'Satoshi Heights')).toBeNull();
     expect(applyDistrictPrize(real, week, 'Outro Distrito')).toBeNull();
     expect(applyDistrictPrize({ ...real, launches: [] }, week, 'Satoshi Heights')).toBeNull();
+  });
+});
+
+describe('baús pagos com DOG', () => {
+  it('configuração: tesouraria, limite 1/dia e 5/semana e chances que somam 100%', () => {
+    expect(CHEST_TREASURY).toBe('bc1qv4q4j8mjxhjxwjuc7vy6sq7c57z6rdvteql4xy');
+    expect(CHEST_LIMITS).toEqual({ perDay: 1, perWeek: 5 });
+    for (const chest of CHESTS) {
+      expect(chest.priceDog).toBeGreaterThan(0);
+      expect(chest.outcomes.every(o => o.weight > 0 && o.stardust >= 0 && o.lunarDust >= 0)).toBe(true);
+      expect(chestOdds(chest).reduce((sum, o) => sum + o.percent, 0)).toBeCloseTo(100, 6);
+    }
+    // Baú mais caro nunca vale menos, em média, que um mais barato.
+    const ev = (c: (typeof CHESTS)[number]) => chestOdds(c).reduce((sum, o) => sum + (o.percent / 100) * o.stardust, 0);
+    const byPrice = [...CHESTS].sort((a, b) => a.priceDog - b.priceDog);
+    for (let i = 1; i < byPrice.length; i++) expect(ev(byPrice[i])).toBeGreaterThan(ev(byPrice[i - 1]));
+  });
+
+  it('o prêmio de um pedido entra uma vez só e fecha o pedido pendente', () => {
+    const withPending = { ...profile, chestPending: { orderId: 'o1', chestId: 'supply', priceDog: 1500, txid: 'ab'.repeat(32), createdAt: '' } };
+    const credited = applyChestReward(withPending, 'o1', { stardust: 200, lunarDust: 1 })!;
+    expect(credited.stardust).toBe(profile.stardust + 200);
+    expect(credited.lunarDust).toBe(profile.lunarDust + 1);
+    expect(credited.chestPending).toBeUndefined();
+    expect(applyChestReward(credited, 'o1', { stardust: 200, lunarDust: 1 })).toBeNull();
+    expect(applyChestReward(profile, 'o2', { stardust: -50, lunarDust: 0 })!.stardust).toBe(profile.stardust);
+  });
+
+  it('só aceita txid no formato de Bitcoin', () => {
+    expect(isTxid('AB'.repeat(32))).toBe(true);
+    expect(isTxid('xyz')).toBe(false);
+  });
+});
+
+describe('regras do servidor dos baús', () => {
+  const T = 'bc1qv4q4j8mjxhjxwjuc7vy6sq7c57z6rdvteql4xy';
+  const ME = 'bc1pqa7wallettest0000000000000000000000000000000000000000000';
+  const order = { address: ME, price_dog: 1500, created_at: '2026-09-25T12:00:00Z' };
+  const tx = (over: Record<string, unknown> = {}) => ({
+    block_height: 915000,
+    timestamp: '2026-09-25T12:05:00Z',
+    senders: [{ address: ME, amount_dog: 5000 }],
+    receivers: [
+      { address: T, amount_dog: 1500, is_change: false },
+      { address: ME, amount_dog: 3500, is_change: true },
+    ],
+    ...over,
+  });
+
+  it('aceita o pagamento certo e recusa o errado', () => {
+    expect(checkPayment(tx(), order, T)).toBeNull();
+    expect(checkPayment(tx({ block_height: 0 }), order, T)).toBe('aguardando confirmação');
+    expect(checkPayment(tx({ senders: [{ address: 'bc1qoutra00000000000000000000000000000' }] }), order, T)).toMatch(/carteira do pedido/);
+    expect(checkPayment(tx({ receivers: [{ address: T, amount_dog: 1000, is_change: false }] }), order, T)).toMatch(/abaixo do preço/);
+    expect(checkPayment(tx({ receivers: [{ address: T, amount_dog: 1500, is_change: true }] }), order, T)).toMatch(/abaixo do preço/);
+    expect(checkPayment(tx({ timestamp: '2026-09-20T12:00:00Z' }), order, T)).toMatch(/anterior ao pedido/);
+    expect(checkPayment(tx({ timestamp: 1790337900 }), order, T)).toBeNull();
+    expect(checkPayment(null, order, T)).toBe('transação inválida');
+  });
+
+  it('dia e semana do limite viram à meia-noite de Brasília (segunda-feira)', () => {
+    // 25/09/2026 é sexta. 02:00 UTC ainda é quinta (23:00) em Brasília.
+    const { dayStart, weekStart } = windowStarts(Date.parse('2026-09-25T02:00:00Z'));
+    expect(new Date(dayStart).toISOString()).toBe('2026-09-24T03:00:00.000Z');
+    expect(new Date(weekStart).toISOString()).toBe('2026-09-21T03:00:00.000Z');
+  });
+
+  it('pedido aberto segura a vaga por 24 h; pago sempre conta', () => {
+    const now = Date.parse('2026-09-25T12:00:00Z');
+    expect(countsForLimit({ status: 'pending', created_at: '2026-09-25T00:00:00Z' }, now)).toBe(true);
+    expect(countsForLimit({ status: 'pending', created_at: '2026-09-23T00:00:00Z' }, now)).toBe(false);
+    expect(countsForLimit({ status: 'paid', created_at: '2026-09-01T00:00:00Z' }, now)).toBe(true);
+    expect(countsForLimit({ status: 'cancelled', created_at: '2026-09-25T00:00:00Z' }, now)).toBe(false);
+  });
+
+  it('o sorteio segue os pesos publicados', () => {
+    const supply = CHESTS.find(c => c.id === 'supply')!;
+    expect(roll(supply, () => 0)).toEqual({ stardust: 120, lunarDust: 0 });
+    expect(roll(supply, () => 0.95)).toEqual({ stardust: 320, lunarDust: 2 });
+    expect(roll(supply, () => 0.999)).toEqual({ stardust: 600, lunarDust: 5 });
   });
 });
 

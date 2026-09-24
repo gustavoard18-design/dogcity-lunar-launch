@@ -1,5 +1,13 @@
 # Novidades
 
+## 2.4.0 (setembro de 2026): engajamento e baús
+- **Desafio entre amigos**: "Desafiar um amigo" gera um link com a mesma rota e os mesmos asteroides, orbes e anéis (semente do voo). Quem abre vê o desafio no hangar (vale até em rota ainda bloqueada) e o resultado compara os dois scores.
+- **Sequência de dias**: recompensa diária num ciclo de 7 dias e a moldura 🔥 Chama Eterna aos 30 dias seguidos.
+- **Temporadas mensais**: passe de 10 níveis (10 + score/10 pontos por voo concluído), ranking do mês e uma moldura exclusiva por temporada.
+- **Guerra de distritos do DogCity**: cada piloto soma o melhor voo de cada rota para o seu distrito; o distrito campeão da semana ganha Stardust, Pó Lunar e a moldura 🏙️ Distrito Campeão.
+- **Baús DOG**: três baús pagos em DOG (Suprimentos, Orbital e Lendário) com Stardust e Pó Lunar sorteados com chances publicadas, limite de 1 por dia e 5 por semana por carteira, pagamento conferido on-chain antes de abrir.
+- **Métricas anônimas de uso** (sem endereço de carteira) para acompanhar retenção e funil.
+
 ## 2.3.0 (setembro de 2026)
 - **Editar o nome do astronauta**: lápis ao lado do nome no perfil (2 a 20 caracteres; letras com acento, números, espaço e - _ ' .). O ranking online mostra o nome novo a partir do próximo voo concluído.
 - Seletor de idioma com menu próprio, escuro e legível (o menu nativo ficava cinza claro sobre branco).

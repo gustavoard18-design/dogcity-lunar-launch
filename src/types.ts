@@ -108,6 +108,10 @@ export interface PlayerProfile {
   seasonFrames: string[];
   /** Semanas (weekStart ISO) em que o distrito do piloto venceu a guerra de distritos. */
   districtWins: string[];
+  /** Pedido de baú aguardando pagamento ou confirmação on-chain. */
+  chestPending?: { orderId: string; chestId: string; priceDog: number; txid: string | null; createdAt: string };
+  /** Pedidos de baú já creditados (o prêmio entra uma vez só). */
+  chestClaims: string[];
 }
 
 export interface PodiumRecord {

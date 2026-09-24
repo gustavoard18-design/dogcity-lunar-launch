@@ -101,6 +101,8 @@ export function migrateProfile(raw: Partial<PlayerProfile>): PlayerProfile {
     season: raw.season ?? { id: '', points: 0, tier: 0 },
     seasonFrames: raw.seasonFrames ?? [],
     districtWins: raw.districtWins ?? [],
+    chestPending: raw.chestPending,
+    chestClaims: raw.chestClaims ?? [],
   };
 }
 
