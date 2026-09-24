@@ -75,10 +75,6 @@ export const iconArt = (name: string) => `${base()}art/icons/${name}.webp`;
 export const spaceBackgroundArt = () => `${base()}art/space-bg.webp`;
 /** Artes recortadas, sem fundo. */
 export const cutoutArt = (kind: 'astronaut' | 'rocket') => `${base()}art/cutout-${kind}.webp`;
-/** Foguete sem a chama desenhada (o jogo desenha a chama animada). Bocal em 49% x 90,9% da altura. */
-/** Foguete sem chama, com o DOG pilotando na escotilha (plataforma de lançamento). */
-export const rocketSpriteArt = () => `${base()}art/sprite-rocket-dog.webp`;
-export const ROCKET_SPRITE = { aspect: 625 / 964, nozzleX: 0.49, nozzleY: 0.909 };
 /** Retrato do item da Loja (public/art/items/<id>.webp). */
 export const itemArt = (id: string) => `${base()}art/items/${id}.webp`;
 
