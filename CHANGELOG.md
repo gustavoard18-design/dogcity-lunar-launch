@@ -1,5 +1,11 @@
 # Novidades
 
+## 2.1.1 (setembro de 2026): ajustes para o lançamento
+- **Foguete Bitcoin também nas artes 2D**: vitrine da Oficina (5 fases, com as peças instaladas), tela inicial e ícones agora mostram o mesmo foguete do 3D.
+- **Moldura de nome no cartão de compartilhamento**: o nome sai com a mesma moldura escolhida no perfil.
+- **Carteiras no celular**: Xverse e OKX ganham o botão "Abrir no app", que abre o jogo no navegador interno da carteira.
+- Quem instalou o app recebe as artes novas: cada publicação usa um cache novo no aparelho.
+
 ## 2.1.0 (setembro de 2026): lançamento
 
 ### Jogo
