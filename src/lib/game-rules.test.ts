@@ -17,6 +17,7 @@ import { UPGRADES, getNextUpgrade } from './shop';
 import { gaugeQuality, getGameTuning } from './stats';
 import { breedLabel, createProfile, renamePilot, sanitizePilotName, getEventLeaderboard, loadProfile, migrateProfile, providerLabel, saveProfile } from './storage';
 import { L, LANGUAGES, lang } from './i18n';
+import { dogDataProfileUrl, inscriptionImageUrls, prestigeStars, sanitizeIdentity } from './dogdata';
 import { astronautTier, rocketTier } from './evolution';
 import { isTutorialPending, markTutorialDone } from './tutorial';
 import { NAME_FRAMES, setNameStyle } from './frames';
@@ -512,6 +513,31 @@ describe('nome do astronauta', () => {
     expect(renamed.dog.level).toBe(profile.dog.level);
     expect(renamed.address).toBe(profile.address);
     expect(renamePilot(profile, '!')).toBeNull();
+  });
+});
+
+describe('identidade DogData', () => {
+  const INSC = `${'ab'.repeat(32)}i0`;
+
+  it('aceita só handle e inscrição no formato do DogData', () => {
+    expect(sanitizeIdentity({ handle: 'dog_army', avatarId: INSC })).toEqual({ handle: 'dog_army', avatarId: INSC });
+    expect(sanitizeIdentity({ handle: 'Dog Army!', avatarId: INSC })).toEqual({ handle: null, avatarId: INSC });
+    expect(sanitizeIdentity({ handle: 'dog_army', avatarId: 'javascript:alert(1)' })).toEqual({ handle: 'dog_army', avatarId: null });
+    expect(sanitizeIdentity({ handle: 'x', avatarId: 'abc' })).toBeNull();
+    expect(sanitizeIdentity(null)).toBeNull();
+  });
+
+  it('monta a imagem do Ordinal e o link do perfil', () => {
+    expect(inscriptionImageUrls(INSC)[0]).toBe(`https://ordinals.com/content/${INSC}`);
+    expect(inscriptionImageUrls(INSC)[1]).toBe(`https://static.unisat.io/content/${INSC}`);
+    expect(dogDataProfileUrl('bc1pabc')).toBe('https://www.dogdata.xyz/address/bitcoin/bc1pabc');
+  });
+
+  it('prestígio vira de 0 a 5 estrelas', () => {
+    expect(prestigeStars(3)).toBe(3);
+    expect(prestigeStars(9)).toBe(5);
+    expect(prestigeStars(0)).toBe(0);
+    expect(prestigeStars(null)).toBe(0);
   });
 });
 

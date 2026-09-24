@@ -8,6 +8,8 @@ import { titleText } from '../lib/achievements';
 import PilotName from './PilotName';
 import { PILOT_NAME_MAX, PILOT_NAME_MIN, breedLabel, sanitizePilotName } from '../lib/storage';
 import { L, locale } from '../lib/i18n';
+import { dogDataProfileUrl, prestigeStars, sanitizeIdentity } from '../lib/dogdata';
+import OrdinalAvatar from './OrdinalAvatar';
 
 interface PlayerProfileProps {
   profile: PlayerProfile;
@@ -99,6 +101,8 @@ export default function PlayerProfileCard({ profile, onRename }: PlayerProfilePr
   const { tier } = astronautTier(dog);
   const onchain = profile.dogBalanceSource === 'real' ? profile.dogOnchain : undefined;
   const lot = onchain?.dogcity?.status === 'in_snapshot' ? onchain.dogcity : null;
+  const identity = sanitizeIdentity(onchain?.identity);
+  const stars = prestigeStars(lot?.prestige);
   const xpPercent = Math.min(100, (dog.xp / dog.xpToNext) * 100);
   const successRate = profile.launches.length
     ? Math.round((profile.launches.filter(l => l.success).length / profile.launches.length) * 100)
@@ -110,6 +114,9 @@ export default function PlayerProfileCard({ profile, onRename }: PlayerProfilePr
         <div className="relative w-24 shrink-0 aspect-[220/302] rounded-xl overflow-hidden border border-white/15 shadow-[0_0_24px_rgba(56,189,248,0.2)]">
           <img src={astronautArt(tier)} alt={`${L({ en: 'Astronaut', pt: 'Astronauta', es: 'Astronauta' })} ${dog.name} — ${tier.name}`} className="w-full h-full object-cover" draggable={false} />
           <div className={`absolute bottom-0 inset-x-0 bg-black/70 text-center font-display text-[9px] py-0.5 ${tier.accent}`}>{tier.name.toUpperCase()}</div>
+          {identity?.avatarId && (
+            <OrdinalAvatar id={identity.avatarId} size={38} className="absolute top-1 right-1 ring-2 ring-amber-300/80 shadow-[0_0_12px_rgba(0,0,0,0.6)]" />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-[10px] tracking-[0.3em] text-slate-500">{L({ en: 'PILOT', pt: 'PILOTO', es: 'PILOTO' })}</div>
@@ -126,6 +133,17 @@ export default function PlayerProfileCard({ profile, onRename }: PlayerProfilePr
           <p className="text-[10px] text-slate-500 font-mono" title={profile.address}>
             {profile.address.slice(0, 8)}…{profile.address.slice(-5)}
           </p>
+          {identity?.handle && (
+            <a
+              href={dogDataProfileUrl(profile.address)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] text-sky-300 hover:text-sky-200"
+              title={L({ en: 'Your DogData profile', pt: 'Seu perfil no DogData', es: 'Tu perfil en DogData' })}
+            >
+              @{identity.handle} <span className="text-slate-500">· DogData ↗</span>
+            </a>
+          )}
         </div>
       </div>
 
@@ -219,6 +237,18 @@ export default function PlayerProfileCard({ profile, onRename }: PlayerProfilePr
           <div className="mt-1 text-white font-semibold">
             {lot.district} · {lot.typology}
           </div>
+          {(lot.street || lot.zone) && (
+            <div className="text-slate-300">
+              {[lot.street && `${lot.street}${lot.number != null ? `, ${lot.number}` : ''}`, lot.zone].filter(Boolean).join(' · ')}
+            </div>
+          )}
+          {stars > 0 && (
+            <div className="mt-0.5 text-amber-300" title={L({ en: 'Lot prestige', pt: 'Prestígio do lote', es: 'Prestigio de la parcela' })}>
+              {'★'.repeat(stars)}
+              <span className="text-slate-600">{'★'.repeat(5 - stars)}</span>
+              <span className="ml-1.5 text-[10px] text-slate-400">{L({ en: 'prestige', pt: 'prestígio', es: 'prestigio' })}</span>
+            </div>
+          )}
           <div className="text-slate-400">
             {lot.areaM2?.toLocaleString(locale)} m² · {L({ en: 'plot', pt: 'lote', es: 'parcela' })} {lot.lotId}
           </div>

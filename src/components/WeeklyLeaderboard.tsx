@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import type { LeaderboardEntry } from '../types';
+import type { DogDataIdentity, LeaderboardEntry } from '../types';
 import { getEventLeaderboard, getLeaderboard } from '../lib/storage';
-import { fetchEventLeaderboard, fetchWeeklyLeaderboard, onlineEnabled } from '../lib/online';
+import { fetchEventLeaderboard, fetchIdentities, fetchWeeklyLeaderboard, onlineEnabled } from '../lib/online';
 import { getTierColor } from '../lib/economy';
 import { getCurrentEvent } from '../lib/events';
 import { titleText } from '../lib/achievements';
 import GameIcon, { PLANET_ICON, TIER_INFO } from './GameIcon';
 import PilotName from './PilotName';
+import OrdinalAvatar from './OrdinalAvatar';
+import { dogDataProfileUrl } from '../lib/dogdata';
 import { L } from '../lib/i18n';
 
 interface WeeklyLeaderboardProps {
@@ -43,6 +45,27 @@ export default function WeeklyLeaderboard({ playerAddress }: WeeklyLeaderboardPr
 
   const entries = online[board] ?? (board === 'general' ? getLeaderboard() : getEventLeaderboard(event.route.id));
   const isOnline = status === 'online' && online[board] !== null;
+
+  // Identidade DogData (avatar Ordinal e handle) dos pilotos do ranking online.
+  const [identities, setIdentities] = useState<Record<string, DogDataIdentity>>({});
+  const pending = isOnline ? entries.filter(e => !e.simulated && !(e.address in identities)).map(e => e.address) : [];
+  const pendingKey = pending.join(',');
+  useEffect(() => {
+    if (!pendingKey) return;
+    let alive = true;
+    fetchIdentities(pendingKey.split(',')).then(found => {
+      if (!alive) return;
+      // Quem não tem identidade também entra (vazio), para não perguntar de novo.
+      setIdentities(prev => {
+        const next = { ...prev };
+        for (const a of pendingKey.split(',')) next[a] = found[a] ?? { handle: null, avatarId: null };
+        return next;
+      });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [pendingKey]);
 
   return (
     <div className="panel">
@@ -82,6 +105,7 @@ export default function WeeklyLeaderboard({ playerAddress }: WeeklyLeaderboardPr
           const isPlayer = entry.address === playerAddress;
           const medal = ['bg-yellow-400/20 text-yellow-300', 'bg-slate-300/20 text-slate-200', 'bg-orange-500/20 text-orange-300'][index];
           const title = titleText(entry.title);
+          const identity = identities[entry.address];
           return (
             <div
               key={entry.address}
@@ -94,6 +118,7 @@ export default function WeeklyLeaderboard({ playerAddress }: WeeklyLeaderboardPr
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
+                  {identity?.avatarId && <OrdinalAvatar id={identity.avatarId} size={24} className="ring-1 ring-white/20" />}
                   <span className="text-white text-sm font-semibold truncate min-w-0">
                     <PilotName name={entry.dogName} style={entry.style} />
                   </span>
@@ -105,6 +130,11 @@ export default function WeeklyLeaderboard({ playerAddress }: WeeklyLeaderboardPr
                   {entry.simulated && <span className="text-[10px] text-slate-600">bot</span>}
                 </div>
                 <div className="text-[10px] text-slate-500 truncate">
+                  {identity?.handle && (
+                    <a href={dogDataProfileUrl(entry.address)} target="_blank" rel="noreferrer" className="text-sky-300/90 hover:text-sky-200">
+                      @{identity.handle} ·{' '}
+                    </a>
+                  )}
                   {title && <span className="text-amber-300/90">«{title}» · </span>}
                   {flightsLabel(entry.totalLaunches)} ·{' '}
                   {board === 'general'

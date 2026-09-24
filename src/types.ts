@@ -44,8 +44,23 @@ export interface DogOnchainInfo {
     district: string | null;
     typology: string | null;
     mapUrl: string | null;
+    /** Registro da cidade (perfil DogData); ausentes em dados antigos. */
+    street?: string | null;
+    number?: number | string | null;
+    zone?: string | null;
+    /** 1 a 5 estrelas. */
+    prestige?: number | null;
   } | null;
+  /** Handle e avatar Ordinal do perfil DogData. */
+  identity?: DogDataIdentity | null;
   updatedAt: string;
+}
+
+/** Identidade escolhida no perfil do DogData (dogdata.xyz). */
+export interface DogDataIdentity {
+  handle: string | null;
+  /** Id da inscrição Ordinal usada como foto. */
+  avatarId: string | null;
 }
 
 export interface PlayerProfile {

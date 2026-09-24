@@ -96,7 +96,8 @@ Cada push na branch `main` roda typecheck, testes e build no GitHub Actions (Nod
 - **Ranking** (geral e do evento): voos concluídos vão para `submit_score_v2`, que recusa score acima do máximo da rota, envios em sequência rápida e títulos/molduras fora do padrão. A tabela não é acessível direto pela API. Sem conexão, o jogo mostra o ranking local.
 - **Pódio do evento**: `event_leaderboard_v2` devolve o ranking de semanas passadas; o jogo confere ao entrar e entrega o prêmio uma vez.
 - **Dados DOG reais** (carteiras Kray, Xverse ou OKX): a Edge Function `dog-balance` consulta as APIs públicas do [DogData](https://www.dogdata.xyz): saldo da Rune DOG•GO•TO•THE•MOON, ranking de holder, selo Genesis e o **lote no DogCity**.
-- Migrações SQL e a função em `supabase/`. A URL e a chave publicável ficam em `src/lib/online.ts` (ou `VITE_SUPABASE_URL` / `VITE_SUPABASE_KEY`, ver `.env.example`).
+- **Identidade DogData**: a mesma função lê o perfil público do DogData (`/api/profile`): handle e avatar Ordinal (imagem de ordinals.com, com a cópia da UniSat como reserva) e o registro do lote (rua, número, zona, prestígio). Com `?addresses=a,b,c` ela devolve só a identidade de até 25 pilotos para o ranking, com cache de 6 h na tabela `dogdata_identities`.
+- Migrações SQL e a função em `supabase/`. Depois de mudar a função ou criar migração: `supabase db push` e `supabase functions deploy dog-balance`. A URL e a chave publicável ficam em `src/lib/online.ts` (ou `VITE_SUPABASE_URL` / `VITE_SUPABASE_KEY`, ver `.env.example`).
 - Limitação: o jogo roda no navegador, então as regras barram scores impossíveis, mas não impedem trapaça de quem altera o código.
 
 ## 🔗 Carteira
