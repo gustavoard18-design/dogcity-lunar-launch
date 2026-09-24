@@ -1,5 +1,11 @@
 # Novidades
 
+## 2.2.0 (setembro de 2026): três idiomas
+- **Inglês como idioma padrão**, com **português** e **espanhol** no seletor 🌐 (tela inicial e topo do hangar). A escolha fica salva no navegador; trocar recarrega o jogo e volta ao hangar do mesmo piloto.
+- Tudo traduzido: telas, missão e tutorial, rotas, eventos, conquistas, títulos, missões, Loja, Oficina, molduras, ranking, Diário, cartão e texto de compartilhamento, mensagens de carteira.
+- Voos antigos, raças e o piloto convidado (guardados em português) aparecem no idioma escolhido.
+- Prévia do link (imagem e textos), manifesto do app e descrição da página em inglês.
+
 ## 2.1.1 (setembro de 2026): ajustes para o lançamento
 - **Foguete Bitcoin também nas artes 2D**: vitrine da Oficina (5 fases, com as peças instaladas), tela inicial e ícones agora mostram o mesmo foguete do 3D.
 - **Moldura de nome no cartão de compartilhamento**: o nome sai com a mesma moldura escolhida no perfil.

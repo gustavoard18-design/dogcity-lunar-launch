@@ -2,6 +2,7 @@ import { PlayerProfile } from '../types';
 import { REROLL_COST, canReroll, getMissionDef } from '../lib/missions';
 import { getDayKey } from '../lib/economy';
 import GameIcon, { LunarDust, RefreshIcon, Stardust, missionIcon } from './GameIcon';
+import { L } from '../lib/i18n';
 
 interface MissionsPanelProps {
   profile: PlayerProfile;
@@ -24,16 +25,20 @@ export default function MissionsPanel({ profile, onClaimReward, onReroll }: Miss
     <div className="panel">
       <div className="flex items-center justify-between gap-3 mb-4">
         <div>
-          <h3 className="font-display text-lg text-white">Missões diárias</h3>
-          <p className="text-[11px] text-slate-500">Novas missões em {timeToMidnight()}</p>
+          <h3 className="font-display text-lg text-white">{L({ en: 'Daily missions', pt: 'Missões diárias', es: 'Misiones diarias' })}</h3>
+          <p className="text-[11px] text-slate-500">{L({ en: 'New missions in', pt: 'Novas missões em', es: 'Nuevas misiones en' })} {timeToMidnight()}</p>
         </div>
         <button
           onClick={onReroll}
           disabled={!canReroll(profile) || !hasOpen}
           className="btn-ghost text-xs px-3 py-2 disabled:opacity-40 disabled:cursor-not-allowed"
-          title={rerollUsed ? 'Troca já usada hoje' : `Troca as missões não resgatadas por ${REROLL_COST} Stardust`}
+          title={
+            rerollUsed
+              ? L({ en: 'Swap already used today', pt: 'Troca já usada hoje', es: 'Cambio ya usado hoy' })
+              : L({ en: `Swap unclaimed missions for ${REROLL_COST} Stardust`, pt: `Troca as missões não resgatadas por ${REROLL_COST} Stardust`, es: `Cambia las misiones no reclamadas por ${REROLL_COST} Stardust` })
+          }
         >
-          <span className="inline-flex items-center gap-1.5"><RefreshIcon />{rerollUsed ? 'Troca usada' : <>Trocar <Stardust value={REROLL_COST} /></>}</span>
+          <span className="inline-flex items-center gap-1.5"><RefreshIcon />{rerollUsed ? L({ en: 'Swap used', pt: 'Troca usada', es: 'Cambio usado' }) : <>{L({ en: 'Swap', pt: 'Trocar', es: 'Cambiar' })} <Stardust value={REROLL_COST} /></>}</span>
         </button>
       </div>
 
@@ -85,10 +90,10 @@ export default function MissionsPanel({ profile, onClaimReward, onReroll }: Miss
 
               {state.completed && !state.claimed && (
                 <button onClick={() => onClaimReward(state.missionId)} className="btn-primary w-full mt-3 py-2 text-sm">
-                  Resgatar recompensa
+                  {L({ en: 'Claim reward', pt: 'Resgatar recompensa', es: 'Reclamar recompensa' })}
                 </button>
               )}
-              {state.claimed && <div className="text-xs text-slate-500 text-center mt-2">✓ Resgatada</div>}
+              {state.claimed && <div className="text-xs text-slate-500 text-center mt-2">✓ {L({ en: 'Claimed', pt: 'Resgatada', es: 'Reclamada' })}</div>}
             </div>
           );
         })}

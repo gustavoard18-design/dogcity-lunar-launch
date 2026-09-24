@@ -1,8 +1,8 @@
 {
   "name": "DogCity Lunar Launch",
   "short_name": "DogCity",
-  "description": "Pilote o DOG astronauta da Base Lunar até a Terra, a Lua, Ceres e Marte.",
-  "lang": "pt-BR",
+  "description": "Pilot the DOG astronaut from the Lunar Base to Earth, the Moon, Ceres and Mars.",
+  "lang": "en",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

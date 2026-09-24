@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import type { DogAstronaut, Stat } from '../types';
 import { ASTRONAUT_TIERS, ROCKET_TIERS, Tier, TierProgress, astronautArt, astronautTier, rocketArt, rocketTier } from '../lib/evolution';
 import { LockIcon } from './GameIcon';
+import { L } from '../lib/i18n';
 
 type Dog = Pick<DogAstronaut, 'skin' | 'helmet' | 'trail' | Stat>;
 
@@ -79,10 +80,10 @@ function EvolutionStrip({ tiers, progress, art, unit }: { tiers: Tier[]; progres
       <div className="mt-1 text-[10px] text-slate-400">
         {next ? (
           <>
-            Faltam <b className="text-white">{next.min - points}</b> {unit} para <b className={next.accent}>{next.name}</b>
+            <b className="text-white">{next.min - points}</b> {unit} {L({ en: 'to go until', pt: 'para', es: 'para' })} <b className={next.accent}>{next.name}</b>
           </>
         ) : (
-          <span className="text-amber-300">Fase máxima alcançada</span>
+          <span className="text-amber-300">{L({ en: 'Max stage reached', pt: 'Fase máxima alcançada', es: 'Fase máxima alcanzada' })}</span>
         )}
       </div>
     </div>
@@ -98,13 +99,13 @@ export default function Showcase({ dog, focus, badge, footer }: ShowcaseProps) {
     <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-[radial-gradient(ellipse_at_30%_10%,rgba(56,189,248,0.18),transparent_55%),radial-gradient(ellipse_at_80%_70%,rgba(124,58,237,0.25),transparent_60%),rgba(4,6,20,0.7)] mb-4">
       {badge && <div className="absolute top-3 left-3 z-10 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-black/60 border border-white/15 text-white">{badge}</div>}
       <div className="grid grid-cols-2 gap-3 px-4 pt-11 pb-3">
-        <Portrait src={astronautArt(astro.tier)} label="ASTRONAUTA" tier={astro.tier} highlight={focus === 'astronaut'} />
-        <Portrait src={rocketArt(rocket.tier)} label="FOGUETE" tier={rocket.tier} highlight={focus === 'rocket'} />
+        <Portrait src={astronautArt(astro.tier)} label={L({ en: 'ASTRONAUT', pt: 'ASTRONAUTA', es: 'ASTRONAUTA' })} tier={astro.tier} highlight={focus === 'astronaut'} />
+        <Portrait src={rocketArt(rocket.tier)} label={L({ en: 'ROCKET', pt: 'FOGUETE', es: 'COHETE' })} tier={rocket.tier} highlight={focus === 'rocket'} />
       </div>
       {focus === 'astronaut' ? (
-        <EvolutionStrip tiers={ASTRONAUT_TIERS} progress={astro} art={astronautArt} unit="pontos de raridade" />
+        <EvolutionStrip tiers={ASTRONAUT_TIERS} progress={astro} art={astronautArt} unit={L({ en: 'rarity points', pt: 'pontos de raridade', es: 'puntos de rareza' })} />
       ) : (
-        <EvolutionStrip tiers={ROCKET_TIERS} progress={rocket} art={rocketArt} unit="níveis na Oficina" />
+        <EvolutionStrip tiers={ROCKET_TIERS} progress={rocket} art={rocketArt} unit={L({ en: 'Workshop levels', pt: 'níveis na Oficina', es: 'niveles en el Taller' })} />
       )}
       {footer && <div className="relative border-t border-white/10 px-3 py-2">{footer}</div>}
     </div>

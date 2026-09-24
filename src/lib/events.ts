@@ -1,5 +1,6 @@
 import { PlayerProfile, Route } from '../types';
-import { getQuality, getWeekStart } from './economy';
+import { getQuality, getRoute, getWeekStart } from './economy';
+import { L } from './i18n';
 
 /**
  * Evento semanal: uma rota especial que troca toda segunda-feira (00:00 local),
@@ -21,14 +22,14 @@ export interface WeeklyEvent {
 export const EVENTS: WeeklyEvent[] = [
   {
     id: 'meteor-shower',
-    name: 'Chuva de Meteoros',
-    tagline: 'Rochas por todo lado, mas o dobro de poeira estelar no caminho.',
+    name: L({ en: 'Meteor Shower', pt: 'Chuva de Meteoros', es: 'Lluvia de Meteoros' }),
+    tagline: L({ en: 'Rocks everywhere, but twice the stardust along the way.', pt: 'Rochas por todo lado, mas o dobro de poeira estelar no caminho.', es: 'Rocas por todas partes, pero el doble de polvo estelar en el camino.' }),
     minQuality: 0.6,
     bonus: { stardust: 120, lunarDust: 6 },
     route: {
       id: 'event-meteor-shower',
-      name: 'Chuva de Meteoros',
-      description: 'Atravesse a chuva de meteoros sobre a Terra.',
+      name: L({ en: 'Meteor Shower', pt: 'Chuva de Meteoros', es: 'Lluvia de Meteoros' }),
+      description: L({ en: 'Fly through the meteor shower over Earth.', pt: 'Atravesse a chuva de meteoros sobre a Terra.', es: 'Atraviesa la lluvia de meteoros sobre la Tierra.' }),
       cost: 30,
       difficulty: 3,
       maxScore: 400,
@@ -44,14 +45,14 @@ export const EVENTS: WeeklyEvent[] = [
   },
   {
     id: 'saturn-rings',
-    name: 'Anéis de Saturno',
-    tagline: 'Voe pela divisão de Cassini: anéis de impulso por todo lado.',
+    name: L({ en: 'Rings of Saturn', pt: 'Anéis de Saturno', es: 'Anillos de Saturno' }),
+    tagline: L({ en: 'Fly through the Cassini Division: boost rings everywhere.', pt: 'Voe pela divisão de Cassini: anéis de impulso por todo lado.', es: 'Vuela por la división de Cassini: anillos de impulso por todas partes.' }),
     minQuality: 0.6,
     bonus: { stardust: 170, lunarDust: 8 },
     route: {
       id: 'event-saturn-rings',
-      name: 'Anéis de Saturno',
-      description: 'Viagem até Saturno cortando os anéis.',
+      name: L({ en: 'Rings of Saturn', pt: 'Anéis de Saturno', es: 'Anillos de Saturno' }),
+      description: L({ en: 'A trip to Saturn, cutting through the rings.', pt: 'Viagem até Saturno cortando os anéis.', es: 'Viaje a Saturno atravesando los anillos.' }),
       cost: 45,
       difficulty: 3,
       maxScore: 600,
@@ -68,14 +69,14 @@ export const EVENTS: WeeklyEvent[] = [
   },
   {
     id: 'solar-storm',
-    name: 'Tempestade Solar',
-    tagline: 'O vento solar carrega orbes de energia até a Lua.',
+    name: L({ en: 'Solar Storm', pt: 'Tempestade Solar', es: 'Tormenta Solar' }),
+    tagline: L({ en: 'The solar wind carries energy orbs to the Moon.', pt: 'O vento solar carrega orbes de energia até a Lua.', es: 'El viento solar lleva orbes de energía hasta la Luna.' }),
     minQuality: 0.6,
     bonus: { stardust: 100, lunarDust: 5 },
     route: {
       id: 'event-solar-storm',
-      name: 'Tempestade Solar',
-      description: 'Voo curto e intenso até a Lua, no meio da tempestade.',
+      name: L({ en: 'Solar Storm', pt: 'Tempestade Solar', es: 'Tormenta Solar' }),
+      description: L({ en: 'A short, intense flight to the Moon through the storm.', pt: 'Voo curto e intenso até a Lua, no meio da tempestade.', es: 'Un vuelo corto e intenso hasta la Luna, en plena tormenta.' }),
       cost: 25,
       difficulty: 2,
       maxScore: 350,
@@ -91,14 +92,14 @@ export const EVENTS: WeeklyEvent[] = [
   },
   {
     id: 'comet-hunt',
-    name: 'Caçada ao Cometa',
-    tagline: 'Siga a cauda do cometa até Ceres sem perder o ritmo.',
+    name: L({ en: 'Comet Hunt', pt: 'Caçada ao Cometa', es: 'Caza del Cometa' }),
+    tagline: L({ en: 'Follow the comet tail to Ceres without losing the pace.', pt: 'Siga a cauda do cometa até Ceres sem perder o ritmo.', es: 'Sigue la cola del cometa hasta Ceres sin perder el ritmo.' }),
     minQuality: 0.6,
     bonus: { stardust: 150, lunarDust: 7 },
     route: {
       id: 'event-comet-hunt',
-      name: 'Caçada ao Cometa',
-      description: 'Voo longo atrás do cometa, rumo a Ceres.',
+      name: L({ en: 'Comet Hunt', pt: 'Caçada ao Cometa', es: 'Caza del Cometa' }),
+      description: L({ en: 'A long chase behind the comet, bound for Ceres.', pt: 'Voo longo atrás do cometa, rumo a Ceres.', es: 'Un vuelo largo tras el cometa, rumbo a Ceres.' }),
       cost: 40,
       difficulty: 3,
       maxScore: 550,
@@ -114,14 +115,14 @@ export const EVENTS: WeeklyEvent[] = [
   },
   {
     id: 'mars-marathon',
-    name: 'Maratona Marciana',
-    tagline: 'A viagem mais longa do calendário. Resistência é tudo.',
+    name: L({ en: 'Martian Marathon', pt: 'Maratona Marciana', es: 'Maratón Marciano' }),
+    tagline: L({ en: 'The longest trip on the calendar. Endurance is everything.', pt: 'A viagem mais longa do calendário. Resistência é tudo.', es: 'El viaje más largo del calendario. La resistencia lo es todo.' }),
     minQuality: 0.55,
     bonus: { stardust: 200, lunarDust: 9 },
     route: {
       id: 'event-mars-marathon',
-      name: 'Maratona Marciana',
-      description: 'Maratona até Marte com asteroides menos densos.',
+      name: L({ en: 'Martian Marathon', pt: 'Maratona Marciana', es: 'Maratón Marciano' }),
+      description: L({ en: 'A marathon to Mars with thinner asteroid fields.', pt: 'Maratona até Marte com asteroides menos densos.', es: 'Maratón hasta Marte con asteroides menos densos.' }),
       cost: 60,
       difficulty: 4,
       maxScore: 800,
@@ -182,4 +183,9 @@ export function getEventBonus(
   if (route.id !== event.route.id || !success) return null;
   if (hasWonEventThisWeek(profile, now)) return null;
   return getQuality(score, route) >= event.minQuality ? event.bonus : null;
+}
+
+/** Nome da rota no idioma atual (o histórico guarda o nome no idioma da época). */
+export function routeName(route: Pick<Route, 'id' | 'name'>): string {
+  return getRoute(route.id)?.name ?? getEventByRoute(route.id)?.route.name ?? route.name;
 }

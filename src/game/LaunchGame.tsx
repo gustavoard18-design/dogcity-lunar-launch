@@ -15,6 +15,7 @@ import ResultScreen from './ResultScreen';
 import { titleText } from '../lib/achievements';
 import { FLIGHT_TIP_TEXT, FLIGHT_TIP_TIMELINE, FlightTip, TUTORIAL_GAUGE_SLOWDOWN, isTutorialPending, markTutorialDone } from '../lib/tutorial';
 import GameIcon, { Difficulty, EjectIcon, HeartIcon, PLANET_ICON, Stardust } from '../components/GameIcon';
+import { L } from '../lib/i18n';
 
 type Phase = PadPhase | 'flight' | 'result';
 
@@ -35,11 +36,11 @@ const ANGLE_MAX = 80;
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
 function qualityLabel(q: number, perfect: boolean) {
-  if (perfect) return { text: 'PERFEITO!', cls: 'text-yellow-300' };
-  if (q >= 0.9) return { text: 'ÓTIMO', cls: 'text-emerald-300' };
-  if (q >= 0.7) return { text: 'BOM', cls: 'text-sky-300' };
+  if (perfect) return { text: L({ en: 'PERFECT!', pt: 'PERFEITO!', es: '¡PERFECTO!' }), cls: 'text-yellow-300' };
+  if (q >= 0.9) return { text: L({ en: 'GREAT', pt: 'ÓTIMO', es: 'GENIAL' }), cls: 'text-emerald-300' };
+  if (q >= 0.7) return { text: L({ en: 'GOOD', pt: 'BOM', es: 'BIEN' }), cls: 'text-sky-300' };
   if (q >= 0.4) return { text: 'OK', cls: 'text-slate-300' };
-  return { text: 'FRACO', cls: 'text-red-400' };
+  return { text: L({ en: 'WEAK', pt: 'FRACO', es: 'DÉBIL' }), cls: 'text-red-400' };
 }
 
 export default function LaunchGame({ route, profile, paidCost, summary, canRetry, onFinish, onCancel, onExit, onRetry }: LaunchGameProps) {
@@ -333,12 +334,12 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
             {route.name.toUpperCase()}
           </div>
           <div className="text-[11px] text-slate-400 mt-0.5">
-            {paidCost === 0 ? 'Treino gratuito' : <>Custo <Stardust value={paidCost} size="1em" /></>} · Máx {route.maxScore} pts · <Difficulty level={route.difficulty} size={10} />
+            {paidCost === 0 ? L({ en: 'Free training', pt: 'Treino gratuito', es: 'Entrenamiento gratis' }) : <>{L({ en: 'Cost', pt: 'Custo', es: 'Coste' })} <Stardust value={paidCost} size="1em" /></>} · {L({ en: 'Max', pt: 'Máx', es: 'Máx' })} {route.maxScore} pts · <Difficulty level={route.difficulty} size={10} />
           </div>
         </div>
         {preLaunch && (
           <button onClick={onCancel} className="pointer-events-auto hud-panel px-4 py-2 text-xs text-slate-300 hover:text-white">
-            ✕ Cancelar <span className="text-slate-500">(reembolsa)</span>
+            ✕ {L({ en: 'Cancel', pt: 'Cancelar', es: 'Cancelar' })} <span className="text-slate-500">({L({ en: 'refund', pt: 'reembolsa', es: 'reembolso' })})</span>
           </button>
         )}
         {phase === 'flight' && hud && !abortRef.current && (
@@ -348,7 +349,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
             }}
             className="pointer-events-auto hud-panel px-4 py-2 text-xs text-red-300 hover:text-red-200"
           >
-            <span className="inline-flex items-center gap-1.5"><EjectIcon /> Abortar</span>
+            <span className="inline-flex items-center gap-1.5"><EjectIcon /> {L({ en: 'Abort', pt: 'Abortar', es: 'Abortar' })}</span>
           </button>
         )}
       </div>
@@ -371,17 +372,29 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
               className="hidden md:block h-72 w-auto shrink-0 object-contain drop-shadow-[0_18px_28px_rgba(0,0,0,0.6)] pointer-events-none"
             />
             <div className="hud-panel relative max-w-xl w-full p-5 sm:p-6">
-              <div className="font-display text-xl sm:text-2xl text-white mb-3">Briefing da missão</div>
+              <div className="font-display text-xl sm:text-2xl text-white mb-3">{L({ en: 'Mission briefing', pt: 'Briefing da missão', es: 'Informe de la misión' })}</div>
               <ol className="space-y-2 text-sm text-slate-300 mb-5">
-                <li><b className="text-emerald-300">1. Mira</b> — trave o ponteiro dentro da faixa verde, apontando para o planeta.</li>
-                <li><b className="text-amber-300">2. Força</b> — trave a barra na zona dourada.</li>
-                <li><b className="text-sky-300">3. Voo</b> — pilote com mouse/toque ou WASD/setas. Pegue orbes <GameIcon name="orb" size="1.2em" />, atravesse anéis <GameIcon name="ring" size="1.2em" />, desvie de asteroides <GameIcon name="asteroid" size="1.2em" />.</li>
+                <li>
+                  <b className="text-emerald-300">1. {L({ en: 'Aim', pt: 'Mira', es: 'Puntería' })}</b> —{' '}
+                  {L({ en: 'lock the needle inside the green band, pointing at the planet.', pt: 'trave o ponteiro dentro da faixa verde, apontando para o planeta.', es: 'fija la aguja dentro de la franja verde, apuntando al planeta.' })}
+                </li>
+                <li>
+                  <b className="text-amber-300">2. {L({ en: 'Power', pt: 'Força', es: 'Fuerza' })}</b> — {L({ en: 'lock the bar in the golden zone.', pt: 'trave a barra na zona dourada.', es: 'fija la barra en la zona dorada.' })}
+                </li>
+                <li>
+                  <b className="text-sky-300">3. {L({ en: 'Flight', pt: 'Voo', es: 'Vuelo' })}</b> —{' '}
+                  {L({ en: 'steer with mouse/touch or WASD/arrows. Grab orbs', pt: 'pilote com mouse/toque ou WASD/setas. Pegue orbes', es: 'pilota con ratón/táctil o WASD/flechas. Atrapa orbes' })} <GameIcon name="orb" size="1.2em" />,{' '}
+                  {L({ en: 'fly through rings', pt: 'atravesse anéis', es: 'atraviesa anillos' })} <GameIcon name="ring" size="1.2em" />,{' '}
+                  {L({ en: 'dodge asteroids', pt: 'desvie de asteroides', es: 'esquiva asteroides' })} <GameIcon name="asteroid" size="1.2em" />.
+                </li>
               </ol>
               <p className="text-xs text-slate-500 mb-4">
-                Mira e força perfeitas dão um escudo inicial. Casco: {tuning.hull} <HeartIcon size={12} /> · Espaço/Enter/clique para travar.
+                {L({ en: 'Perfect aim and power give you a starting shield.', pt: 'Mira e força perfeitas dão um escudo inicial.', es: 'Puntería y fuerza perfectas dan un escudo inicial.' })}{' '}
+                {L({ en: 'Hull', pt: 'Casco', es: 'Casco' })}: {tuning.hull} <HeartIcon size={12} /> ·{' '}
+                {L({ en: 'Space/Enter/click to lock.', pt: 'Espaço/Enter/clique para travar.', es: 'Espacio/Enter/clic para fijar.' })}
               </p>
               <button onClick={act} className="btn-primary w-full py-4 text-lg">
-                Iniciar sequência ▶
+                {L({ en: 'Start sequence ▶', pt: 'Iniciar sequência ▶', es: 'Iniciar secuencia ▶' })}
               </button>
             </div>
           </motion.div>
@@ -393,7 +406,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
         <div className="absolute inset-x-0 bottom-0 p-3 sm:p-6 flex items-end justify-between gap-3 pointer-events-none">
           <div className={`hud-panel p-3 sm:p-4 transition-opacity pointer-events-auto ${phase === 'angle' ? '' : 'opacity-60'}`}>
             <div className="text-[11px] tracking-widest text-slate-400 mb-1 flex justify-between">
-              <span>ÂNGULO</span>
+              <span>{L({ en: 'ANGLE', pt: 'ÂNGULO', es: 'ÁNGULO' })}</span>
               <span ref={angleText} className="font-display text-white">
                 {Math.round(a.angle)}°
               </span>
@@ -415,7 +428,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
           <div className="flex flex-col items-end gap-3 pointer-events-auto">
           <div className={`hud-panel p-3 sm:p-4 transition-opacity ${phase === 'power' ? '' : 'opacity-40'}`}>
             <div className="text-[11px] tracking-widest text-slate-400 mb-1 flex justify-between gap-3">
-              <span>FORÇA</span>
+              <span>{L({ en: 'POWER', pt: 'FORÇA', es: 'FUERZA' })}</span>
               <span ref={powerText} className="font-display text-white">
                 0%
               </span>
@@ -434,7 +447,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
           </div>
 
           <button onClick={act} className="btn-primary px-6 sm:px-8 py-4 sm:py-5 text-base sm:text-xl">
-            <span className="inline-flex items-center gap-2"><GameIcon name={phase === 'angle' ? 'radar' : 'propulsores'} size={30} className="-my-2 rounded-md" /> TRAVAR</span>
+            <span className="inline-flex items-center gap-2"><GameIcon name={phase === 'angle' ? 'radar' : 'propulsores'} size={30} className="-my-2 rounded-md" /> {L({ en: 'LOCK', pt: 'TRAVAR', es: 'FIJAR' })}</span>
           </button>
           </div>
         </div>
@@ -468,15 +481,15 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
             transition={{ duration: 0.25 }}
             className="absolute inset-0 flex items-center justify-center pointer-events-none font-display text-8xl sm:text-9xl text-white drop-shadow-[0_0_30px_rgba(168,85,247,0.9)]"
           >
-            {count === 0 ? 'IGNIÇÃO!' : count}
+            {count === 0 ? L({ en: 'IGNITION!', pt: 'IGNIÇÃO!', es: '¡IGNICIÓN!' }) : count}
           </motion.div>
         )}
       </AnimatePresence>
       {phase === 'countdown' && locks.powerQ !== undefined && (
         <div className="absolute bottom-6 inset-x-0 flex justify-center pointer-events-none">
           <div className="hud-panel px-5 py-2 text-sm text-slate-200">
-            Qualidade do lançamento: <b className="font-display text-white">{Math.round(launchRef.current.quality * 100)}%</b>
-            {launchRef.current.perfect && <span className="ml-2 inline-flex items-center gap-1 text-cyan-300">+ escudo <GameIcon name="escudo" size={18} /></span>}
+            {L({ en: 'Launch quality', pt: 'Qualidade do lançamento', es: 'Calidad del lanzamiento' })}: <b className="font-display text-white">{Math.round(launchRef.current.quality * 100)}%</b>
+            {launchRef.current.perfect && <span className="ml-2 inline-flex items-center gap-1 text-cyan-300">+ {L({ en: 'shield', pt: 'escudo', es: 'escudo' })} <GameIcon name="escudo" size={18} /></span>}
           </div>
         </div>
       )}
@@ -495,7 +508,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
             </div>
           </div>
           <div className="absolute bottom-4 left-4 hud-panel px-4 py-3 pointer-events-none">
-            <div className="text-[10px] tracking-widest text-slate-400 mb-1">CASCO</div>
+            <div className="text-[10px] tracking-widest text-slate-400 mb-1">{L({ en: 'HULL', pt: 'CASCO', es: 'CASCO' })}</div>
             <div className="flex gap-1 text-xl">
               {Array.from({ length: hud.hullMax }, (_, i) => (
                 <HeartIcon key={i} size={22} empty={i >= hud.hull} />
@@ -504,7 +517,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
             </div>
           </div>
           <div className="absolute bottom-4 right-4 hud-panel px-4 py-3 text-right pointer-events-none">
-            <div className="text-[10px] tracking-widest text-slate-400">PONTOS</div>
+            <div className="text-[10px] tracking-widest text-slate-400">{L({ en: 'POINTS', pt: 'PONTOS', es: 'PUNTOS' })}</div>
             <div className="font-display text-3xl text-amber-300 leading-none">{hud.points}</div>
             <div className="text-xs text-slate-300 mt-1">
               <span className="inline-flex items-center gap-1"><GameIcon name="orb" size={16} />{hud.orbs}</span> · <span className="inline-flex items-center gap-1"><GameIcon name="ring" size={16} />{hud.rings}</span>
@@ -524,7 +537,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
                 exit={{ opacity: 0 }}
                 className="absolute bottom-28 inset-x-0 flex justify-center pointer-events-none"
               >
-                <div className="hud-panel px-5 py-2 text-sm text-slate-200">Mova o mouse ou arraste o dedo · teclado: WASD ou setas</div>
+                <div className="hud-panel px-5 py-2 text-sm text-slate-200">{L({ en: 'Move the mouse or drag your finger · keyboard: WASD or arrows', pt: 'Mova o mouse ou arraste o dedo · teclado: WASD ou setas', es: 'Mueve el ratón o arrastra el dedo · teclado: WASD o flechas' })}</div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -534,22 +547,22 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
       {/* Tutorial do primeiro voo */}
       {tutorial && phase === 'brief' && (
         <div className="absolute top-24 sm:top-6 inset-x-0 flex justify-center px-4 pointer-events-none">
-          <Coach text="Primeiro voo? Eu te guio passo a passo. Toque em Iniciar sequência." onSkip={skipTutorial} />
+          <Coach text={L({ en: 'First flight? I\'ll guide you step by step. Tap Start sequence.', pt: 'Primeiro voo? Eu te guio passo a passo. Toque em Iniciar sequência.', es: '¿Primer vuelo? Te guío paso a paso. Toca Iniciar secuencia.' })} onSkip={skipTutorial} />
         </div>
       )}
       {tutorial && phase === 'angle' && (
         <div className="absolute left-3 sm:left-6 bottom-[205px] sm:bottom-[275px] max-w-[min(15.5rem,calc(100vw-1.5rem))] sm:max-w-[20rem]">
-          <Coach arrow="left" text="O ponteiro sobe e desce. Toque em TRAVAR quando ele passar pela faixa VERDE (a amarela é perfeita)." onSkip={skipTutorial} />
+          <Coach arrow="left" text={L({ en: 'The needle swings up and down. Tap LOCK when it crosses the GREEN band (yellow is perfect).', pt: 'O ponteiro sobe e desce. Toque em TRAVAR quando ele passar pela faixa VERDE (a amarela é perfeita).', es: 'La aguja sube y baja. Toca FIJAR cuando pase por la franja VERDE (la amarilla es perfecta).' })} onSkip={skipTutorial} />
         </div>
       )}
       {tutorial && phase === 'power' && (
         <div className="absolute right-3 sm:right-6 bottom-[290px] sm:bottom-[360px] max-w-[min(15.5rem,calc(100vw-1.5rem))] sm:max-w-[20rem]">
-          <Coach arrow="right" text="Agora a força: trave quando a barra estiver na zona DOURADA." onSkip={skipTutorial} />
+          <Coach arrow="right" text={L({ en: 'Now the power: lock it when the bar is in the GOLDEN zone.', pt: 'Agora a força: trave quando a barra estiver na zona DOURADA.', es: 'Ahora la fuerza: fíjala cuando la barra esté en la zona DORADA.' })} onSkip={skipTutorial} />
         </div>
       )}
       {tutorial && phase === 'countdown' && (
         <div className="absolute bottom-20 inset-x-0 flex justify-center px-4">
-          <Coach text="Mira e força boas dão um voo melhor. Perfeito nos dois ganha um escudo!" onSkip={skipTutorial} />
+          <Coach text={L({ en: 'Good aim and power make a better flight. Perfect on both earns a shield!', pt: 'Mira e força boas dão um voo melhor. Perfeito nos dois ganha um escudo!', es: 'Buena puntería y fuerza dan un mejor vuelo. ¡Perfecto en ambos gana un escudo!' })} onSkip={skipTutorial} />
         </div>
       )}
       <AnimatePresence>
@@ -579,10 +592,10 @@ function Coach({ text, arrow, onSkip }: { text: string; arrow?: 'left' | 'right'
     <div className="relative pointer-events-auto hud-panel flex items-start gap-2.5 sm:gap-3 px-3 py-2 sm:px-4 sm:py-3 max-w-md border-amber-300/60 shadow-[0_0_24px_rgba(252,211,77,0.25)]">
       <img src={`${import.meta.env.BASE_URL}dog-face.png`} alt="" draggable={false} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full ring-2 ring-amber-300/70 shrink-0" />
       <div className="min-w-0">
-        <div className="text-[10px] tracking-[0.2em] text-amber-300 mb-0.5">DICA DO DOG</div>
+        <div className="text-[10px] tracking-[0.2em] text-amber-300 mb-0.5">{L({ en: 'DOG TIP', pt: 'DICA DO DOG', es: 'CONSEJO DEL DOG' })}</div>
         <p className="text-[13px] sm:text-sm text-white leading-snug">{text}</p>
         <button onClick={onSkip} className="mt-1 text-[11px] text-slate-400 hover:text-white underline underline-offset-2">
-          Pular dicas
+          {L({ en: 'Skip tips', pt: 'Pular dicas', es: 'Saltar consejos' })}
         </button>
       </div>
       {/* Seta apontando para o medidor logo abaixo */}

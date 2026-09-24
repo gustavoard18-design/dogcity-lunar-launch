@@ -4,6 +4,7 @@ import { ensureDailyMissions } from './missions';
 import { emptyStats, getAchievementDef, statsFromHistory, unlockAchievements } from './achievements';
 import { DEFAULT_SKIN, DEFAULT_TRAIL } from './shop';
 import { MAX_STAT_LEVEL } from './stats';
+import { L, Tr } from './i18n';
 
 const STORAGE_KEY = 'dogcity_game_state';
 const LEADERBOARD_KEY = 'dogcity_leaderboard_v2';
@@ -52,7 +53,7 @@ export function migrateProfile(raw: Partial<PlayerProfile>): PlayerProfile {
   return {
     version: PROFILE_VERSION,
     address: String(raw.address),
-    provider: raw.provider ?? 'Convidado',
+    provider: raw.provider ?? GUEST_PROVIDER,
     dogBalance: raw.dogBalance ?? 0,
     dogBalanceSource: raw.dogBalanceSource ?? 'simulated',
     dogOnchain: raw.dogOnchain,
@@ -112,10 +113,26 @@ function generateDogName(): string {
   return prefixes[Math.floor(Math.random() * prefixes.length)] + suffixes[Math.floor(Math.random() * suffixes.length)];
 }
 
+/** Raças: o perfil guarda o nome em português (id estável); a tela mostra no idioma do jogo. */
+const BREEDS: Record<string, Tr> = {
+  'Shiba Inu': { en: 'Shiba Inu', pt: 'Shiba Inu', es: 'Shiba Inu' },
+  'Husky Espacial': { en: 'Space Husky', pt: 'Husky Espacial', es: 'Husky Espacial' },
+  'Corgi Lunar': { en: 'Lunar Corgi', pt: 'Corgi Lunar', es: 'Corgi Lunar' },
+  'Akita Estelar': { en: 'Stellar Akita', pt: 'Akita Estelar', es: 'Akita Estelar' },
+  'Malamute Cósmico': { en: 'Cosmic Malamute', pt: 'Malamute Cósmico', es: 'Malamute Cósmico' },
+  'Spitz Nebular': { en: 'Nebula Spitz', pt: 'Spitz Nebular', es: 'Spitz Nebular' },
+};
+
 function generateBreed(): string {
-  const breeds = ['Shiba Inu', 'Husky Espacial', 'Corgi Lunar', 'Akita Estelar', 'Malamute Cósmico', 'Spitz Nebular'];
+  const breeds = Object.keys(BREEDS);
   return breeds[Math.floor(Math.random() * breeds.length)];
 }
+
+export const breedLabel = (breed: string) => (BREEDS[breed] ? L(BREEDS[breed]) : breed);
+
+/** Provedor gravado no perfil ('Convidado' é o id do piloto convidado). */
+export const GUEST_PROVIDER = 'Convidado';
+export const providerLabel = (provider: string) => (provider === GUEST_PROVIDER ? L({ en: 'Guest', pt: 'Convidado', es: 'Invitado' }) : provider);
 
 export function getWeeklyBest(profile: PlayerProfile, now: Date = new Date()): number {
   const week = profile.weeklyScores[0];

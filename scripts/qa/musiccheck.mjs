@@ -1,6 +1,8 @@
 import puppeteer from 'puppeteer-core';
 const b = await puppeteer.launch({ executablePath: process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: 'new', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'], defaultViewport: { width: 1280, height: 720 } });
 const page = await b.newPage();
+// Os scripts clicam nos botões pelo texto em português.
+await page.evaluateOnNewDocument(() => localStorage.setItem('dogcity_lang', 'pt'));
 const errors = [];
 page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
 page.on('console', m => m.type() === 'error' && errors.push(m.text()));

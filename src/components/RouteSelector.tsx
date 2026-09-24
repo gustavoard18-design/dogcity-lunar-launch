@@ -3,6 +3,7 @@ import { ROUTES, getRouteCost, isFreeTraining, isRouteUnlocked } from '../lib/ec
 import { cutoutArt } from '../lib/evolution';
 import { getCurrentEvent, hasWonEventThisWeek, msUntilNextEvent } from '../lib/events';
 import GameIcon, { Difficulty, LockIcon, LunarDust, PLANET_ICON, Stardust } from './GameIcon';
+import { L } from '../lib/i18n';
 
 function PlanetBadge({ kind, locked }: { kind: PlanetKind; locked: boolean }) {
   return (
@@ -22,6 +23,9 @@ function timeLeft(ms: number): string {
   const d = Math.floor(h / 24);
   return d > 0 ? `${d}d ${h % 24}h` : `${h}h ${Math.floor((ms % 3_600_000) / 60_000)}min`;
 }
+
+const MAX = () => L({ en: 'max', pt: 'máx', es: 'máx' });
+const BEST = () => L({ en: 'best', pt: 'recorde', es: 'récord' });
 
 /** Rota especial da semana, com o bônus e o tempo que falta. */
 function EventCard({ profile, onSelectRoute }: RouteSelectorProps) {
@@ -44,20 +48,20 @@ function EventCard({ profile, onSelectRoute }: RouteSelectorProps) {
         <div className="absolute -right-8 -top-12 w-48 h-48 rounded-full blur-3xl opacity-30 group-hover:opacity-50 transition-opacity" style={{ background: route.color }} />
         <div className="relative flex items-center justify-between gap-2 mb-2">
           <span className="text-[10px] font-bold tracking-[0.2em] px-2 py-0.5 rounded-full" style={{ color: route.color, background: `${route.color}22` }}>
-            EVENTO DA SEMANA
+            {L({ en: 'EVENT OF THE WEEK', pt: 'EVENTO DA SEMANA', es: 'EVENTO DE LA SEMANA' })}
           </span>
-          <span className="text-[11px] text-slate-400">termina em {timeLeft(msUntilNextEvent())}</span>
+          <span className="text-[11px] text-slate-400">{L({ en: 'ends in', pt: 'termina em', es: 'termina en' })} {timeLeft(msUntilNextEvent())}</span>
         </div>
         <div className="relative flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <PlanetBadge kind={route.destination} locked={!unlocked} />
             <div className="min-w-0">
               <h4 className="font-display text-white text-lg leading-tight">{event.name}</h4>
-              <p className="text-xs text-slate-300">{unlocked ? event.tagline : `Desbloqueia no nível ${route.unlockLevel}`}</p>
+              <p className="text-xs text-slate-300">{unlocked ? event.tagline : L({ en: `Unlocks at level ${route.unlockLevel}`, pt: `Desbloqueia no nível ${route.unlockLevel}`, es: `Se desbloquea en el nivel ${route.unlockLevel}` })}</p>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                <Difficulty level={route.difficulty} /> · {route.flightSeconds}s · máx {route.maxScore}
-                {(route.orbRateMult ?? 1) > 1 && <span className="text-amber-300/90"> · orbes x{route.orbRateMult}</span>}
-                {best > 0 && <span className="text-amber-300/80"> · recorde {best}</span>}
+                <Difficulty level={route.difficulty} /> · {route.flightSeconds}s · {MAX()} {route.maxScore}
+                {(route.orbRateMult ?? 1) > 1 && <span className="text-amber-300/90"> · {L({ en: 'orbs', pt: 'orbes', es: 'orbes' })} x{route.orbRateMult}</span>}
+                {best > 0 && <span className="text-amber-300/80"> · {BEST()} {best}</span>}
               </p>
             </div>
           </div>
@@ -68,10 +72,15 @@ function EventCard({ profile, onSelectRoute }: RouteSelectorProps) {
         </div>
         <div className={`relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl px-3 py-2 text-xs ${won ? 'bg-emerald-500/10 text-emerald-300' : 'bg-white/[0.04] text-slate-300'}`}>
           {won ? (
-            <span className="inline-flex items-center gap-1.5"><GameIcon name="trophy" size={18} /> Bônus desta semana conquistado</span>
+            <span className="inline-flex items-center gap-1.5"><GameIcon name="trophy" size={18} /> {L({ en: 'Bonus earned this week', pt: 'Bônus desta semana conquistado', es: 'Bono de esta semana conseguido' })}</span>
           ) : (
             <>
-              <span className="inline-flex items-center gap-1.5"><GameIcon name="trophy" size={18} /> Bônus: conclua com {Math.round(event.minQuality * 100)}% ou mais</span>
+              <span className="inline-flex items-center gap-1.5"><GameIcon name="trophy" size={18} />{' '}
+                {L({
+                  en: `Bonus: finish with ${Math.round(event.minQuality * 100)}% or more`,
+                  pt: `Bônus: conclua com ${Math.round(event.minQuality * 100)}% ou mais`,
+                  es: `Bono: termina con ${Math.round(event.minQuality * 100)}% o más`,
+                })}</span>
               <span className="text-amber-300"><Stardust value={event.bonus.stardust} sign="+" /></span>
               <span className="text-violet-300"><LunarDust value={event.bonus.lunarDust} sign="+" /></span>
             </>
@@ -100,8 +109,8 @@ export default function RouteSelector({ profile, onSelectRoute }: RouteSelectorP
         className="hidden sm:block absolute -top-12 right-4 h-28 rotate-[18deg] object-contain drop-shadow-[0_12px_18px_rgba(0,0,0,0.55)] pointer-events-none animate-float"
       />
       <div className="flex items-baseline justify-between">
-        <h3 className="font-display text-lg text-white">Rotas de lançamento</h3>
-        <span className="text-[11px] text-slate-500 sm:mr-24">Custo debitado na decolagem</span>
+        <h3 className="font-display text-lg text-white">{L({ en: 'Launch routes', pt: 'Rotas de lançamento', es: 'Rutas de lanzamiento' })}</h3>
+        <span className="text-[11px] text-slate-500 sm:mr-24">{L({ en: 'Cost charged at liftoff', pt: 'Custo debitado na decolagem', es: 'Coste cobrado al despegar' })}</span>
       </div>
 
       <EventCard profile={profile} onSelectRoute={onSelectRoute} />
@@ -134,17 +143,17 @@ export default function RouteSelector({ profile, onSelectRoute }: RouteSelectorP
                 <div className="min-w-0">
                   <h4 className="text-white font-semibold">{route.name}</h4>
                   <p className="text-xs text-slate-400 truncate">
-                    {unlocked ? route.description : `Desbloqueia no nível ${route.unlockLevel}`}
+                    {unlocked ? route.description : L({ en: `Unlocks at level ${route.unlockLevel}`, pt: `Desbloqueia no nível ${route.unlockLevel}`, es: `Se desbloquea en el nivel ${route.unlockLevel}` })}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    <Difficulty level={route.difficulty} /> · {route.flightSeconds}s · máx {route.maxScore}
-                    {best > 0 && <span className="text-amber-300/80"> · recorde {best}</span>}
+                    <Difficulty level={route.difficulty} /> · {route.flightSeconds}s · {MAX()} {route.maxScore}
+                    {best > 0 && <span className="text-amber-300/80"> · {BEST()} {best}</span>}
                   </p>
                 </div>
               </div>
               <div className="text-right shrink-0">
                 {isFreeTraining(route, profile) ? (
-                  <div className="text-xs font-bold text-emerald-300">GRÁTIS</div>
+                  <div className="text-xs font-bold text-emerald-300">{L({ en: 'FREE', pt: 'GRÁTIS', es: 'GRATIS' })}</div>
                 ) : (
                   <div className={`text-sm font-bold ${affordable ? 'text-amber-300' : 'text-red-400'}`}><Stardust value={route.cost} /></div>
                 )}
@@ -155,7 +164,7 @@ export default function RouteSelector({ profile, onSelectRoute }: RouteSelectorP
         );
       })}
       {profile.stardust < ROUTES[0].cost && (
-        <p className="text-xs text-emerald-300/80">Sem Stardust? A Órbita Baixa vira treino gratuito até você se recuperar.</p>
+        <p className="text-xs text-emerald-300/80">{L({ en: 'Out of Stardust? Low Orbit becomes free training until you recover.', pt: 'Sem Stardust? A Órbita Baixa vira treino gratuito até você se recuperar.', es: '¿Sin Stardust? La Órbita Baja se vuelve entrenamiento gratis hasta que te recuperes.' })}</p>
       )}
     </div>
   );

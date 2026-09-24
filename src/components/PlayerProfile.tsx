@@ -5,6 +5,8 @@ import { astronautArt, astronautTier } from '../lib/evolution';
 import GameIcon, { LunarDust, Stardust, TIER_INFO, statIcon } from './GameIcon';
 import { titleText } from '../lib/achievements';
 import PilotName from './PilotName';
+import { breedLabel } from '../lib/storage';
+import { L, locale } from '../lib/i18n';
 
 interface PlayerProfileProps {
   profile: PlayerProfile;
@@ -24,18 +26,18 @@ export default function PlayerProfileCard({ profile }: PlayerProfileProps) {
     <div className="panel">
       <div className="flex items-center gap-4 mb-4">
         <div className="relative w-24 shrink-0 aspect-[220/302] rounded-xl overflow-hidden border border-white/15 shadow-[0_0_24px_rgba(56,189,248,0.2)]">
-          <img src={astronautArt(tier)} alt={`Astronauta ${dog.name} — ${tier.name}`} className="w-full h-full object-cover" draggable={false} />
+          <img src={astronautArt(tier)} alt={`${L({ en: 'Astronaut', pt: 'Astronauta', es: 'Astronauta' })} ${dog.name} — ${tier.name}`} className="w-full h-full object-cover" draggable={false} />
           <div className={`absolute bottom-0 inset-x-0 bg-black/70 text-center font-display text-[9px] py-0.5 ${tier.accent}`}>{tier.name.toUpperCase()}</div>
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] tracking-[0.3em] text-slate-500">PILOTO</div>
+          <div className="text-[10px] tracking-[0.3em] text-slate-500">{L({ en: 'PILOT', pt: 'PILOTO', es: 'PILOTO' })}</div>
           <h2 className="font-display text-xl sm:text-2xl text-white leading-tight truncate">
             <PilotName name={dog.name} style={profile.nameStyle} />
           </h2>
           {profile.title ? (
-            <p className="text-xs text-amber-300 truncate" title="Título do piloto (troque na aba Missões)">«{titleText(profile.title)}»</p>
+            <p className="text-xs text-amber-300 truncate" title={L({ en: 'Pilot title (change it in the Missions tab)', pt: 'Título do piloto (troque na aba Missões)', es: 'Título del piloto (cámbialo en la pestaña Misiones)' })}>«{titleText(profile.title)}»</p>
           ) : (
-            <p className="text-xs text-slate-400">{dog.breed}</p>
+            <p className="text-xs text-slate-400">{breedLabel(dog.breed)}</p>
           )}
           <div className={`text-sm font-bold mt-1 ${getTierColor(profile.tier)}`}>
             <GameIcon name={TIER_INFO[profile.tier].icon} size={18} className="mr-1" />
@@ -51,7 +53,7 @@ export default function PlayerProfileCard({ profile }: PlayerProfileProps) {
         <div className="font-display text-3xl text-amber-300 leading-none">{dog.level}</div>
         <div className="flex-1">
           <div className="flex justify-between text-[10px] text-slate-400 mb-1">
-            <span>NÍVEL</span>
+            <span>{L({ en: 'LEVEL', pt: 'NÍVEL', es: 'NIVEL' })}</span>
             <span>
               {dog.xp}/{dog.xpToNext} XP
             </span>
@@ -65,15 +67,15 @@ export default function PlayerProfileCard({ profile }: PlayerProfileProps) {
       <div className="grid grid-cols-3 gap-2 my-4 text-center">
         <div className="rounded-xl bg-white/5 py-2">
           <div className="text-white font-bold">{dog.missions}</div>
-          <div className="text-[10px] text-slate-400">Voos</div>
+          <div className="text-[10px] text-slate-400">{L({ en: 'Flights', pt: 'Voos', es: 'Vuelos' })}</div>
         </div>
         <div className="rounded-xl bg-white/5 py-2">
           <div className="text-white font-bold">{successRate}%</div>
-          <div className="text-[10px] text-slate-400">Sucesso</div>
+          <div className="text-[10px] text-slate-400">{L({ en: 'Success', pt: 'Sucesso', es: 'Éxito' })}</div>
         </div>
         <div className="rounded-xl bg-white/5 py-2">
           <div className="text-white font-bold">{profile.bestScore}</div>
-          <div className="text-[10px] text-slate-400">Recorde</div>
+          <div className="text-[10px] text-slate-400">{L({ en: 'Best', pt: 'Recorde', es: 'Récord' })}</div>
         </div>
       </div>
 
@@ -100,22 +102,23 @@ export default function PlayerProfileCard({ profile }: PlayerProfileProps) {
         </div>
         <div className="rounded-xl bg-violet-500/10 border border-violet-400/20 p-2 text-center">
           <div className="text-violet-300 font-bold"><LunarDust value={profile.lunarDust} size={22} /></div>
-          <div className="text-[10px] text-slate-400">Pó Lunar</div>
+          <div className="text-[10px] text-slate-400">{L({ en: 'Lunar Dust', pt: 'Pó Lunar', es: 'Polvo Lunar' })}</div>
         </div>
       </div>
       <div className="rounded-xl bg-orange-500/10 border border-orange-400/20 px-3 py-2 text-xs">
         <div className="flex items-center justify-between">
           <span className="text-slate-300">
-            Saldo DOG <span className="text-slate-500">({profile.dogBalanceSource === 'real' ? 'on-chain' : 'simulado'})</span>
+            {L({ en: 'DOG balance', pt: 'Saldo DOG', es: 'Saldo DOG' })}{' '}
+            <span className="text-slate-500">({profile.dogBalanceSource === 'real' ? 'on-chain' : L({ en: 'simulated', pt: 'simulado', es: 'simulado' })})</span>
           </span>
-          <span className="text-orange-300 font-bold">{profile.dogBalance.toLocaleString('pt-BR')}</span>
+          <span className="text-orange-300 font-bold">{profile.dogBalance.toLocaleString(locale)}</span>
         </div>
         {onchain && (
           <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-            {onchain.rank && <span className="px-2 py-0.5 rounded-full bg-white/5 text-slate-300">Holder #{onchain.rank.toLocaleString('pt-BR')}</span>}
-            {onchain.dogcity?.genesis && <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/30">Genesis · recebeu o airdrop</span>}
+            {onchain.rank && <span className="px-2 py-0.5 rounded-full bg-white/5 text-slate-300">Holder #{onchain.rank.toLocaleString(locale)}</span>}
+            {onchain.dogcity?.genesis && <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/30">Genesis · {L({ en: 'received the airdrop', pt: 'recebeu o airdrop', es: 'recibió el airdrop' })}</span>}
             {onchain.dogcity?.status === 'exchange' && (
-              <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-300">Endereço de corretora{onchain.dogcity.identity ? ` (${onchain.dogcity.identity})` : ''}</span>
+              <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-300">{L({ en: 'Exchange address', pt: 'Endereço de corretora', es: 'Dirección de exchange' })}{onchain.dogcity.identity ? ` (${onchain.dogcity.identity})` : ''}</span>
             )}
           </div>
         )}
@@ -130,23 +133,23 @@ export default function PlayerProfileCard({ profile }: PlayerProfileProps) {
           className="mt-2 block rounded-xl border border-sky-400/25 bg-sky-500/10 px-3 py-2.5 text-xs hover:bg-sky-500/15 transition-colors"
         >
           <div className="flex items-center justify-between">
-            <span className="font-display text-[11px] tracking-wider text-sky-200">SEU LOTE NO DOGCITY</span>
-            <span className="text-sky-300">mapa ↗</span>
+            <span className="font-display text-[11px] tracking-wider text-sky-200">{L({ en: 'YOUR DOGCITY PLOT', pt: 'SEU LOTE NO DOGCITY', es: 'TU PARCELA EN DOGCITY' })}</span>
+            <span className="text-sky-300">{L({ en: 'map', pt: 'mapa', es: 'mapa' })} ↗</span>
           </div>
           <div className="mt-1 text-white font-semibold">
             {lot.district} · {lot.typology}
           </div>
           <div className="text-slate-400">
-            {lot.areaM2?.toLocaleString('pt-BR')} m² · lote {lot.lotId}
+            {lot.areaM2?.toLocaleString(locale)} m² · {L({ en: 'plot', pt: 'lote', es: 'parcela' })} {lot.lotId}
           </div>
         </a>
       )}
       {onchain?.dogcity?.status === 'not_in_snapshot' && (
         <a href="https://www.dogdata.xyz/dogcity" target="_blank" rel="noreferrer" className="mt-2 block text-[11px] text-slate-500 hover:text-slate-300">
-          Esta carteira não estava no snapshot do DogCity (bloco 966.670). Saiba mais ↗
+          {L({ en: 'This wallet was not in the DogCity snapshot (block 966,670). Learn more ↗', pt: 'Esta carteira não estava no snapshot do DogCity (bloco 966.670). Saiba mais ↗', es: 'Esta billetera no estaba en el snapshot de DogCity (bloque 966.670). Más información ↗' })}
         </a>
       )}
-      {onchain && <p className="mt-2 text-[10px] text-slate-600">Dados on-chain: DogData (dogdata.xyz)</p>}
+      {onchain && <p className="mt-2 text-[10px] text-slate-600">{L({ en: 'On-chain data', pt: 'Dados on-chain', es: 'Datos on-chain' })}: DogData (dogdata.xyz)</p>}
     </div>
   );
 }

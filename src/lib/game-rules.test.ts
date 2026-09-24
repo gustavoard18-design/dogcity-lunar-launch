@@ -15,12 +15,13 @@ import { applyLaunchResult, equipCosmetic, purchaseCosmetic, purchaseUpgrade } f
 import { computeOutcome, FlightResult } from './scoring';
 import { UPGRADES, getNextUpgrade } from './shop';
 import { gaugeQuality, getGameTuning } from './stats';
-import { createProfile, getEventLeaderboard, loadProfile, migrateProfile, saveProfile } from './storage';
+import { breedLabel, createProfile, getEventLeaderboard, loadProfile, migrateProfile, providerLabel, saveProfile } from './storage';
+import { L, LANGUAGES, lang } from './i18n';
 import { astronautTier, rocketTier } from './evolution';
 import { isTutorialPending, markTutorialDone } from './tutorial';
 import { NAME_FRAMES, setNameStyle } from './frames';
 import { PODIUM_PRIZES, applyPodiumPrize, pastEventWeeks } from './podium';
-import { EVENTS, getCurrentEvent, getEventBonus, getWeekIndex, msUntilNextEvent } from './events';
+import { EVENTS, getCurrentEvent, getEventBonus, getWeekIndex, msUntilNextEvent, routeName } from './events';
 import { ACHIEVEMENTS, claimAchievement, setTitle, statsFromHistory, titleText, unlockAchievements } from './achievements';
 
 const [LOW, MOON] = ROUTES;
@@ -263,25 +264,25 @@ describe('armazenamento', () => {
 describe('evolução dos avatares', () => {
   it('astronauta evolui com a raridade dos itens equipados', () => {
     const d = profile.dog;
-    expect(astronautTier(d).tier.name).toBe('Início');
-    expect(astronautTier({ ...d, helmet: 'helmet_classic', trail: 'trail_blue' }).tier.name).toBe('Exploração');
-    expect(astronautTier({ ...d, skin: 'skin_golden', helmet: 'helmet_neon', trail: 'trail_blue' }).tier.name).toBe('Avançado');
-    expect(astronautTier({ ...d, skin: 'skin_nebula', helmet: 'helmet_gold', trail: 'trail_green' }).tier.name).toBe('Avançado');
+    expect(astronautTier(d).tier.index).toBe(1);
+    expect(astronautTier({ ...d, helmet: 'helmet_classic', trail: 'trail_blue' }).tier.index).toBe(2);
+    expect(astronautTier({ ...d, skin: 'skin_golden', helmet: 'helmet_neon', trail: 'trail_blue' }).tier.index).toBe(3);
+    expect(astronautTier({ ...d, skin: 'skin_nebula', helmet: 'helmet_gold', trail: 'trail_green' }).tier.index).toBe(3);
     // Rastro Azul é raro (2 pts): a mesma combinação sobe de fase.
-    expect(astronautTier({ ...d, skin: 'skin_nebula', helmet: 'helmet_gold', trail: 'trail_blue' }).tier.name).toBe('Especial');
-    expect(astronautTier({ ...d, skin: 'skin_nebula', helmet: 'helmet_gold', trail: 'trail_plasma' }).tier.name).toBe('Especial');
+    expect(astronautTier({ ...d, skin: 'skin_nebula', helmet: 'helmet_gold', trail: 'trail_blue' }).tier.index).toBe(4);
+    expect(astronautTier({ ...d, skin: 'skin_nebula', helmet: 'helmet_gold', trail: 'trail_plasma' }).tier.index).toBe(4);
     const max = astronautTier({ ...d, skin: 'skin_cosmic', helmet: 'helmet_gold', trail: 'trail_rainbow' });
-    expect(max.tier.name).toBe('Lendário');
+    expect(max.tier.index).toBe(5);
     expect(max.next).toBeUndefined();
   });
 
   it('foguete evolui com a soma dos níveis da Oficina', () => {
     const lv = (n: number) => ({ power: n, accuracy: n, luck: n, speed: n });
-    expect(rocketTier(lv(1)).tier.name).toBe('Básico');
-    expect(rocketTier({ ...lv(1), power: 7 }).tier.name).toBe('Aprimorado');
-    expect(rocketTier(lv(5)).tier.name).toBe('Avançado');
-    expect(rocketTier(lv(7)).tier.name).toBe('Especial');
-    expect(rocketTier(lv(10)).tier.name).toBe('Lendário');
+    expect(rocketTier(lv(1)).tier.index).toBe(1);
+    expect(rocketTier({ ...lv(1), power: 7 }).tier.index).toBe(2);
+    expect(rocketTier(lv(5)).tier.index).toBe(3);
+    expect(rocketTier(lv(7)).tier.index).toBe(4);
+    expect(rocketTier(lv(10)).tier.index).toBe(5);
     expect(rocketTier(lv(1)).next?.min).toBe(10);
   });
 });
@@ -373,7 +374,7 @@ describe('títulos, secretas e ranking do evento', () => {
     const { profile: flown } = applyLaunchResult(profile, LOW, outcome(), LOW.cost);
     const titled = setTitle(flown, 'first_success')!;
     expect(titled.title).toBe('first_success');
-    expect(titleText(titled.title)).toBe('Primeiro Salto');
+    expect(titleText(titled.title)).toBe('First Leap');
     expect(setTitle(titled, null)!.title).toBeUndefined();
   });
 
@@ -467,3 +468,26 @@ describe('molduras de nome e pódio do evento', () => {
     expect(setNameStyle(second.profile, 'champion')).toBeNull();
   });
 });
+
+describe('idiomas', () => {
+  it('inglês é o padrão, com português e espanhol disponíveis', () => {
+    expect(lang).toBe('en');
+    expect(LANGUAGES.map(l => l.id)).toEqual(['en', 'pt', 'es']);
+    expect(L({ en: 'Launch', pt: 'Lançar', es: 'Lanzar' })).toBe('Launch');
+    expect(ROUTES[0].name).toBe('Low Orbit');
+  });
+
+  it('raças e convidado guardados em português aparecem traduzidos', () => {
+    expect(breedLabel('Corgi Lunar')).toBe('Lunar Corgi');
+    expect(breedLabel('Raça Desconhecida')).toBe('Raça Desconhecida');
+    expect(providerLabel('Convidado')).toBe('Guest');
+    expect(providerLabel('Xverse')).toBe('Xverse');
+  });
+
+  it('o histórico mostra o nome da rota no idioma atual', () => {
+    expect(routeName({ id: 'mars-colony', name: 'Colônia de Marte' })).toBe('Mars Colony');
+    expect(routeName({ id: 'event-solar-storm', name: 'Tempestade Solar' })).toBe('Solar Storm');
+    expect(routeName({ id: 'rota-antiga', name: 'Rota Antiga' })).toBe('Rota Antiga');
+  });
+});
+

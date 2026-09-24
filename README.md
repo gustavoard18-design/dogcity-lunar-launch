@@ -3,7 +3,7 @@
 **Da Base Lunar DogCity, mire, lance e pilote o DOG astronauta até a Terra, a Lua, Ceres, Marte e Saturno.**
 
 🎮 **Jogue agora:** https://gustavoard18-design.github.io/dogcity-lunar-launch/
-Grátis, no navegador (computador ou celular) e instalável como app. Integrado ao ecossistema DogCity e aos dados on-chain do DOG.
+Grátis, no navegador (computador ou celular) e instalável como app, em **inglês** (padrão), **português** e **espanhol**. Integrado ao ecossistema DogCity e aos dados on-chain do DOG.
 
 ![React](https://img.shields.io/badge/React-18-blue?style=flat-square&logo=react)
 ![Three.js](https://img.shields.io/badge/Three.js-0.160-green?style=flat-square&logo=three.js)
@@ -65,6 +65,10 @@ Toda segunda-feira entra uma rota especial, em rodízio: **Chuva de Meteoros**, 
 
 ---
 
+## 🌐 Idiomas
+
+Inglês é o padrão; o seletor 🌐 (tela inicial e topo do hangar) troca para português ou espanhol. Os textos ficam no código como `L({ en, pt, es })` (`src/lib/i18n.ts`), e o TypeScript exige as três línguas. O idioma é lido ao carregar a página, então trocar recarrega o jogo (voltando ao hangar do mesmo piloto).
+
 ## 📱 App e som
 
 - **Instalar como app**: botão no topo (Chrome, Edge e Android) ou, no iPhone, Safari → Compartilhar → Adicionar à Tela de Início. Abre em tela cheia e funciona offline com o que já foi carregado.
@@ -125,6 +129,7 @@ src/
     ├── online.ts         # ranking e dados DOG (Supabase)
     ├── wallet.ts         # convidado / Kray, Xverse, OKX
     ├── audio.ts, music.ts  # efeitos e trilha sintetizados (WebAudio)
+    ├── i18n.ts           # idiomas (en/pt/es) e o helper L()
     ├── shareCard.ts      # imagem de compartilhamento do voo
     └── pwa.ts, webgl.ts  # instalação como app e checagem de 3D
 ```

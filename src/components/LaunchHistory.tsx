@@ -1,28 +1,32 @@
 import { PlayerProfile } from '../types';
+import { L, locale } from '../lib/i18n';
 import { ROUTES } from '../lib/economy';
-import { EVENTS } from '../lib/events';
+import { EVENTS, routeName } from '../lib/events';
 import GameIcon, { IconName, PLANET_ICON, Stardust, routeIcon } from './GameIcon';
 
-const fmt = (n: number) => n.toLocaleString('pt-BR');
+const fmt = (n: number) => n.toLocaleString(locale);
 
 /** Números de toda a carreira do piloto (contadores permanentes). */
 function CareerStats({ profile }: { profile: PlayerProfile }) {
   const s = profile.stats;
   const cells: { icon: IconName; label: string; value: string }[] = [
-    { icon: 'rocket', label: 'Voos', value: fmt(s.launches) },
-    { icon: 'trophy', label: 'Concluídos', value: fmt(s.successes) },
-    { icon: 'orb', label: 'Orbes', value: fmt(s.orbs) },
-    { icon: 'ring', label: 'Anéis', value: fmt(s.rings) },
-    { icon: 'medal', label: 'Perfeitos', value: fmt(s.perfects) },
-    { icon: 'escudo', label: 'Sem dano', value: fmt(s.flawless) },
+    { icon: 'rocket', label: L({ en: 'Flights', pt: 'Voos', es: 'Vuelos' }), value: fmt(s.launches) },
+    { icon: 'trophy', label: L({ en: 'Completed', pt: 'Concluídos', es: 'Completados' }), value: fmt(s.successes) },
+    { icon: 'orb', label: L({ en: 'Orbs', pt: 'Orbes', es: 'Orbes' }), value: fmt(s.orbs) },
+    { icon: 'ring', label: L({ en: 'Rings', pt: 'Anéis', es: 'Anillos' }), value: fmt(s.rings) },
+    { icon: 'medal', label: L({ en: 'Perfect', pt: 'Perfeitos', es: 'Perfectos' }), value: fmt(s.perfects) },
+    { icon: 'escudo', label: L({ en: 'No damage', pt: 'Sem dano', es: 'Sin daño' }), value: fmt(s.flawless) },
   ];
   const routes = [...ROUTES, ...EVENTS.map(e => e.route)].filter(r => (s.routes[r.id] ?? 0) > 0);
   return (
     <div className="panel mb-4">
       <div className="flex items-baseline justify-between mb-3">
-        <h3 className="font-display text-lg text-white">Carreira do piloto</h3>
+        <h3 className="font-display text-lg text-white">{L({ en: 'Pilot career', pt: 'Carreira do piloto', es: 'Carrera del piloto' })}</h3>
         <span className="text-[11px] text-slate-500">
-          <Stardust value={fmt(s.stardustEarned)} size="1em" /> ganhos em voos · {profile.eventWins.length} {profile.eventWins.length === 1 ? 'evento vencido' : 'eventos vencidos'}
+          <Stardust value={fmt(s.stardustEarned)} size="1em" /> {L({ en: 'earned in flights', pt: 'ganhos em voos', es: 'ganados en vuelos' })} · {profile.eventWins.length}{' '}
+          {profile.eventWins.length === 1
+            ? L({ en: 'event won', pt: 'evento vencido', es: 'evento ganado' })
+            : L({ en: 'events won', pt: 'eventos vencidos', es: 'eventos ganados' })}
         </span>
       </div>
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
@@ -53,9 +57,9 @@ export default function LaunchHistory({ profile }: { profile: PlayerProfile }) {
     <>
       <CareerStats profile={profile} />
       <div className="panel">
-        <h3 className="font-display text-lg text-white mb-4">Diário de bordo</h3>
+        <h3 className="font-display text-lg text-white mb-4">{L({ en: 'Flight log', pt: 'Diário de bordo', es: 'Diario de a bordo' })}</h3>
         {profile.launches.length === 0 ? (
-          <p className="text-slate-500 text-center py-8 text-sm">Nenhum voo ainda. Escolha uma rota e decole!</p>
+          <p className="text-slate-500 text-center py-8 text-sm">{L({ en: 'No flights yet. Pick a route and take off!', pt: 'Nenhum voo ainda. Escolha uma rota e decole!', es: 'Aún no hay vuelos. ¡Elige una ruta y despega!' })}</p>
         ) : (
           <div className="space-y-2 max-h-[28rem] overflow-y-auto pr-1">
             {profile.launches.map(launch => (
@@ -68,10 +72,10 @@ export default function LaunchHistory({ profile }: { profile: PlayerProfile }) {
                 <div className="flex items-center gap-3">
                   <GameIcon name={routeIcon(launch.route.id)} size={40} />
                   <div>
-                    <p className="text-white text-sm font-medium">{launch.route.name}</p>
+                    <p className="text-white text-sm font-medium">{routeName(launch.route)}</p>
                     <p className="text-[11px] text-slate-400">
-                      {new Date(launch.timestamp).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
-                      {launch.stardustCost === 0 && ' · treino'}
+                      {new Date(launch.timestamp).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' })}
+                      {launch.stardustCost === 0 && ` · ${L({ en: 'training', pt: 'treino', es: 'entrenamiento' })}`}
                     </p>
                   </div>
                 </div>
@@ -85,7 +89,11 @@ export default function LaunchHistory({ profile }: { profile: PlayerProfile }) {
             ))}
           </div>
         )}
-        {profile.launches.length > 0 && <p className="text-[11px] text-slate-600 mt-3">Mostrando os últimos {profile.launches.length} voos.</p>}
+        {profile.launches.length > 0 && (
+          <p className="text-[11px] text-slate-600 mt-3">
+            {L({ en: `Showing the last ${profile.launches.length} flights.`, pt: `Mostrando os últimos ${profile.launches.length} voos.`, es: `Mostrando los últimos ${profile.launches.length} vuelos.` })}
+          </p>
+        )}
       </div>
     </>
   );

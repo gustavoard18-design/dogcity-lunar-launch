@@ -14,6 +14,8 @@ const browser = await puppeteer.launch({
   defaultViewport: { width: W, height: H },
 });
 const page = await browser.newPage();
+// Os scripts clicam nos botões pelo texto em português.
+await page.evaluateOnNewDocument(() => localStorage.setItem('dogcity_lang', 'pt'));
 const errors = [];
 page.on('console', m => m.type() === 'error' && errors.push(m.text()));
 page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));

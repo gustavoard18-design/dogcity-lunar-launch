@@ -2,6 +2,7 @@ import type { DailyMission, PlanetKind, Stat, Tier } from '../types';
 import { getRoute } from '../lib/economy';
 import { getEventByRoute } from '../lib/events';
 import { STAT_ICON } from '../lib/evolution';
+import { L } from '../lib/i18n';
 
 /**
  * Ícones do jogo no mesmo padrão das artes: renders 3D (public/art/ui),
@@ -93,7 +94,7 @@ export function Stardust({ value, sign = '', size = '1.15em' }: { value: number 
 export function LunarDust({ value, sign = '', size = '1.15em' }: { value: number | string; sign?: string; size?: string | number }) {
   return (
     <span className="inline-flex items-center gap-1 whitespace-nowrap">
-      <GameIcon name="gem" size={size} alt="Pó Lunar" />
+      <GameIcon name="gem" size={size} alt={L({ en: 'Lunar Dust', pt: 'Pó Lunar', es: 'Polvo Lunar' })} />
       {sign}
       {value}
     </span>
@@ -203,7 +204,7 @@ export function StarIcon({ size = 20, className = '', empty = false }: GlyphProp
 /** Dificuldade em 4 estrelas pequenas. */
 export function Difficulty({ level, size = 11 }: { level: number; size?: number }) {
   return (
-    <span className="inline-flex gap-px align-[-0.1em]" aria-label={`Dificuldade ${level} de 4`}>
+    <span className="inline-flex gap-px align-[-0.1em]" aria-label={L({ en: `Difficulty ${level} of 4`, pt: `Dificuldade ${level} de 4`, es: `Dificultad ${level} de 4` })}>
       {[0, 1, 2, 3].map(i => (
         <StarIcon key={i} size={size} empty={i >= level} />
       ))}
@@ -256,9 +257,9 @@ export function EyeIcon({ size = 13, className = '' }: GlyphProps) {
 
 /** Patentes do piloto (valores salvos continuam em inglês; o texto exibido é em português). */
 export const TIER_INFO: Record<Tier, { label: string; icon: IconName }> = {
-  Legend: { label: 'Lenda', icon: 'trophy' },
-  Commander: { label: 'Comandante', icon: 'medal' },
-  Pioneer: { label: 'Pioneiro', icon: 'rocket' },
-  Explorer: { label: 'Explorador', icon: 'radar' },
-  Stray: { label: 'Recruta', icon: 'escudo' },
+  Legend: { label: L({ en: 'Legend', pt: 'Lenda', es: 'Leyenda' }), icon: 'trophy' },
+  Commander: { label: L({ en: 'Commander', pt: 'Comandante', es: 'Comandante' }), icon: 'medal' },
+  Pioneer: { label: L({ en: 'Pioneer', pt: 'Pioneiro', es: 'Pionero' }), icon: 'rocket' },
+  Explorer: { label: L({ en: 'Explorer', pt: 'Explorador', es: 'Explorador' }), icon: 'radar' },
+  Stray: { label: L({ en: 'Recruit', pt: 'Recruta', es: 'Recluta' }), icon: 'escudo' },
 };

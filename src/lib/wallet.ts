@@ -1,5 +1,7 @@
 import { AddressPurpose, getProviders, request } from '@sats-connect/core';
 import type { WalletConnection } from '../types';
+import { GUEST_PROVIDER } from './storage';
+import { L } from './i18n';
 
 export type { WalletConnection };
 
@@ -77,13 +79,13 @@ async function satsConnectAddress(keyword: string, name: string): Promise<string
   const provider = satsProvider(keyword);
   const res = await request(
     'getAccounts',
-    { purposes: [AddressPurpose.Ordinals, AddressPurpose.Payment], message: 'Conectar ao DogCity Lunar Launch (somente leitura do endereço)' },
+    { purposes: [AddressPurpose.Ordinals, AddressPurpose.Payment], message: L({ en: 'Connect to DogCity Lunar Launch (read-only access to your address)', pt: 'Conectar ao DogCity Lunar Launch (somente leitura do endereço)', es: 'Conectar a DogCity Lunar Launch (solo lectura de la dirección)' }) },
     provider?.id
   );
-  if (res.status !== 'success') throw new Error(`${name} recusou a conexão.`);
+  if (res.status !== 'success') throw Object.assign(new Error(L({ en: `${name} rejected the connection.`, pt: `${name} recusou a conexão.`, es: `${name} rechazó la conexión.` })), { rejected: true });
   const accounts = res.result;
   const ordinals = accounts.find(a => a.purpose === AddressPurpose.Ordinals) ?? accounts[0];
-  if (!ordinals?.address) throw new Error(`${name} não retornou um endereço.`);
+  if (!ordinals?.address) throw new Error(L({ en: `${name} did not return an address.`, pt: `${name} não retornou um endereço.`, es: `${name} no devolvió una dirección.` }));
   return ordinals.address;
 }
 
@@ -94,22 +96,22 @@ async function okxAddress(name: string): Promise<string> {
     try {
       return await satsConnectAddress('okx', name);
     } catch (e) {
-      if (!own || /recusou/.test((e as Error).message)) throw e;
+      if (!own || (e as { rejected?: boolean }).rejected) throw e;
     }
   }
-  if (!own) throw new Error(`${name} não encontrada.`);
+  if (!own) throw new Error(L({ en: `${name} not found.`, pt: `${name} não encontrada.`, es: `${name} no encontrada.` }));
   const res = await own.connect();
   return res?.address ?? '';
 }
 
 export async function connectWallet(id: WalletId): Promise<WalletConnection> {
   const info = WALLETS.find(w => w.id === id)!;
-  if (!isWalletInstalled(id)) throw new Error(`${info.name} não encontrada. Instale a extensão ou jogue como convidado.`);
+  if (!isWalletInstalled(id)) throw new Error(L({ en: `${info.name} not found. Install the extension or play as a guest.`, pt: `${info.name} não encontrada. Instale a extensão ou jogue como convidado.`, es: `${info.name} no encontrada. Instala la extensión o juega como invitado.` }));
   let address = '';
   switch (id) {
     case 'kray': {
       const res = await window.krayWallet!.requestAccounts();
-      if (!res?.success || !res.address) throw new Error('A Kray recusou a conexão. Abra a extensão e aprove este site.');
+      if (!res?.success || !res.address) throw new Error(L({ en: 'Kray rejected the connection. Open the extension and approve this site.', pt: 'A Kray recusou a conexão. Abra a extensão e aprove este site.', es: 'Kray rechazó la conexión. Abre la extensión y aprueba este sitio.' }));
       address = res.address.trim();
       break;
     }
@@ -120,7 +122,7 @@ export async function connectWallet(id: WalletId): Promise<WalletConnection> {
       address = await okxAddress(info.name);
       break;
   }
-  if (!address) throw new Error(`${info.name} não retornou um endereço.`);
+  if (!address) throw new Error(L({ en: `${info.name} did not return an address.`, pt: `${info.name} não retornou um endereço.`, es: `${info.name} no devolvió una dirección.` }));
   return { address, connected: true, provider: info.name };
 }
 
@@ -146,7 +148,7 @@ export async function connectGuest(): Promise<WalletConnection> {
     address = generateGuestAddress();
   }
   await new Promise(resolve => setTimeout(resolve, 600));
-  return { address, connected: true, provider: 'Convidado' };
+  return { address, connected: true, provider: GUEST_PROVIDER };
 }
 
 /** Saldo DOG simulado para convidados (estável por endereço). */

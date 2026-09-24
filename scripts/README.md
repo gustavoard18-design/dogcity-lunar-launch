@@ -25,6 +25,8 @@ Depois de gerar: conferir o modelo de vários ângulos, corrigir orientação/in
 
 Rodar com `npm run dev` ativo e Playwright instalado (`npm i --no-save playwright`): `node scripts/art/rocket-art.mjs`. As peças e cores de cada fase ficam em `rocket-art.tsx` (página servida pelo Vite em `/scripts/art/rocket-art.html`, fora do build). No Chrome headless (SwiftShader) leva uns 2 minutos.
 
+`og-image.html` é a imagem de prévia do link (`public/og-image.jpg`, 1200×630, em inglês): com `npm run dev`, abra `/scripts/art/og-image.html` e fotografe o elemento `#c` como JPEG.
+
 ## `qa/`: testes automáticos no navegador
 
 Usam `puppeteer-core` com o Chrome instalado (`npm i --no-save puppeteer-core`) e o jogo rodando em `http://localhost:5173` (`npm run dev`). O caminho do Chrome vem de `CHROME_PATH` (padrão: o Chrome do Windows). Em máquina lenta, `play.mjs` aceita `QA_VIEWPORT=800x450` e `QA_FLIGHT_SECONDS=560`; `QA_LEVEL=7` libera todas as rotas. O Chrome headless com `--use-angle=swiftshader` roda a ~6 fps, então os voos demoram bem mais que no jogo real.
@@ -39,4 +41,4 @@ Usam `puppeteer-core` com o Chrome instalado (`npm i --no-save puppeteer-core`) 
 | `musiccheck.mjs` | Mede o volume da trilha em cada clima (intercepta a saída de áudio). |
 | `pwacheck.mjs` | Confere manifesto, instalabilidade, service worker e modo offline (rodar com `npm run preview -- --port 4173`). |
 
-Em `npm run dev` o jogo não envia scores ao ranking online, então esses testes não sujam o ranking real.
+Os scripts fixam o idioma em português (clicam nos botões pelo texto). Em `npm run dev` o jogo não envia scores ao ranking online, então esses testes não sujam o ranking real.

@@ -5,6 +5,7 @@ import { COSMETICS, getCosmetic } from '../lib/shop';
 import Showcase from './Showcase';
 import CosmeticCard from './CosmeticCard';
 import { EyeIcon, LunarDust, Stardust } from './GameIcon';
+import { L } from '../lib/i18n';
 
 interface CosmeticShopProps {
   profile: PlayerProfile;
@@ -13,9 +14,9 @@ interface CosmeticShopProps {
 }
 
 const GROUPS: { type: Cosmetic['type']; label: string; target: string; icon: string }[] = [
-  { type: 'skin', label: 'Pelagem', target: 'astronauta', icon: 'traje' },
-  { type: 'helmet', label: 'Capacetes', target: 'astronauta e cabine', icon: 'capacete' },
-  { type: 'trail', label: 'Rastros do motor', target: 'foguete', icon: 'booster' },
+  { type: 'skin', label: L({ en: 'Fur', pt: 'Pelagem', es: 'Pelaje' }), target: L({ en: 'astronaut', pt: 'astronauta', es: 'astronauta' }), icon: 'traje' },
+  { type: 'helmet', label: L({ en: 'Helmets', pt: 'Capacetes', es: 'Cascos' }), target: L({ en: 'astronaut and cockpit', pt: 'astronauta e cabine', es: 'astronauta y cabina' }), icon: 'capacete' },
+  { type: 'trail', label: L({ en: 'Engine trails', pt: 'Rastros do motor', es: 'Estelas del motor' }), target: L({ en: 'rocket', pt: 'foguete', es: 'cohete' }), icon: 'booster' },
 ];
 
 export default function CosmeticShop({ profile, onPurchase, onEquip }: CosmeticShopProps) {
@@ -26,7 +27,7 @@ export default function CosmeticShop({ profile, onPurchase, onEquip }: CosmeticS
   return (
     <div className="panel">
       <div className="flex items-baseline justify-between mb-3">
-        <h3 className="font-display text-lg text-white">Loja</h3>
+        <h3 className="font-display text-lg text-white">{L({ en: 'Shop', pt: 'Loja', es: 'Tienda' })}</h3>
         <span className="text-xs">
           <span className="inline-flex gap-3"><span className="text-amber-300"><Stardust value={profile.stardust} /></span><span className="text-violet-300"><LunarDust value={profile.lunarDust} /></span></span>
         </span>
@@ -35,13 +36,13 @@ export default function CosmeticShop({ profile, onPurchase, onEquip }: CosmeticS
       <Showcase
         dog={dog}
         focus="astronaut"
-        badge={tried ? <span className="inline-flex items-center gap-1"><EyeIcon /> Provando: {tried.name}</span> : <>Equipado agora</>}
+        badge={tried ? <span className="inline-flex items-center gap-1"><EyeIcon /> {L({ en: 'Trying on', pt: 'Provando', es: 'Probando' })}: {tried.name}</span> : <>{L({ en: 'Equipped now', pt: 'Equipado agora', es: 'Equipado ahora' })}</>}
         footer={
           <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400">
-            <span>Toque em um item para provar. Itens mais raros evoluem o astronauta (comum 1 · raro 2 · épico 3 · lendário 4 pts).</span>
+            <span>{L({ en: 'Tap an item to try it on. Rarer items evolve the astronaut (common 1 · rare 2 · epic 3 · legendary 4 pts).', pt: 'Toque em um item para provar. Itens mais raros evoluem o astronauta (comum 1 · raro 2 · épico 3 · lendário 4 pts).', es: 'Toca un objeto para probarlo. Los objetos más raros hacen evolucionar al astronauta (común 1 · raro 2 · épico 3 · legendario 4 pts).' })}</span>
             {tried && (
               <button onClick={() => setTrying(null)} className="btn-ghost px-2.5 py-1 text-[11px]">
-                Tirar
+                {L({ en: 'Take off', pt: 'Tirar', es: 'Quitar' })}
               </button>
             )}
           </div>
