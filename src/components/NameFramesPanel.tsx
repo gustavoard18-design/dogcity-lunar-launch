@@ -1,5 +1,5 @@
 import type { PlayerProfile } from '../types';
-import { NAME_FRAMES } from '../lib/frames';
+import { nameFramesFor } from '../lib/frames';
 import { PODIUM_PRIZES } from '../lib/podium';
 import PilotName from './PilotName';
 import { LockIcon } from './GameIcon';
@@ -12,13 +12,14 @@ interface NameFramesPanelProps {
 
 /** Molduras de nome: prévia com o nome do piloto, como desbloquear e botão de usar. */
 export default function NameFramesPanel({ profile, onSelect }: NameFramesPanelProps) {
-  const open = NAME_FRAMES.filter(f => f.unlocked(profile)).length;
+  const frames = nameFramesFor(profile);
+  const open = frames.filter(f => f.unlocked(profile)).length;
   return (
     <div className="panel mt-4">
       <div className="flex items-baseline justify-between mb-1">
         <h3 className="font-display text-lg text-white">{L({ en: 'Name frames', pt: 'Molduras de nome', es: 'Marcos de nombre' })}</h3>
         <span className="text-sm text-slate-300">
-          <b className="text-white font-display">{open}</b>/{NAME_FRAMES.length}
+          <b className="text-white font-display">{open}</b>/{frames.length}
         </span>
       </div>
       <p className="text-[11px] text-slate-500 mb-4">
@@ -29,7 +30,7 @@ export default function NameFramesPanel({ profile, onSelect }: NameFramesPanelPr
         })}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {NAME_FRAMES.map(f => {
+        {frames.map(f => {
           const unlocked = f.unlocked(profile);
           const active = profile.nameStyle === f.id;
           return (

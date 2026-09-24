@@ -17,6 +17,11 @@ import { UPGRADES, getNextUpgrade } from './shop';
 import { gaugeQuality, getGameTuning } from './stats';
 import { breedLabel, createProfile, renamePilot, sanitizePilotName, getEventLeaderboard, loadProfile, migrateProfile, providerLabel, saveProfile } from './storage';
 import { L, LANGUAGES, lang } from './i18n';
+import { flightRandom, mulberry32 } from './rng';
+import { challengeOutcome, challengeUrl, decodeChallenge, encodeChallenge } from './challenge';
+import { STREAK_REWARDS, applyDailyStreak } from './streak';
+import { SEASON_TIERS, applySeasonPoints, isSeasonId, seasonId, seasonPoints } from './seasons';
+import { DISTRICT_PRIZE, applyDistrictPrize, playerDistrict } from './districts';
 import { dogDataProfileUrl, inscriptionImageUrls, prestigeStars, sanitizeIdentity } from './dogdata';
 import { astronautTier, rocketTier } from './evolution';
 import { isTutorialPending, markTutorialDone } from './tutorial';
@@ -538,6 +543,107 @@ describe('identidade DogData', () => {
     expect(prestigeStars(9)).toBe(5);
     expect(prestigeStars(0)).toBe(0);
     expect(prestigeStars(null)).toBe(0);
+  });
+});
+
+describe('voo com semente e desafio', () => {
+  it('a mesma semente repete a sequência, e cada tipo tem a sua', () => {
+    const a = flightRandom(42);
+    const b = flightRandom(42);
+    const seqA = [a.hazard(), a.hazard(), a.orb(), a.ring()];
+    // ordem diferente entre tipos não muda a sequência de cada um
+    const orbB = b.orb();
+    const seqB = [b.hazard(), b.hazard(), orbB, b.ring()];
+    expect(seqB).toEqual(seqA);
+    expect(mulberry32(1)()).not.toBe(mulberry32(2)());
+  });
+
+  it('o link leva e traz o desafio, e recusa dados impossíveis', () => {
+    const c = { routeId: 'mars-colony', seed: 123456789, score: 820, name: 'Capitão Lua' };
+    expect(decodeChallenge(encodeChallenge(c))).toEqual(c);
+    const url = challengeUrl('https://example.com/game/', c);
+    expect(decodeChallenge(new URL(url).searchParams.get('c'))).toEqual(c);
+    expect(decodeChallenge(encodeChallenge({ ...c, score: 5000 }))).toBeNull();
+    expect(decodeChallenge(encodeChallenge({ ...c, routeId: 'rota-falsa' }))).toBeNull();
+    expect(decodeChallenge(encodeChallenge({ ...c, name: '<b>' }))).toBeNull();
+    expect(decodeChallenge('lixo!!')).toBeNull();
+    expect(decodeChallenge(encodeChallenge({ ...c, routeId: 'event-solar-storm', score: 300 }))?.routeId).toBe('event-solar-storm');
+  });
+
+  it('só voo concluído vence o desafio', () => {
+    const c = { routeId: 'low-orbit', seed: 1, score: 50, name: 'Ana' };
+    expect(challengeOutcome(c, 60, true)).toBe('won');
+    expect(challengeOutcome(c, 50, true)).toBe('tied');
+    expect(challengeOutcome(c, 40, true)).toBe('lost');
+    expect(challengeOutcome(c, 90, false)).toBe('lost');
+  });
+});
+
+describe('sequência de dias', () => {
+  it('conta dias seguidos, paga o ciclo de 7 e recomeça ao pular um dia', () => {
+    const d1 = applyDailyStreak(profile, new Date(2026, 8, 1, 10))!;
+    expect(d1.day).toBe(1);
+    expect(d1.profile.stardust).toBe(profile.stardust + STREAK_REWARDS[0].stardust);
+    expect(applyDailyStreak(d1.profile, new Date(2026, 8, 1, 22))).toBeNull();
+    let p = d1.profile;
+    for (let day = 2; day <= 8; day++) p = applyDailyStreak(p, new Date(2026, 8, day, 9))!.profile;
+    expect(p.streak.count).toBe(8);
+    expect(p.streak.best).toBe(8);
+    const skipped = applyDailyStreak(p, new Date(2026, 8, 10, 9))!;
+    expect(skipped.day).toBe(1);
+    expect(skipped.profile.streak.best).toBe(8);
+  });
+
+  it('vira o mês sem quebrar a sequência', () => {
+    const a = applyDailyStreak(profile, new Date(2026, 8, 30, 20))!;
+    expect(applyDailyStreak(a.profile, new Date(2026, 9, 1, 8))!.day).toBe(2);
+  });
+});
+
+describe('temporadas', () => {
+  it('pontua voo concluído, paga os níveis e libera a moldura no último', () => {
+    const now = new Date(2026, 9, 15);
+    expect(seasonId(now)).toBe('season_2026_10');
+    expect(isSeasonId('season_2026_10')).toBe(true);
+    expect(isSeasonId('season_2026_13')).toBe(false);
+    expect(seasonPoints(820, true)).toBe(92);
+    expect(seasonPoints(820, false)).toBe(0);
+    const g = applySeasonPoints(profile, 1000, true, now);
+    expect(g.points).toBe(110);
+    expect(g.tiers).toEqual([1]);
+    expect(g.profile.stardust).toBe(profile.stardust + SEASON_TIERS[0].stardust);
+    const almost = { ...profile, season: { id: 'season_2026_10', points: 2950, tier: 9 } };
+    const last = applySeasonPoints(almost, 1000, true, now);
+    expect(last.tiers).toEqual([10]);
+    expect(last.frame).toBe('season_2026_10');
+    expect(last.profile.seasonFrames).toContain('season_2026_10');
+  });
+
+  it('o mês novo zera pontos e níveis', () => {
+    const old = { ...profile, season: { id: 'season_2026_09', points: 2000, tier: 8 } };
+    const g = applySeasonPoints(old, 100, true, new Date(2026, 9, 2));
+    expect(g.profile.season).toEqual({ id: 'season_2026_10', points: 20, tier: 0 });
+  });
+});
+
+describe('guerra de distritos', () => {
+  const week = new Date(2026, 8, 21).toISOString();
+  const realProfile = (): PlayerProfile => ({
+    ...profile,
+    dogBalanceSource: 'real',
+    dogOnchain: { balance: 5000, rank: 10, updatedAt: '', dogcity: { status: 'in_snapshot', identity: null, genesis: false, areaM2: 100, lotId: 'A1', district: 'Satoshi Heights', typology: 'Tower', mapUrl: null } },
+    launches: [{ id: 'l1', route: { id: 'low-orbit', name: 'Low Orbit' }, score: 80, stardustEarned: 20, stardustCost: 10, success: true, timestamp: new Date(2026, 8, 23, 12).toISOString() }],
+  });
+
+  it('prêmio só para quem é do distrito campeão e voou na semana, uma vez', () => {
+    const real = realProfile();
+    expect(playerDistrict(real)).toBe('Satoshi Heights');
+    expect(playerDistrict(profile)).toBeNull();
+    const won = applyDistrictPrize(real, week, 'Satoshi Heights')!;
+    expect(won.stardust).toBe(real.stardust + DISTRICT_PRIZE.stardust);
+    expect(applyDistrictPrize(won, week, 'Satoshi Heights')).toBeNull();
+    expect(applyDistrictPrize(real, week, 'Outro Distrito')).toBeNull();
+    expect(applyDistrictPrize({ ...real, launches: [] }, week, 'Satoshi Heights')).toBeNull();
   });
 });
 

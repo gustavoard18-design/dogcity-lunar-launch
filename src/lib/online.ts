@@ -22,7 +22,7 @@ export const submitEnabled = onlineEnabled && (!import.meta.env.DEV || import.me
 
 const headers = () => ({ apikey: SUPABASE_KEY, 'Content-Type': 'application/json' });
 
-async function rpc<T>(fn: string, args: Record<string, unknown>, timeoutMs = 8000): Promise<T> {
+export async function rpc<T>(fn: string, args: Record<string, unknown>, timeoutMs = 8000): Promise<T> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
@@ -185,3 +185,35 @@ export async function fetchIdentities(addresses: string[]): Promise<Record<strin
     clearTimeout(timer);
   }
 }
+
+export interface DistrictStanding {
+  district: string;
+  totalScore: number;
+  pilots: number;
+  bestPilotScore: number;
+}
+
+/** Guerra de distritos (0 = semana atual, 1 = passada). Lança erro se o servidor não responder. */
+export async function fetchDistrictLeaderboard(weeksAgo = 0, limit = 20): Promise<DistrictStanding[]> {
+  const rows = await rpc<{ district: string; total_score: number; pilots: number; best_pilot_score: number }[]>('district_leaderboard', {
+    p_weeks_ago: weeksAgo,
+    p_limit: limit,
+  });
+  return rows.map(r => ({ district: r.district, totalScore: Number(r.total_score), pilots: Number(r.pilots), bestPilotScore: Number(r.best_pilot_score) }));
+}
+
+/** Ranking da temporada do mês (pontos de temporada no lugar do score da semana). */
+export async function fetchSeasonLeaderboard(limit = 20): Promise<LeaderboardEntry[]> {
+  const rows = await rpc<(Omit<LeaderboardRow, 'week_score' | 'total_launches'> & { season_points: number; flights: number })[]>('season_leaderboard', { p_limit: limit });
+  return rows.map(r => ({
+    address: r.address,
+    dogName: r.dog_name,
+    tier: r.tier,
+    title: r.title ?? undefined,
+    style: r.style ?? undefined,
+    weekScore: Number(r.season_points),
+    bestScore: Number(r.season_points),
+    totalLaunches: Number(r.flights),
+  }));
+}
+
