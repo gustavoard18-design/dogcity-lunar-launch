@@ -4,7 +4,7 @@ import { L } from './i18n';
 
 /**
  * Fases visuais do astronauta e do foguete (artes em public/art).
- * - Astronauta: evolui com a raridade dos itens equipados na Loja.
+ * - Astronauta: evolui com a raridade dos itens equipados na Oficina (seção Astronauta).
  * - Foguete: evolui com a soma dos níveis da Oficina.
  */
 

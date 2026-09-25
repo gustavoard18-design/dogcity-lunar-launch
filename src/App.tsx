@@ -85,7 +85,7 @@ const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'launch', label: L({ en: 'Launch', pt: 'Lançar', es: 'Lanzar' }), icon: 'rocket' },
   { id: 'missions', label: L({ en: 'Missions', pt: 'Missões', es: 'Misiones' }), icon: 'medal' },
   { id: 'upgrades', label: L({ en: 'Workshop', pt: 'Oficina', es: 'Taller' }), icon: 'propulsores' },
-  { id: 'cosmetics', label: L({ en: 'Shop', pt: 'Loja', es: 'Tienda' }), icon: 'capacete' },
+  { id: 'cosmetics', label: L({ en: 'Shop', pt: 'Loja', es: 'Tienda' }), icon: 'gem' },
   { id: 'leaderboard', label: L({ en: 'Ranks', pt: 'Ranking', es: 'Ranking' }), icon: 'trophy' },
   { id: 'history', label: L({ en: 'Log', pt: 'Diário', es: 'Diario' }), icon: 'acessorios' },
 ];
@@ -95,6 +95,7 @@ export default function App() {
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('launch');
+  const [workshopView, setWorkshopView] = useState<'rocket' | 'astronaut'>('rocket');
   const [notification, setNotification] = useState<{ text: string; icon?: IconName; key: number } | null>(null);
   const [muted, setMutedState] = useState(isMuted());
   const [musicOn, setMusicOn] = useState(isMusicEnabled());
@@ -889,7 +890,36 @@ export default function App() {
                         <AchievementsPanel profile={profile} onClaim={handleClaimAchievement} onSetTitle={handleSetTitle} />
                       </>
                     )}
-                    {activeTab === 'upgrades' && <UpgradeShop profile={profile} onPurchase={handleUpgrade} />}
+                    {activeTab === 'upgrades' && (
+                      <>
+                        <div className="grid grid-cols-2 gap-2 mb-3" role="tablist">
+                          {(
+                            [
+                              ['rocket', L({ en: 'Rocket', pt: 'Foguete', es: 'Cohete' }), 'propulsores'],
+                              ['astronaut', L({ en: 'Astronaut', pt: 'Astronauta', es: 'Astronauta' }), 'capacete'],
+                            ] as const
+                          ).map(([id, label, icon]) => (
+                            <button
+                              key={id}
+                              role="tab"
+                              aria-selected={workshopView === id}
+                              onClick={() => setWorkshopView(id)}
+                              className={`inline-flex items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-semibold transition-all ${
+                                workshopView === id ? 'tab-active' : 'bg-[#0b1733]/70 text-slate-300 hover:text-white border border-sky-400/15'
+                              }`}
+                            >
+                              <GameIcon name={icon} size={20} className="-my-1" />
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                        {workshopView === 'rocket' ? (
+                          <UpgradeShop profile={profile} onPurchase={handleUpgrade} />
+                        ) : (
+                          <CosmeticShop profile={profile} onPurchase={handleBuyCosmetic} onEquip={handleEquip} />
+                        )}
+                      </>
+                    )}
                     {activeTab === 'cosmetics' && (
                       <ChestShop
                         profile={profile}
@@ -904,7 +934,6 @@ export default function App() {
                         onCancel={cancelChest}
                       />
                     )}
-                    {activeTab === 'cosmetics' && <CosmeticShop profile={profile} onPurchase={handleBuyCosmetic} onEquip={handleEquip} />}
                     {activeTab === 'leaderboard' && <WeeklyLeaderboard playerAddress={profile.address} playerDistrict={playerDistrict(profile)} />}
                     {activeTab === 'history' && <LaunchHistory profile={profile} />}
                   </motion.div>
