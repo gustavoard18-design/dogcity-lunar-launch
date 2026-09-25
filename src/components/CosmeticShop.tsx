@@ -27,7 +27,7 @@ export default function CosmeticShop({ profile, onPurchase, onEquip }: CosmeticS
   return (
     <div className="panel">
       <div className="flex items-baseline justify-between mb-3">
-        <h3 className="font-display text-lg text-white">{L({ en: 'Shop', pt: 'Loja', es: 'Tienda' })}</h3>
+        <h3 className="font-display text-lg text-white">{L({ en: 'Astronaut', pt: 'Astronauta', es: 'Astronauta' })}</h3>
         <span className="text-xs">
           <span className="inline-flex gap-3"><span className="text-amber-300"><Stardust value={profile.stardust} /></span><span className="text-violet-300"><LunarDust value={profile.lunarDust} /></span></span>
         </span>

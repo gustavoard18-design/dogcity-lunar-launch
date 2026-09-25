@@ -1,5 +1,9 @@
 # Novidades
 
+## 2.6.0 (setembro de 2026): Oficina completa, Loja só com baús
+- **Oficina** agora tem duas seções: **Foguete** (upgrades de atributos) e **Astronauta** (pelagens, capacetes e rastros, que antes ficavam na Loja).
+- **Loja** mostra só os baús DOG.
+
 ## 2.5.3 (setembro de 2026)
 - Símbolo do casco igual à folha de referência do foguete: "D" branco maciço com a pata do DOG, sem os traços do ₿.
 

@@ -23,7 +23,7 @@ export default function UpgradeShop({ profile, onPurchase }: UpgradeShopProps) {
   return (
     <div className="panel">
       <div className="flex items-baseline justify-between mb-3">
-        <h3 className="font-display text-lg text-white">{L({ en: 'Workshop', pt: 'Oficina', es: 'Taller' })}</h3>
+        <h3 className="font-display text-lg text-white">{L({ en: 'Rocket', pt: 'Foguete', es: 'Cohete' })}</h3>
         <span className="text-xs text-amber-300"><Stardust value={profile.stardust} /></span>
       </div>
 
