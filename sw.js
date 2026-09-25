@@ -4,7 +4,7 @@
 // O ranking e o saldo DOG (Supabase) nunca passam pelo cache.
 // O build troca __BUILD__ por um carimbo novo: cada deploy usa um cache limpo
 // (artes com nome fixo são baixadas de novo e os bundles antigos são apagados).
-const CACHE = 'dogcity-2.7.0-muhifvik';
+const CACHE = 'dogcity-2.7.0-muhj52y0';
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', './index.html', './manifest.webmanifest', './icon-192.png'])));
