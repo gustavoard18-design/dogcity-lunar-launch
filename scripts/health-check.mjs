@@ -55,6 +55,11 @@ const checks = [
     if (r.status !== 200 || typeof r.body?.limits?.perDay !== 'number') throw new Error(`HTTP ${r.status} ${JSON.stringify(r.body).slice(0, 200)}`);
     return `${r.ms} ms`;
   }],
+  ['prêmio acumulado (dog-drops)', async () => {
+    const r = await req(`${SUPABASE}/functions/v1/dog-drops`, { headers });
+    if (r.status !== 200 || typeof r.body?.poolDog !== 'number') throw new Error(`HTTP ${r.status} ${JSON.stringify(r.body).slice(0, 200)}`);
+    return `${r.ms} ms · ${Math.floor(r.body.poolDog)} DOG`;
+  }],
   ['login (auth)', async () => {
     // Pedido inválido de propósito: a função no ar responde 400 sem gravar nada.
     const r = await req(`${SUPABASE}/functions/v1/auth`, { method: 'POST', headers, body: '{}' });

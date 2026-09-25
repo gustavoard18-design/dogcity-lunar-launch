@@ -1,5 +1,10 @@
 # Novidades
 
+## 2.7.0 (setembro de 2026): prêmio acumulado em DOG
+- **50% do DOG dos baús volta para os jogadores**: forma um prêmio acumulado, mostrado na Loja com os últimos ganhadores.
+- **Moeda de DOG no voo**: raramente (cerca de 1 em 150 voos de carteiras verificadas) aparece uma moeda com o símbolo do DOG. Quem pega ganha de 2% a 8% do prêmio acumulado (de 50 a 5.000 DOG), enviado pela tesouraria. O sorteio é feito no servidor na decolagem; no máximo 1 moeda por carteira por semana e só os 20 primeiros voos do dia concorrem. Não precisa comprar nada para participar.
+- Termos de Uso com as regras do prêmio.
+
 ## 2.6.1 (setembro de 2026): correções da bateria de testes
 - **Semana e temporada no horário de Brasília para todos**: o evento da semana, o bônus do evento, o pódio e a temporada do mês viram à meia-noite de Brasília, como o ranking do servidor. Antes, jogadores em outros fusos (Ásia, Europa) viam o evento novo horas antes ou depois do servidor e podiam voar a rota "errada" para o ranking.
 - **Patente no ranking só com saldo DOG real**: convidados (saldo simulado) apareciam no ranking público como Lenda ou Comandante. Agora entram como Stray; carteiras mostram a patente quando o saldo on-chain chega do DogData. Carteira nova começa com saldo 0 em vez de um saldo simulado.

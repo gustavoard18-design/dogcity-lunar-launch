@@ -15,7 +15,7 @@ import ResultScreen from './ResultScreen';
 import { titleText } from '../lib/achievements';
 import { FLIGHT_TIP_TEXT, FLIGHT_TIP_TIMELINE, FlightTip, TUTORIAL_GAUGE_SLOWDOWN, isTutorialPending, markTutorialDone } from '../lib/tutorial';
 import GameIcon, { Difficulty, EjectIcon, HeartIcon, PLANET_ICON, Stardust } from '../components/GameIcon';
-import { L } from '../lib/i18n';
+import { L, fmtNumber } from '../lib/i18n';
 import { track } from '../lib/analytics';
 import type { Challenge } from '../lib/challenge';
 
@@ -35,6 +35,10 @@ interface LaunchGameProps {
   seed: number;
   /** Desafio aceito (compara o resultado com o de quem desafiou). */
   challenge?: Challenge | null;
+  /** Moeda de DOG sorteada pelo servidor para este voo (pode chegar depois da decolagem). */
+  dogDrop?: { at: number; amount: number } | null;
+  /** O piloto pegou a moeda de DOG. */
+  onDogDrop?(): void;
 }
 
 const ANGLE_MIN = 15;
@@ -49,7 +53,12 @@ function qualityLabel(q: number, perfect: boolean) {
   return { text: L({ en: 'WEAK', pt: 'FRACO', es: 'DÉBIL' }), cls: 'text-red-400' };
 }
 
-export default function LaunchGame({ route, profile, paidCost, summary, canRetry, onFinish, onCancel, onExit, onRetry, seed, challenge }: LaunchGameProps) {
+export default function LaunchGame({ route, profile, paidCost, summary, canRetry, onFinish, onCancel, onExit, onRetry, seed, challenge, dogDrop, onDogDrop }: LaunchGameProps) {
+  const [dogPopup, setDogPopup] = useState<number | null>(null);
+  const dogDropRef = useRef(dogDrop);
+  dogDropRef.current = dogDrop;
+  const onDogDropRef = useRef(onDogDrop);
+  onDogDropRef.current = onDogDrop;
   const tuning = useMemo(() => getGameTuning(profile.dog, route), [profile.dog, route]);
   const look = useMemo(() => getLook(profile.dog), [profile.dog]);
 
@@ -258,6 +267,13 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
       case 'hit': sfx.hit(); setHitFlash(Date.now()); hitTipRef.current?.(); break;
       case 'crash': sfx.explosion(); engineSound.stop(); setHitFlash(Date.now()); break;
       case 'arrive': sfx.success(); engineSound.stop(); break;
+      case 'dogDrop':
+        sfx.coin();
+        sfx.levelUp();
+        setDogPopup(dogDropRef.current?.amount ?? 0);
+        window.setTimeout(() => setDogPopup(null), 3200);
+        onDogDropRef.current?.();
+        break;
     }
   }, []);
 
@@ -341,6 +357,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
             onEvent={onEvent}
             onDone={onDone}
             seed={seed}
+            dogDrop={dogDrop ? { at: dogDrop.at } : null}
           />
         ) : (
           <PadScene route={route} look={look} phaseRef={phaseRef} aimRef={aimRef} onLiftoffDone={onLiftoffDone} />
@@ -489,6 +506,25 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
           </div>
         </div>
       )}
+
+      {/* Moeda de DOG pega no voo */}
+      <AnimatePresence>
+        {dogPopup !== null && (
+          <motion.div
+            key="dog-drop"
+            initial={{ opacity: 0, scale: 0.5, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, y: -30 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 16 }}
+            className="absolute top-[34%] inset-x-0 z-40 flex flex-col items-center pointer-events-none"
+          >
+            <div className="font-display text-4xl sm:text-6xl text-amber-300 drop-shadow-[0_0_24px_rgba(255,170,40,0.9)]">+{fmtNumber(dogPopup)} DOG</div>
+            <div className="mt-1 text-xs sm:text-sm text-amber-100/90 bg-black/40 rounded-full px-3 py-1">
+              {L({ en: 'From the game jackpot! Sent to your wallet soon.', pt: 'Do prêmio acumulado do jogo! Vai para a sua carteira em breve.', es: '¡Del bote del juego! Llega a tu billetera pronto.' })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Popup de qualidade */}
       <AnimatePresence>

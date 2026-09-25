@@ -32,8 +32,10 @@ import { getRouteCost, getTier, isRouteUnlocked, rankingTier } from './lib/econo
 import { fetchDistrictLeaderboard, fetchDogInfo, fetchEventLeaderboard, onlineEnabled, submitEnabled, submitScore } from './lib/online';
 import { authErrorText, dropSession, getSession, sessionToken, verifyWallet } from './lib/auth';
 import { pullCloud, startCloudSync } from './lib/cloud';
+import { type FlightDrop, claimFlightDrop, startFlightTicket } from './lib/drops';
 import VerifyBanner from './components/VerifyBanner';
 import LegalLinks from './components/LegalLinks';
+import JackpotPanel from './components/JackpotPanel';
 import { claimMission, ensureDailyMissions, rerollMissions } from './lib/missions';
 import { applyLaunchResult, equipCosmetic, purchaseCosmetic, purchaseUpgrade } from './lib/progress';
 import { COSMETICS, UPGRADES } from './lib/shop';
@@ -74,6 +76,8 @@ interface Session {
   /** Semente dos sorteios do voo (a mesma do desafio, quando há um). */
   seed: number;
   challenge: Challenge | null;
+  /** Bilhete do voo no servidor, às vezes com uma moeda de DOG (carteira verificada). */
+  drop?: FlightDrop | null;
 }
 
 const LUNAR_DUST = () => L({ en: 'Lunar Dust', pt: 'Pó Lunar', es: 'Polvo Lunar' });
@@ -96,6 +100,7 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('launch');
   const [workshopView, setWorkshopView] = useState<'rocket' | 'astronaut'>('rocket');
+  const [dropsTick, setDropsTick] = useState(0);
   const [notification, setNotification] = useState<{ text: string; icon?: IconName; key: number } | null>(null);
   const [muted, setMutedState] = useState(isMuted());
   const [musicOn, setMusicOn] = useState(isMusicEnabled());
@@ -478,8 +483,33 @@ export default function App() {
     track('flight_start', { route: route.id, level: profile.dog.level });
     // O custo é debitado já na entrada: só volta se cancelar antes da decolagem.
     commit({ ...profile, stardust: profile.stardust - cost });
-    setSession({ id: Date.now(), route, paidCost: cost, summary: null, seed: challenge?.seed ?? newSeed(), challenge });
+    const id = Date.now();
+    setSession({ id, route, paidCost: cost, summary: null, seed: challenge?.seed ?? newSeed(), challenge });
+    // Carteira verificada: pede o bilhete do voo (o servidor sorteia a moeda de DOG).
+    const token = profile.provider !== GUEST_PROVIDER && submitEnabled ? getSession(profile.address)?.token : undefined;
+    if (token) {
+      void startFlightTicket(token, route.id).then(drop => {
+        if (drop) setSession(s => (s && s.id === id ? { ...s, drop } : s));
+      });
+    }
   };
+
+  /** Registra a moeda de DOG pega no voo (tenta de novo se o voo ainda estiver curto demais). */
+  const claimDrop = useCallback(
+    async (drop: FlightDrop, attempt = 0) => {
+      if (!profile) return;
+      const token = getSession(profile.address)?.token;
+      if (!token) return;
+      const r = await claimFlightDrop(token, drop.ticketId);
+      if (r.kind === 'ok') {
+        track('dog_drop', { amount: Number(r.drop.amount_dog) });
+        setDropsTick(t => t + 1);
+      } else if (r.kind === 'retry' && attempt < 4) {
+        window.setTimeout(() => void claimDrop(drop, attempt + 1), 8000);
+      }
+    },
+    [profile]
+  );
 
   const acceptChallenge = () => {
     if (!pendingChallenge) return;
@@ -710,6 +740,8 @@ export default function App() {
           onRetry={() => startRoute(session.route, session.challenge)}
           seed={session.seed}
           challenge={session.challenge}
+          dogDrop={session.drop?.amount ? { at: session.drop.at, amount: session.drop.amount } : null}
+          onDogDrop={() => session.drop && void claimDrop(session.drop)}
         />
       </Suspense>
       </ErrorBoundary>
@@ -926,6 +958,9 @@ export default function App() {
                           <CosmeticShop profile={profile} onPurchase={handleBuyCosmetic} onEquip={handleEquip} />
                         )}
                       </>
+                    )}
+                    {activeTab === 'cosmetics' && onlineEnabled && (
+                      <JackpotPanel address={profile.address} verified={verified} refreshKey={dropsTick} />
                     )}
                     {activeTab === 'cosmetics' && (
                       <ChestShop

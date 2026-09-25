@@ -1,0 +1,13 @@
+{
+  "poolShare": 0.5,
+  "dropChance": 0.0067,
+  "minPoolDog": 2000,
+  "minPct": 0.02,
+  "maxPct": 0.08,
+  "minDropDog": 50,
+  "maxDropDog": 5000,
+  "eligibleFlightsPerDay": 20,
+  "dropsPerWalletPerWeek": 1,
+  "minFlightSeconds": 12,
+  "ticketTtlMinutes": 15
+}
