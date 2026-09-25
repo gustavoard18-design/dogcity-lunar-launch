@@ -4,7 +4,7 @@
 // O ranking e o saldo DOG (Supabase) nunca passam pelo cache.
 // O build troca __BUILD__ por um carimbo novo: cada deploy usa um cache limpo
 // (artes com nome fixo são baixadas de novo e os bundles antigos são apagados).
-const CACHE = 'dogcity-2.6.0-muh88hmk';
+const CACHE = 'dogcity-2.6.1-muhf37he';
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', './index.html', './manifest.webmanifest', './icon-192.png'])));
@@ -30,8 +30,11 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(req)
         .then(res => {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put('./index.html', copy));
+          // Só a página do jogo vira a cópia offline (um 404 do GitHub Pages não).
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then(c => c.put('./index.html', copy));
+          }
           return res;
         })
         .catch(() => caches.match('./index.html'))
