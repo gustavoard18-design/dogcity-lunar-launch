@@ -9,7 +9,7 @@ import * as THREE from 'three';
  * y = -1.55, nariz em y = 1.9, escotilha virada para +Z.
  *
  * A escotilha e o símbolo são pintados na textura do casco; o rosto do DOG e o
- * "D" (no lugar do ₿ original) são malhas que acompanham a curva do casco (projetadas por raio).
+ * símbolo do DOG (no lugar do ₿ original) são malhas que acompanham a curva do casco (projetadas por raio).
  */
 
 const MODEL_URL = `${import.meta.env.BASE_URL || './'}models/rocket.glb`;
@@ -98,41 +98,47 @@ function useFaceTexture() {
 }
 
 /**
- * "D" do DOG no estilo do símbolo do Bitcoin (dois traços em cima e embaixo),
- * branco no círculo laranja do casco, igual às artes de evolução do foguete.
+ * Símbolo do DOG no casco: círculo laranja, "D" branco maciço e uma pata
+ * laranja no meio do D, igual à folha de referência do foguete.
  */
 export function drawDogBadge(g: CanvasRenderingContext2D, S: number) {
-  g.fillStyle = '#f7931a';
+  const orange = '#f26b1d';
+  g.fillStyle = orange;
   g.beginPath();
   g.arc(S / 2, S / 2, S / 2 - 2, 0, Math.PI * 2);
   g.fill();
   g.save();
   g.translate(S / 2, S / 2);
-  g.rotate(0.24);
-  g.fillStyle = '#ffffff';
-  // D: haste reta à esquerda e barriga arredondada, com o miolo vazado.
-  const h = S * 0.5; // altura do D
-  const w = S * 0.4; // largura do D
-  const t = S * 0.1; // espessura
-  const x0 = -w / 2 + S * 0.02;
+  g.rotate(0.12);
+  // D maciço: haste reta à esquerda e barriga arredondada.
+  const h = S * 0.56;
+  const w = S * 0.5;
+  const x0 = -w / 2;
   const y0 = -h / 2;
-  const bowl = (x: number, y: number, bw: number, bh: number) => {
-    const r = bh / 2;
-    g.moveTo(x, y);
-    g.lineTo(x + bw - r, y);
-    g.arc(x + bw - r, y + r, r, -Math.PI / 2, Math.PI / 2);
-    g.lineTo(x, y + bh);
-    g.closePath();
-  };
+  const r = h / 2;
+  const corner = S * 0.04;
+  g.fillStyle = '#ffffff';
   g.beginPath();
-  bowl(x0, y0, w, h);
-  bowl(x0 + t, y0 + t, w - t * 1.6, h - 2 * t);
-  g.fill('evenodd');
-  // Traços acima e abaixo da haste, como no ₿.
-  const tick = S * 0.075;
-  for (const dx of [t * 0.35, t * 1.35]) {
-    g.fillRect(x0 + dx - t * 0.22, y0 - tick, t * 0.44, tick + 1);
-    g.fillRect(x0 + dx - t * 0.22, y0 + h - 1, t * 0.44, tick + 1);
+  g.moveTo(x0 + corner, y0);
+  g.lineTo(x0 + w - r, y0);
+  g.arc(x0 + w - r, y0 + r, r, -Math.PI / 2, Math.PI / 2);
+  g.lineTo(x0 + corner, y0 + h);
+  g.quadraticCurveTo(x0, y0 + h, x0, y0 + h - corner);
+  g.lineTo(x0, y0 + corner);
+  g.quadraticCurveTo(x0, y0, x0 + corner, y0);
+  g.fill();
+  // Pata laranja no miolo do D: almofada e quatro dedos.
+  const cx = x0 + w * 0.46;
+  const cy = S * 0.03;
+  const u = S * 0.058;
+  g.fillStyle = orange;
+  g.beginPath();
+  g.ellipse(cx, cy + u * 0.9, u * 1.35, u * 1.1, 0, 0, Math.PI * 2);
+  g.fill();
+  for (const [dx, dy, rot] of [[-1.55, -0.35, -0.5], [-0.55, -1.45, -0.15], [0.6, -1.45, 0.15], [1.6, -0.35, 0.5]]) {
+    g.beginPath();
+    g.ellipse(cx + dx * u, cy + dy * u, u * 0.55, u * 0.72, rot, 0, Math.PI * 2);
+    g.fill();
   }
   g.restore();
 }

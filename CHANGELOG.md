@@ -1,5 +1,8 @@
 # Novidades
 
+## 2.5.3 (setembro de 2026)
+- Símbolo do casco igual à folha de referência do foguete: "D" branco maciço com a pata do DOG, sem os traços do ₿.
+
 ## 2.5.2 (setembro de 2026): foguete com o D do DOG
 - **Novas artes das 5 fases do foguete** (Básico, Aprimorado, Avançado, Especial e Lendário) na vitrine da Loja e da Oficina, recortadas da arte "Evolução do foguete".
 - **"D" do DOG no lugar do ₿** no casco do foguete 3D, na tela inicial e no ícone de foguete dos botões.
