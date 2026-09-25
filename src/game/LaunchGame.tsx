@@ -520,7 +520,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
           >
             <div className="font-display text-4xl sm:text-6xl text-amber-300 drop-shadow-[0_0_24px_rgba(255,170,40,0.9)]">+{fmtNumber(dogPopup)} DOG</div>
             <div className="mt-1 text-xs sm:text-sm text-amber-100/90 bg-black/40 rounded-full px-3 py-1">
-              {L({ en: 'From the game jackpot! Sent to your wallet soon.', pt: 'Do prêmio acumulado do jogo! Vai para a sua carteira em breve.', es: '¡Del bote del juego! Llega a tu billetera pronto.' })}
+              {L({ en: 'From the game jackpot! Finish the flight to keep it.', pt: 'Do prêmio acumulado do jogo! Conclua o voo para garantir.', es: '¡Del bote del juego! Completa el vuelo para quedártela.' })}
             </div>
           </motion.div>
         )}

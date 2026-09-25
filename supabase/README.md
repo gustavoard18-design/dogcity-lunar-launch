@@ -11,6 +11,7 @@ Projeto `dogcity-lunar-launch` (ref `uknupldacjxbuoiaucfc`). O jogo chama tudo s
 | Função `chests` (baús pagos em DOG) | `functions/chests/` + `functions/_shared/` | publicada; versão 2.5.0 (exige sessão) publicada em 26/09/2026 |
 | Migração `20260926000000_wallet_sessions.sql` (sessões, `submit_score_v3`, progresso na nuvem) | `migrations/` | aplicada (26/09/2026) |
 | Migração `20260927000000_dog_drops.sql` (prêmio acumulado e moedas de DOG no voo) | `migrations/` | **falta aplicar** |
+| Migração `20260927010000_dog_drops_claim.sql` (resgate só com voo concluído, limite semanal atômico) | `migrations/` | **falta aplicar** (depois da anterior, antes da função) |
 | Função `dog-drops` (sorteio da moeda de DOG na decolagem) | `functions/dog-drops/` + `_shared/drops.json`, `drop-rules.ts`, `auth-rules.ts`, `chest-rules.ts` | **falta publicar** |
 | Função `auth` (login com assinatura da carteira) | `functions/auth/` + `functions/_shared/auth-rules.ts` | publicada (26/09/2026) |
 
@@ -50,5 +51,6 @@ npx supabase functions deploy dog-drops --no-verify-jwt
 
 - `drops.json` define a regra: 50% dos baús pagos vão para o prêmio (`poolShare`), chance por voo (`dropChance`, ~1 em 150), fatia do prêmio por moeda (`minPct`–`maxPct`, entre `minDropDog` e `maxDropDog`), limites por carteira. Mudou a regra: publicar `dog-drops` de novo (o jogo lê o mesmo arquivo).
 - No painel, a função `dog-drops` precisa de `drops.json`, `drop-rules.ts`, `auth-rules.ts` e `chest-rules.ts` (com `chests.json`) dentro dela, com os imports trocados para `./`.
+- O resgate passa pela função SQL `claim_dog_drop`: só vale com um score da mesma carteira e rota enviado depois da decolagem, com pelo menos `minQuality` da pontuação máxima, e com o bilhete com a idade mínima do voo da rota (`routeSeconds`). Um lock por carteira garante o limite semanal mesmo com resgates em paralelo. O jogo roda no navegador, então isso encarece a trapaça (exige esperar o voo e enviar um score) mas não a elimina: antes de pagar, dê uma olhada no histórico da carteira em `scores`.
 - **Pagar um ganhador**: Table editor → `dog_drops` → linhas com `status = 'pending'`. Envie `amount_dog` DOG da tesouraria para `address` e depois edite a linha: `status = 'paid'`, `txid` = id da transação, `paid_at` = agora. O jogador vê "pago" com o link da transação. Para cancelar (trapaça comprovada), `status = 'cancelled'`: o valor volta para o prêmio.
 - Consultar o prêmio: `select * from jackpot_state(0.5, 15);`

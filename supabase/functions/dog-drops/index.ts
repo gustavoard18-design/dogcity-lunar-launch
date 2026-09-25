@@ -2,15 +2,18 @@
 //
 // GET  ?address=X                          prêmio acumulado, últimos prêmios e os da carteira
 // POST { action: 'start', token, routeId } bilhete do voo; às vezes com uma moeda de DOG
-// POST { action: 'claim', token, ticketId } o piloto pegou a moeda: registra o prêmio
+// POST { action: 'claim', token, ticketId } fim do voo com a moeda pega: registra o prêmio
 //
 // O sorteio acontece aqui, na decolagem, e o valor fica reservado no prêmio
 // acumulado até o bilhete vencer. Só carteiras verificadas (sessão da função
 // `auth`) concorrem, com limite de voos por dia e de prêmios por semana.
+// O resgate (função SQL claim_dog_drop, atômica por carteira) só vale com o voo
+// concluído: score da mesma rota enviado depois da decolagem, com qualidade
+// mínima, e o tempo do voo da rota.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { TOKEN_RE } from '../_shared/auth-rules.ts';
 import { windowStarts } from '../_shared/chest-rules.ts';
-import { DROPS, dropPoint, rollDrop } from '../_shared/drop-rules.ts';
+import { DROPS, dropPoint, minFlightSecondsFor, rollDrop } from '../_shared/drop-rules.ts';
 
 const ADDRESS_RE = /^(bc1[a-z0-9]{25,90}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})$/;
 const UUID_RE = /^[0-9a-f-]{36}$/;
@@ -96,8 +99,16 @@ Deno.serve(async req => {
         .select('id', { count: 'exact', head: true })
         .eq('address', owner)
         .gte('created_at', new Date(dayStart).toISOString());
+      // Uma moeda aberta por vez: não sorteia outra enquanto um bilhete com moeda estiver valendo.
+      const { count: openDrops } = await db
+        .from('flight_tickets')
+        .select('id', { count: 'exact', head: true })
+        .eq('address', owner)
+        .eq('status', 'open')
+        .not('drop_dog', 'is', null)
+        .gte('created_at', new Date(Date.now() - TTL_MS).toISOString());
       let drop: number | null = null;
-      if ((today ?? 0) < DROPS.eligibleFlightsPerDay && (await dropsThisWeek(db, owner)) < DROPS.dropsPerWalletPerWeek) {
+      if ((today ?? 0) < DROPS.eligibleFlightsPerDay && !openDrops && (await dropsThisWeek(db, owner)) < DROPS.dropsPerWalletPerWeek) {
         drop = rollDrop((await poolState(db)).poolDog);
       }
       const { data: ticket, error } = await db.from('flight_tickets').insert({ address: owner, route_id: routeId, drop_dog: drop }).select('id').single();
@@ -108,31 +119,33 @@ Deno.serve(async req => {
     if (body.action === 'claim') {
       const ticketId = String(body.ticketId ?? '');
       if (!UUID_RE.test(ticketId)) return json({ error: 'bilhete inválido' }, 400);
-      const { data: ticket } = await db.from('flight_tickets').select('*').eq('id', ticketId).maybeSingle();
-      if (!ticket || ticket.address !== owner || !ticket.drop_dog) return json({ error: 'bilhete sem prêmio' }, 404);
-      if (ticket.status === 'claimed') {
-        const { data: prev } = await db.from('dog_drops').select('id, amount_dog, status, created_at').eq('ticket_id', ticketId).maybeSingle();
-        return json({ drop: prev });
-      }
-      const age = Date.now() - new Date(ticket.created_at).getTime();
-      if (ticket.status !== 'open' || age > TTL_MS) return json({ error: 'bilhete vencido' }, 410);
-      if (age < DROPS.minFlightSeconds * 1000) return json({ error: 'voo curto demais' }, 425);
-      if ((await dropsThisWeek(db, owner)) >= DROPS.dropsPerWalletPerWeek) return json({ error: 'limite da semana' }, 429);
-      const { data: claimed } = await db
-        .from('flight_tickets')
-        .update({ status: 'claimed', claimed_at: new Date().toISOString() })
-        .eq('id', ticketId)
-        .eq('status', 'open')
-        .select('id')
-        .maybeSingle();
-      if (!claimed) return json({ error: 'bilhete já usado' }, 409);
-      const { data: drop, error } = await db
-        .from('dog_drops')
-        .insert({ ticket_id: ticketId, address: owner, amount_dog: ticket.drop_dog })
-        .select('id, amount_dog, status, created_at')
-        .single();
+      const { data: ticket } = await db.from('flight_tickets').select('route_id').eq('id', ticketId).maybeSingle();
+      if (!ticket) return json({ error: 'bilhete sem prêmio' }, 404);
+      const { data, error } = await db.rpc('claim_dog_drop', {
+        p_ticket: ticketId,
+        p_address: owner,
+        p_min_age_seconds: minFlightSecondsFor(ticket.route_id),
+        p_min_quality: DROPS.minQuality,
+        p_per_week: DROPS.dropsPerWalletPerWeek,
+        p_ttl_minutes: DROPS.ticketTtlMinutes,
+      });
       if (error) throw error;
-      return json({ drop });
+      const row = Array.isArray(data) ? data[0] : data;
+      switch (row?.code) {
+        case 'ok':
+          return json({ drop: { id: row.drop_id, amount_dog: row.amount_dog, status: row.status, created_at: row.created_at } });
+        case 'too_early':
+          return json({ error: 'voo curto demais' }, 425);
+        case 'no_flight':
+          // O score do voo pode ainda estar chegando: o jogo tenta de novo.
+          return json({ error: 'voo não concluído' }, 425);
+        case 'expired':
+          return json({ error: 'bilhete vencido' }, 410);
+        case 'week_limit':
+          return json({ error: 'limite da semana' }, 429);
+        default:
+          return json({ error: 'bilhete sem prêmio' }, 404);
+      }
     }
 
     return json({ error: 'ação desconhecida' }, 400);

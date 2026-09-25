@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { LaunchOutcome, LaunchSummary, PlayerProfile, Route } from './types';
@@ -484,6 +484,7 @@ export default function App() {
     // O custo é debitado já na entrada: só volta se cancelar antes da decolagem.
     commit({ ...profile, stardust: profile.stardust - cost });
     const id = Date.now();
+    dropCaught.current = null;
     setSession({ id, route, paidCost: cost, summary: null, seed: challenge?.seed ?? newSeed(), challenge });
     // Carteira verificada: pede o bilhete do voo (o servidor sorteia a moeda de DOG).
     const token = profile.provider !== GUEST_PROVIDER && submitEnabled ? getSession(profile.address)?.token : undefined;
@@ -494,22 +495,24 @@ export default function App() {
     }
   };
 
-  /** Registra a moeda de DOG pega no voo (tenta de novo se o voo ainda estiver curto demais). */
-  const claimDrop = useCallback(
-    async (drop: FlightDrop, attempt = 0) => {
-      if (!profile) return;
-      const token = getSession(profile.address)?.token;
-      if (!token) return;
-      const r = await claimFlightDrop(token, drop.ticketId);
-      if (r.kind === 'ok') {
-        track('dog_drop', { amount: Number(r.drop.amount_dog) });
-        setDropsTick(t => t + 1);
-      } else if (r.kind === 'retry' && attempt < 4) {
-        window.setTimeout(() => void claimDrop(drop, attempt + 1), 8000);
-      }
-    },
-    [profile]
-  );
+  /** Bilhete cuja moeda de DOG o piloto pegou neste voo (só vale se o voo for concluído). */
+  const dropCaught = useRef<string | null>(null);
+
+  /**
+   * Registra a moeda de DOG no fim de um voo concluído, depois do score: o servidor
+   * confere que houve voo concluído na rota. Tenta de novo enquanto o score chega.
+   */
+  const claimDrop = useCallback(async (address: string, ticketId: string, attempt = 0) => {
+    const token = getSession(address)?.token;
+    if (!token) return;
+    const r = await claimFlightDrop(token, ticketId);
+    if (r.kind === 'ok') {
+      track('dog_drop', { amount: Number(r.drop.amount_dog) });
+      setDropsTick(t => t + 1);
+    } else if (r.kind === 'retry' && attempt < 5) {
+      window.setTimeout(() => void claimDrop(address, ticketId, attempt + 1), 6000);
+    }
+  }, []);
 
   const acceptChallenge = () => {
     if (!pendingChallenge) return;
@@ -560,8 +563,28 @@ export default function App() {
     });
     commit(next);
     if (outcome.success && submitEnabled) {
-      void sessionToken(next.address, next.provider).then(token => submitScore({ token, address: next.address, dogName: next.dog.name, tier: rankingTier(next), routeId: session.route.id, score: outcome.score, title: next.title, style: next.nameStyle }));
+      const caughtTicket = session.drop && dropCaught.current === session.drop.ticketId ? session.drop.ticketId : null;
+      void sessionToken(next.address, next.provider)
+        .then(token => submitScore({ token, address: next.address, dogName: next.dog.name, tier: rankingTier(next), routeId: session.route.id, score: outcome.score, title: next.title, style: next.nameStyle }))
+        .then(() => {
+          if (caughtTicket) void claimDrop(next.address, caughtTicket);
+        });
+    } else if (session.drop && dropCaught.current === session.drop.ticketId) {
+      // Moeda pega, mas o voo não foi concluído: o DOG volta para o prêmio acumulado.
+      window.setTimeout(
+        () =>
+          notify(
+            L({
+              en: 'The DOG coin only counts if you finish the flight. It went back to the jackpot.',
+              pt: 'A moeda de DOG só vale com o voo concluído. Ela voltou para o prêmio acumulado.',
+              es: 'La moneda de DOG solo vale si completas el vuelo. Volvió al bote.',
+            }),
+            'escudo'
+          ),
+        1800
+      );
     }
+    dropCaught.current = null;
     setSession({ ...session, summary });
     if (summary.levelsGained > 0) {
       window.setTimeout(() => {
@@ -741,7 +764,9 @@ export default function App() {
           seed={session.seed}
           challenge={session.challenge}
           dogDrop={session.drop?.amount ? { at: session.drop.at, amount: session.drop.amount } : null}
-          onDogDrop={() => session.drop && void claimDrop(session.drop)}
+          onDogDrop={() => {
+            if (session.drop) dropCaught.current = session.drop.ticketId;
+          }}
         />
       </Suspense>
       </ErrorBoundary>

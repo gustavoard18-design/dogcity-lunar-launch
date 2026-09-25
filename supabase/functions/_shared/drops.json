@@ -8,6 +8,18 @@
   "maxDropDog": 5000,
   "eligibleFlightsPerDay": 20,
   "dropsPerWalletPerWeek": 1,
-  "minFlightSeconds": 12,
-  "ticketTtlMinutes": 15
+  "minFlightSeconds": 20,
+  "ticketTtlMinutes": 15,
+  "minQuality": 0.2,
+  "routeSeconds": {
+    "low-orbit": 24,
+    "sea-of-tranquility": 30,
+    "asteroid-belt": 36,
+    "mars-colony": 42,
+    "event-meteor-shower": 30,
+    "event-saturn-rings": 44,
+    "event-solar-storm": 26,
+    "event-comet-hunt": 40,
+    "event-mars-marathon": 50
+  }
 }

@@ -3,6 +3,8 @@
 ## 2.7.0 (setembro de 2026): prêmio acumulado em DOG
 - **50% do DOG dos baús volta para os jogadores**: forma um prêmio acumulado, mostrado na Loja com os últimos ganhadores.
 - **Moeda de DOG no voo**: raramente (cerca de 1 em 150 voos de carteiras verificadas) aparece uma moeda com o símbolo do DOG. Quem pega ganha de 2% a 8% do prêmio acumulado (de 50 a 5.000 DOG), enviado pela tesouraria. O sorteio é feito no servidor na decolagem; no máximo 1 moeda por carteira por semana e só os 20 primeiros voos do dia concorrem. Não precisa comprar nada para participar.
+- **A moeda só vale com o voo concluído**: pegar a moeda não basta; o prêmio é registrado no fim do voo, depois que o servidor confere o voo concluído na mesma rota (tempo de voo da rota e pelo menos 20% da pontuação). Voo perdido ou abortado devolve o DOG ao prêmio acumulado.
+- **Limite de 1 moeda por semana à prova de pedidos em paralelo** (resgate atômico por carteira) e só uma moeda em aberto por vez.
 - Termos de Uso com as regras do prêmio.
 
 ## 2.6.1 (setembro de 2026): correções da bateria de testes

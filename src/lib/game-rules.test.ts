@@ -26,7 +26,7 @@ import { DISTRICT_PRIZE, applyDistrictPrize, playerDistrict } from './districts'
 import { checkPayment, countsForLimit, roll, windowStarts } from '../../supabase/functions/_shared/chest-rules.ts';
 import { GUEST_ADDRESS_RE, checkSignInMessage, signInMessage } from '../../supabase/functions/_shared/auth-rules.ts';
 import { getSession } from './auth';
-import { DROPS, dropPoint, rollDrop } from '../../supabase/functions/_shared/drop-rules.ts';
+import { DROPS, dropPoint, minFlightSecondsFor, rollDrop } from '../../supabase/functions/_shared/drop-rules.ts';
 import { storedProfile } from './storage';
 import { CHESTS, CHEST_LIMITS, CHEST_TREASURY, applyChestReward, chestOdds, isTxid } from './chests';
 import { dogDataProfileUrl, inscriptionImageUrls, prestigeStars, sanitizeIdentity } from './dogdata';
@@ -814,6 +814,14 @@ describe('DOG no voo (prêmio acumulado)', () => {
     expect(rollDrop(10000, DROPS, seq(0, 0.999999))).toBe(Math.floor(10000 * (DROPS.minPct + 0.999999 * (DROPS.maxPct - DROPS.minPct))));
     expect(rollDrop(10_000_000, DROPS, seq(0, 1))).toBe(DROPS.maxDropDog);
     expect(rollDrop(DROPS.minPoolDog, DROPS, seq(0, 0))).toBeGreaterThanOrEqual(DROPS.minDropDog);
+  });
+
+  it('o resgate exige o tempo de voo de cada rota (tabela do servidor igual à do jogo)', () => {
+    const all = [...ROUTES, ...EVENTS.map(e => e.route)];
+    expect(Object.keys(DROPS.routeSeconds).sort()).toEqual(all.map(r => r.id).sort());
+    for (const r of all) expect(minFlightSecondsFor(r.id)).toBe(Math.max(DROPS.minFlightSeconds, r.flightSeconds));
+    expect(minFlightSecondsFor('rota-inventada')).toBe(DROPS.minFlightSeconds);
+    expect(DROPS.minQuality).toBeGreaterThan(0);
   });
 
   it('metade dos baús vai para o prêmio e a moeda aparece no meio do voo', () => {

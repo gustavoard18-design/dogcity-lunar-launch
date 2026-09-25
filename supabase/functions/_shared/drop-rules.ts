@@ -22,3 +22,12 @@ export function rollDrop(poolDog: number, c: DropConfig = DROPS, random: Rand = 
 
 /** Ponto do voo (fração do percurso) em que a moeda de DOG aparece. */
 export const dropPoint = (random: Rand = cryptoRandom) => 0.3 + random() * 0.45;
+
+/**
+ * Idade mínima do bilhete para o resgate: a duração do voo da rota (o jogo
+ * espelha em src/lib/economy.ts e events.ts). Rota desconhecida usa o mínimo geral.
+ */
+export function minFlightSecondsFor(routeId: string, c: DropConfig = DROPS): number {
+  const secs = (c.routeSeconds as Record<string, number>)[routeId];
+  return Math.max(c.minFlightSeconds, secs ?? 0);
+}
