@@ -1,5 +1,9 @@
 # Novidades
 
+## 2.5.2 (setembro de 2026): foguete com o D do DOG
+- **Novas artes das 5 fases do foguete** (Básico, Aprimorado, Avançado, Especial e Lendário) na vitrine da Loja e da Oficina, recortadas da arte "Evolução do foguete".
+- **"D" do DOG no lugar do ₿** no casco do foguete 3D, na tela inicial e no ícone de foguete dos botões.
+
 ## 2.5.1 (setembro de 2026): ajustes no celular
 - **Voo estável no celular**: durante o voo a página do hangar fica travada, então arrastar o dedo não rola mais a tela nem faz a barra do navegador (Xverse, Safari) aparecer e sumir.
 - **Painéis sem falhas no iPhone**: no celular os painéis não usam mais o desfoque de fundo, que no Safari e nos navegadores das carteiras cortava títulos (como "Loja") e os cantos luminosos.

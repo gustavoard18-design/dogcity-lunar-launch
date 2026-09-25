@@ -1,7 +1,8 @@
 // Gera as artes 2D do foguete a partir do foguete 3D do jogo.
 // Uso: `npm run dev` em outro terminal e `node scripts/art/rocket-art.mjs [pasta] [--tiers]`
 // (padrão: public/art). Requer Playwright (`npm i --no-save playwright`).
-// A vitrine da Loja/Oficina usa as artes 2D originais (rocket-1..5.webp); só com
+// A vitrine da Loja/Oficina usa as artes 2D das 5 fases (rocket-1..5.webp, recortadas
+// da arte "Evolução do foguete"); só com
 // --tiers o script gera versões 3D delas.
 import { chromium } from 'playwright';
 import fs from 'node:fs';

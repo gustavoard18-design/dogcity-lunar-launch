@@ -8,8 +8,8 @@ import * as THREE from 'three';
  * foi removido do GLB). Encaixado nas medidas do foguete antigo: base em
  * y = -1.55, nariz em y = 1.9, escotilha virada para +Z.
  *
- * A escotilha e o ₿ são pintados na textura do casco; o rosto do DOG e o
- * símbolo são malhas que acompanham a curva do casco (projetadas por raio).
+ * A escotilha e o símbolo são pintados na textura do casco; o rosto do DOG e o
+ * "D" (no lugar do ₿ original) são malhas que acompanham a curva do casco (projetadas por raio).
  */
 
 const MODEL_URL = `${import.meta.env.BASE_URL || './'}models/rocket.glb`;
@@ -17,7 +17,7 @@ const FACE_URL = `${import.meta.env.BASE_URL || './'}dog-face.png`;
 export const ROCKET_NOZZLE_Y = -1.55;
 export const ROCKET_TOP_Y = 1.9;
 
-/** Centro e raio da escotilha e do ₿ no espaço do foguete (medidos no modelo). */
+/** Centro e raio da escotilha e do símbolo no espaço do foguete (medidos no modelo). */
 const PORTHOLE = { x: 0, y: 0.67, r: 0.56 };
 const BTC = { x: 0, y: -0.32, r: 0.29 };
 const DEFAULT_FUR = '#d9924f';
@@ -97,26 +97,53 @@ function useFaceTexture() {
   }, [img]);
 }
 
-/** Símbolo ₿ branco para o círculo laranja do casco. */
+/**
+ * "D" do DOG no estilo do símbolo do Bitcoin (dois traços em cima e embaixo),
+ * branco no círculo laranja do casco, igual às artes de evolução do foguete.
+ */
+export function drawDogBadge(g: CanvasRenderingContext2D, S: number) {
+  g.fillStyle = '#f7931a';
+  g.beginPath();
+  g.arc(S / 2, S / 2, S / 2 - 2, 0, Math.PI * 2);
+  g.fill();
+  g.save();
+  g.translate(S / 2, S / 2);
+  g.rotate(0.24);
+  g.fillStyle = '#ffffff';
+  // D: haste reta à esquerda e barriga arredondada, com o miolo vazado.
+  const h = S * 0.5; // altura do D
+  const w = S * 0.4; // largura do D
+  const t = S * 0.1; // espessura
+  const x0 = -w / 2 + S * 0.02;
+  const y0 = -h / 2;
+  const bowl = (x: number, y: number, bw: number, bh: number) => {
+    const r = bh / 2;
+    g.moveTo(x, y);
+    g.lineTo(x + bw - r, y);
+    g.arc(x + bw - r, y + r, r, -Math.PI / 2, Math.PI / 2);
+    g.lineTo(x, y + bh);
+    g.closePath();
+  };
+  g.beginPath();
+  bowl(x0, y0, w, h);
+  bowl(x0 + t, y0 + t, w - t * 1.6, h - 2 * t);
+  g.fill('evenodd');
+  // Traços acima e abaixo da haste, como no ₿.
+  const tick = S * 0.075;
+  for (const dx of [t * 0.35, t * 1.35]) {
+    g.fillRect(x0 + dx - t * 0.22, y0 - tick, t * 0.44, tick + 1);
+    g.fillRect(x0 + dx - t * 0.22, y0 + h - 1, t * 0.44, tick + 1);
+  }
+  g.restore();
+}
+
+/** Textura do "D" para o círculo laranja do casco. */
 function useBtcTexture() {
   return useMemo(() => {
     const S = 256;
     const c = document.createElement('canvas');
     c.width = c.height = S;
-    const g = c.getContext('2d')!;
-    g.fillStyle = '#f7931a';
-    g.beginPath();
-    g.arc(S / 2, S / 2, S / 2 - 2, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#ffffff';
-    g.font = `bold ${S * 0.7}px Arial, sans-serif`;
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    g.save();
-    g.translate(S / 2, S / 2 + S * 0.03);
-    g.rotate(0.24);
-    g.fillText('₿', 0, 0);
-    g.restore();
+    drawDogBadge(c.getContext('2d')!, S);
     const t = new THREE.CanvasTexture(c);
     t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = 8;
