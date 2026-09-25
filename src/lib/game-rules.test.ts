@@ -26,6 +26,7 @@ import { DISTRICT_PRIZE, applyDistrictPrize, playerDistrict } from './districts'
 import { checkPayment, countsForLimit, roll, windowStarts } from '../../supabase/functions/_shared/chest-rules.ts';
 import { GUEST_ADDRESS_RE, checkSignInMessage, signInMessage } from '../../supabase/functions/_shared/auth-rules.ts';
 import { getSession } from './auth';
+import { DROPS, dropPoint, rollDrop } from '../../supabase/functions/_shared/drop-rules.ts';
 import { storedProfile } from './storage';
 import { CHESTS, CHEST_LIMITS, CHEST_TREASURY, applyChestReward, chestOdds, isTxid } from './chests';
 import { dogDataProfileUrl, inscriptionImageUrls, prestigeStars, sanitizeIdentity } from './dogdata';
@@ -797,5 +798,30 @@ describe('sessão assinada e progresso na nuvem', () => {
     saveProfile({ ...p, stardust: 5 });
     expect(storedProfile(A)!.revision).toBe(r1 + 2);
     expect(migrateProfile({ ...p, revision: undefined } as never).revision).toBe(0);
+  });
+});
+
+describe('DOG no voo (prêmio acumulado)', () => {
+  const seq = (...v: number[]) => { let i = 0; return () => v[i++ % v.length]; };
+
+  it('sem prêmio mínimo acumulado não sai moeda', () => {
+    expect(rollDrop(DROPS.minPoolDog - 1, DROPS, () => 0)).toBeNull();
+  });
+
+  it('a chance é baixa e o valor é uma fatia do prêmio, com teto', () => {
+    expect(rollDrop(10000, DROPS, seq(DROPS.dropChance + 0.001))).toBeNull();
+    expect(rollDrop(10000, DROPS, seq(0, 0))).toBe(Math.floor(10000 * DROPS.minPct));
+    expect(rollDrop(10000, DROPS, seq(0, 0.999999))).toBe(Math.floor(10000 * (DROPS.minPct + 0.999999 * (DROPS.maxPct - DROPS.minPct))));
+    expect(rollDrop(10_000_000, DROPS, seq(0, 1))).toBe(DROPS.maxDropDog);
+    expect(rollDrop(DROPS.minPoolDog, DROPS, seq(0, 0))).toBeGreaterThanOrEqual(DROPS.minDropDog);
+  });
+
+  it('metade dos baús vai para o prêmio e a moeda aparece no meio do voo', () => {
+    expect(DROPS.poolShare).toBe(0.5);
+    for (const r of [0, 0.5, 0.999]) {
+      const at = dropPoint(() => r);
+      expect(at).toBeGreaterThanOrEqual(0.3);
+      expect(at).toBeLessThan(0.76);
+    }
   });
 });

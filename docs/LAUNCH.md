@@ -19,6 +19,7 @@ supabase db push
 supabase functions deploy auth --no-verify-jwt
 supabase functions deploy chests --no-verify-jwt
 supabase functions deploy dog-balance --no-verify-jwt
+supabase functions deploy dog-drops --no-verify-jwt
 ```
 
 Conferir: `node scripts/health-check.mjs` deve mostrar só ✅.
@@ -44,6 +45,10 @@ O link **Suporte** do jogo abre um chamado em GitHub Issues (precisa de conta no
 Baú pago que não abriu: o chamado já vem com o id do pedido e o txid. Confira em `chest_orders` (Supabase → Table editor) e no DogData (`/api/dog-rune/search-tx?txid=...`). Se o pagamento estiver certo, mude o pedido para `status = 'paid'`, com o `txid` e o prêmio em `reward` (ex.: `{"stardust": 250, "lunarDust": 2}`): o jogo credita na próxima entrada do jogador. Pedido cancelado sem txid: crie um novo com esses campos (o `txid` não pode repetir).
 
 Pedido de apagar dados (Política de Privacidade): apague as linhas do endereço em `scores`, `player_saves` e `wallet_sessions`. Mantenha `chest_orders`, que é o registro de pagamento.
+
+## 3b. Pagar as moedas de DOG
+
+Uma vez por semana (ou quando chegar o aviso de ganhador), abra `dog_drops` no Supabase, envie o DOG de cada linha `pending` para o endereço e marque `paid` com o txid (passo a passo em `supabase/README.md`). Os Termos prometem o envio em até 7 dias.
 
 ## 4. Posts de divulgação
 

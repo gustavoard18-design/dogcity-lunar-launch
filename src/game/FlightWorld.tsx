@@ -14,6 +14,7 @@ import { SkyBackground, SpeedStreaks, StudioEnvironment } from '../three/SpaceBi
 import { makeRockGeometry } from '../three/rocks';
 import { DeepField, DriftingSatellite, ROCK_TINT } from '../three/DeepSpace';
 import { flightRandom } from '../lib/rng';
+import { drawDogBadge } from '../three/RocketModel';
 
 export interface FlightInput {
   pointerX: number;
@@ -41,7 +42,8 @@ export type FlightEvent =
   | { type: 'shieldBreak' }
   | { type: 'hit' }
   | { type: 'crash' }
-  | { type: 'arrive' };
+  | { type: 'arrive' }
+  | { type: 'dogDrop' };
 
 export type { FlightResult } from '../lib/scoring';
 
@@ -57,6 +59,8 @@ interface FlightWorldProps {
   onDone(r: FlightResult): void;
   /** Semente dos sorteios (mesma semente = mesmos asteroides, orbes e anéis; base do desafio). */
   seed: number;
+  /** Moeda de DOG sorteada pelo servidor para este voo: aparece uma vez, no ponto `at` do percurso. */
+  dogDrop?: { at: number } | null;
 }
 
 const BX = 6.5;
@@ -95,7 +99,23 @@ function useRockGeometries() {
   );
 }
 
-export default function FlightWorld({ route, tuning, look, startShield, inputRef, abortRef, onHud, onEvent, onDone, seed }: FlightWorldProps) {
+/** Face da moeda de DOG (o mesmo símbolo do casco do foguete). */
+function useDogCoinTexture() {
+  return useMemo(() => {
+    const S = 256;
+    const c = document.createElement('canvas');
+    c.width = c.height = S;
+    drawDogBadge(c.getContext('2d')!, S);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }, []);
+}
+
+export default function FlightWorld({ route, tuning, look, startShield, inputRef, abortRef, onHud, onEvent, onDone, seed, dogDrop }: FlightWorldProps) {
+  const coinTex = useDogCoinTexture();
+  const coinMesh = useRef<THREE.Group>(null);
+  const coin = useRef({ state: 'waiting' as 'waiting' | 'flying' | 'done', p: new THREE.Vector3() });
   const rng = useMemo(() => flightRandom(seed), [seed]);
   const camera = useThree(s => s.camera) as THREE.PerspectiveCamera;
   const aspect = useThree(s => s.size.width / s.size.height);
@@ -416,6 +436,28 @@ export default function FlightWorld({ route, tuning, look, startShield, inputRef
       mesh.rotation.set(s.t, s.t * 1.3, 0);
     });
 
+    // ---------- Moeda de DOG ----------
+    const cn = coin.current;
+    if (dogDrop && cn.state === 'waiting' && alive && s.progress >= dogDrop.at) {
+      cn.state = 'flying';
+      // Perto de onde a nave está, para dar para pegar sem manobra impossível.
+      cn.p.set(THREE.MathUtils.clamp(s.pos.x * 0.5 + (Math.random() * 2 - 1) * bx * 0.35, -bx * 0.8, bx * 0.8), THREE.MathUtils.clamp(s.pos.y * 0.5 + (Math.random() * 2 - 1) * BY * 0.35, -BY * 0.8, BY * 0.8), SPAWN_Z);
+    }
+    if (coinMesh.current) {
+      coinMesh.current.visible = cn.state === 'flying';
+      if (cn.state === 'flying') {
+        cn.p.z += dz * 0.85;
+        if (alive && Math.abs(cn.p.z - s.pos.z) < 1.6 && Math.hypot(cn.p.x - s.pos.x, cn.p.y - s.pos.y) < 1.6) {
+          cn.state = 'done';
+          fx.current?.burst(cn.p, 90, 12, colors.gold, { size: 0.7, life: 0.9, drag: 1.5 });
+          onEvent({ type: 'dogDrop' });
+        } else if (cn.p.z > 10) cn.state = 'done';
+        coinMesh.current.position.copy(cn.p);
+        coinMesh.current.rotation.set(0, s.t * 2.2, 0);
+        coinMesh.current.scale.setScalar(1 + Math.sin(s.t * 5) * 0.06);
+      }
+    }
+
     // ---------- Nave ----------
     s.invuln = Math.max(0, s.invuln - dt);
     s.roll = Math.max(0, s.roll - dt * 11);
@@ -573,6 +615,25 @@ export default function FlightWorld({ route, tuning, look, startShield, inputRef
           </mesh>
         </group>
       ))}
+
+      <group ref={coinMesh} visible={false}>
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.95, 0.95, 0.16, 48]} />
+          <meshStandardMaterial color="#ffb62e" emissive="#ff9a1a" emissiveIntensity={1.4} metalness={0.8} roughness={0.25} toneMapped={false} />
+        </mesh>
+        <mesh position={[0, 0, 0.085]}>
+          <circleGeometry args={[0.86, 48]} />
+          <meshBasicMaterial map={coinTex} toneMapped={false} />
+        </mesh>
+        <mesh position={[0, 0, -0.085]} rotation={[0, Math.PI, 0]}>
+          <circleGeometry args={[0.86, 48]} />
+          <meshBasicMaterial map={coinTex} toneMapped={false} />
+        </mesh>
+        <mesh>
+          <torusGeometry args={[1.25, 0.05, 12, 64]} />
+          <meshBasicMaterial color="#ffe08a" toneMapped={false} />
+        </mesh>
+      </group>
 
       <Particles ref={fx} capacity={3000} />
 

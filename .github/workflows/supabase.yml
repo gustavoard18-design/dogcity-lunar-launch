@@ -39,7 +39,7 @@ jobs:
       - name: Edge Functions
         if: steps.secrets.outputs.ok == 'true'
         run: |
-          for fn in auth chests dog-balance; do
+          for fn in auth chests dog-balance dog-drops; do
             supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --no-verify-jwt
           done
       - name: Conferir

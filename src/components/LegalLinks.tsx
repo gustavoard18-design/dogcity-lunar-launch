@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { L, fmtNumber, type Tr } from '../lib/i18n';
 import { CHESTS, CHEST_LIMITS, CHEST_TREASURY, chestName, chestOdds } from '../lib/chests';
+import { DROP_RULES } from '../lib/drops';
 
 /** Canal de suporte: issues do repositório (qualquer conta do GitHub abre um chamado). */
 export const SUPPORT_URL = 'https://github.com/gustavoard18-design/dogcity-lunar-launch/issues/new';
-export const LEGAL_UPDATED = '2026-09-24';
+export const LEGAL_UPDATED = '2026-09-25';
 
 /** Link do suporte já com o título preenchido (ex.: o pedido de baú). */
 export function supportUrl(subject?: string): string {
@@ -163,7 +164,27 @@ const termsSections = (): Section[] => [
     extra: <OddsTable />,
   },
   {
-    title: { en: '4. Fair play', pt: '4. Jogo limpo', es: '4. Juego limpio' },
+    title: { en: '4. DOG coins in flight (jackpot)', pt: '4. Moedas de DOG no voo (prêmio acumulado)', es: '4. Monedas de DOG en vuelo (bote)' },
+    body: [
+      {
+        en: `${Math.round(DROP_RULES.poolShare * 100)}% of the DOG paid for chests goes into a jackpot. During flights of verified wallets, a DOG coin can appear at random (about 1 in ${Math.round(1 / DROP_RULES.dropChance)} flights), worth ${Math.round(DROP_RULES.minPct * 100)}% to ${Math.round(DROP_RULES.maxPct * 100)}% of the jackpot (between ${DROP_RULES.minDropDog} and ${DROP_RULES.maxDropDog} DOG). The draw happens on the server when the flight starts.`,
+        pt: `${Math.round(DROP_RULES.poolShare * 100)}% do DOG pago pelos baús vai para um prêmio acumulado. Nos voos de carteiras verificadas, uma moeda de DOG pode aparecer ao acaso (cerca de 1 em ${Math.round(1 / DROP_RULES.dropChance)} voos), valendo de ${Math.round(DROP_RULES.minPct * 100)}% a ${Math.round(DROP_RULES.maxPct * 100)}% do prêmio (entre ${DROP_RULES.minDropDog} e ${DROP_RULES.maxDropDog} DOG). O sorteio é feito no servidor na decolagem.`,
+        es: `El ${Math.round(DROP_RULES.poolShare * 100)}% del DOG pagado por cofres va a un bote. En los vuelos de billeteras verificadas puede aparecer al azar una moneda de DOG (cerca de 1 de cada ${Math.round(1 / DROP_RULES.dropChance)} vuelos), que vale del ${Math.round(DROP_RULES.minPct * 100)}% al ${Math.round(DROP_RULES.maxPct * 100)}% del bote (entre ${DROP_RULES.minDropDog} y ${DROP_RULES.maxDropDog} DOG). El sorteo se hace en el servidor al despegar.`,
+      },
+      {
+        en: `No purchase is needed to take part: flights are free (Stardust is earned by playing). Limits: ${DROP_RULES.dropsPerWalletPerWeek} coin per wallet per week and only the first ${DROP_RULES.eligibleFlightsPerDay} flights of the day take part. The coin must be caught during the flight.`,
+        pt: `Não é preciso comprar nada para participar: os voos são grátis (Stardust se ganha jogando). Limites: ${DROP_RULES.dropsPerWalletPerWeek} moeda por carteira por semana e só os primeiros ${DROP_RULES.eligibleFlightsPerDay} voos do dia concorrem. A moeda precisa ser pega durante o voo.`,
+        es: `No hace falta comprar nada para participar: los vuelos son gratis (Stardust se gana jugando). Límites: ${DROP_RULES.dropsPerWalletPerWeek} moneda por billetera por semana y solo cuentan los primeros ${DROP_RULES.eligibleFlightsPerDay} vuelos del día. La moneda hay que atraparla durante el vuelo.`,
+      },
+      {
+        en: 'Prizes are sent manually from the game treasury to the winning wallet, usually within 7 days, and appear as "paid" with the transaction id. Prizes won through cheating, multiple accounts or bugs may be cancelled. Where prize promotions are restricted by law, you are responsible for checking whether you may take part, and for any taxes on what you receive.',
+        pt: 'Os prêmios são enviados manualmente da tesouraria do jogo para a carteira ganhadora, em geral em até 7 dias, e aparecem como "pago" com o id da transação. Prêmios obtidos com trapaça, várias contas ou falhas do jogo podem ser cancelados. Onde promoções com prêmio são restritas por lei, cabe a você verificar se pode participar, e também os impostos sobre o que receber.',
+        es: 'Los premios se envían manualmente desde la tesorería del juego a la billetera ganadora, normalmente en hasta 7 días, y aparecen como "pagado" con el id de la transacción. Los premios obtenidos con trampas, varias cuentas o fallos del juego pueden cancelarse. Donde las promociones con premio estén restringidas por ley, te corresponde verificar si puedes participar, y los impuestos sobre lo que recibas.',
+      },
+    ],
+  },
+  {
+    title: { en: '5. Fair play', pt: '5. Jogo limpo', es: '5. Juego limpio' },
     body: [
       {
         en: 'Rankings, seasons and the district war only count flights accepted by the server, sent with a valid session (a verified wallet, or the guest pilot of this browser). Scores that look manipulated may be removed, and the related rewards cancelled.',
@@ -173,7 +194,7 @@ const termsSections = (): Section[] => [
     ],
   },
   {
-    title: { en: '5. Liability', pt: '5. Responsabilidade', es: '5. Responsabilidad' },
+    title: { en: '6. Liability', pt: '6. Responsabilidade', es: '6. Responsabilidad' },
     body: [
       {
         en: 'To the extent the law allows, the game makers are not liable for losses from wallet software, network fees, blockchain delays, third-party services (DogData, wallets, hosting) or the loss of progress kept only in your browser.',
