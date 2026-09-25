@@ -138,14 +138,13 @@ export const EVENTS: WeeklyEvent[] = [
   },
 ];
 
-/** Segunda-feira de referência para o rodízio (semana 0). */
-const EPOCH = new Date(2026, 0, 5);
+/** Segunda-feira de referência para o rodízio (semana 0): 05/01/2026 00:00 em Brasília. */
+const EPOCH = Date.parse('2026-01-05T03:00:00Z');
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** Índice da semana atual desde a referência (horário local). */
+/** Índice da semana atual desde a referência (semanas de Brasília, como o servidor). */
 export function getWeekIndex(now: Date = new Date()): number {
-  const start = new Date(getWeekStart(now));
-  return Math.round((start.getTime() - new Date(getWeekStart(EPOCH)).getTime()) / WEEK_MS);
+  return Math.round((Date.parse(getWeekStart(now)) - EPOCH) / WEEK_MS);
 }
 
 export function getCurrentEvent(now: Date = new Date()): WeeklyEvent {
@@ -157,11 +156,9 @@ export function getEventByRoute(routeId: string): WeeklyEvent | undefined {
   return EVENTS.find(e => e.route.id === routeId);
 }
 
-/** Milissegundos até a próxima segunda-feira 00:00 local. */
+/** Milissegundos até a próxima segunda-feira 00:00 de Brasília. */
 export function msUntilNextEvent(now: Date = new Date()): number {
-  const start = new Date(getWeekStart(now));
-  const next = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7);
-  return Math.max(0, next.getTime() - now.getTime());
+  return Math.max(0, Date.parse(getWeekStart(now)) + WEEK_MS - now.getTime());
 }
 
 export function hasWonEventThisWeek(profile: PlayerProfile, now: Date = new Date()): boolean {

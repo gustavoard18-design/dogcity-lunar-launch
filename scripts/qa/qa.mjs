@@ -5,6 +5,7 @@ const URL = process.argv[2] ?? 'http://localhost:5173';
 const browser = await puppeteer.launch({
   executablePath: process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe',
   headless: 'new',
+  protocolTimeout: 900000,
   args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
   defaultViewport: { width: 1280, height: 800 },
 });
@@ -80,18 +81,20 @@ await sleep(1500);
 await click('Jogar agora');
 await sleep(1500);
 let p = await profile();
-check('novo perfil criado com 150 Stardust', p?.stardust === 150, `stardust=${p?.stardust}`);
+// 150 do perfil novo + 20 do 1º dia da sequência
+const start = p?.stardust;
+check('novo perfil criado com 150 Stardust (+20 da sequência)', start === 170, `stardust=${start}`);
 check('3 missões diárias', p?.dailyMissions?.length === 3);
 
 // 1. Cancelar antes da decolagem reembolsa
 await click('Órbita Baixa', 'button');
 await waitAim();
 p = await profile();
-check('custo debitado ao entrar na missão', p.stardust === 140, `stardust=${p.stardust}`);
+check('custo debitado ao entrar na missão', p.stardust === start - 10, `stardust=${p.stardust}`);
 await click('Cancelar');
 await sleep(1200);
 p = await profile();
-check('cancelar antes da decolagem reembolsa', p.stardust === 150, `stardust=${p.stardust}`);
+check('cancelar antes da decolagem reembolsa', p.stardust === start, `stardust=${p.stardust}`);
 
 // 2. Abortar durante o voo não reembolsa e conta como falha
 await click('Órbita Baixa', 'button');
@@ -103,7 +106,7 @@ await click('Abortar');
 await page.waitForFunction(() => document.body.innerText.includes('MISSÃO ABORTADA'), { timeout: 60000 });
 p = await profile();
 check('abortar registra voo de falha', p.launches.length === 1 && p.launches[0].success === false);
-check('abortar não reembolsa', p.stardust <= 140 + 3, `stardust=${p.stardust}`);
+check('abortar não reembolsa', p.stardust <= start - 10 + 3, `stardust=${p.stardust}`);
 
 // 3. Voar de novo cobra de novo e reinicia a missão
 const before = p.stardust;
@@ -140,7 +143,7 @@ await page.evaluate(() => {
 await sleep(800);
 p = await profile();
 check('upgrade de Precisão comprado', p.dog.accuracy === 2 && p.stardust === 955, `acc=${p.dog.accuracy} stardust=${p.stardust}`);
-await click('Loja');
+await click('Astronauta');
 await sleep(800);
 await page.evaluate(() => [...document.querySelectorAll('h5')].find(h => h.textContent === 'Rastro Azul').closest('[role=button]').querySelector('button').click());
 await sleep(800);

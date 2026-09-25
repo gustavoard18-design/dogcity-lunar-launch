@@ -172,7 +172,7 @@ export default function FlightWorld({ route, tuning, look, startShield, inputRef
     camera.lookAt(0, 0, -12);
   }, [camera]);
 
-  useFrame((state, rawDt) => {
+  useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05);
     const s = sim.current;
     s.t += dt;

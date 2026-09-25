@@ -27,7 +27,7 @@ export interface PastEventWeek {
 export function pastEventWeeks(now: Date = new Date(), max = PODIUM_LOOKBACK_WEEKS): PastEventWeek[] {
   return Array.from({ length: max }, (_, i) => {
     const weeksAgo = i + 1;
-    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7 * weeksAgo, 12);
+    const date = new Date(Date.parse(getWeekStart(now)) - 7 * 24 * 60 * 60 * 1000 * weeksAgo + 12 * 60 * 60 * 1000);
     return { weeksAgo, weekStart: getWeekStart(date), event: getCurrentEvent(date) };
   });
 }

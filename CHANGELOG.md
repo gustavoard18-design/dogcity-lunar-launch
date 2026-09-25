@@ -1,5 +1,12 @@
 # Novidades
 
+## 2.6.1 (setembro de 2026): correções da bateria de testes
+- **Semana e temporada no horário de Brasília para todos**: o evento da semana, o bônus do evento, o pódio e a temporada do mês viram à meia-noite de Brasília, como o ranking do servidor. Antes, jogadores em outros fusos (Ásia, Europa) viam o evento novo horas antes ou depois do servidor e podiam voar a rota "errada" para o ranking.
+- **Patente no ranking só com saldo DOG real**: convidados (saldo simulado) apareciam no ranking público como Lenda ou Comandante. Agora entram como Stray; carteiras mostram a patente quando o saldo on-chain chega do DogData. Carteira nova começa com saldo 0 em vez de um saldo simulado.
+- Pedido de baú já creditado em outro aparelho não fica mais "pendente" para sempre.
+- Modo offline: uma página de erro (404) não substitui mais a cópia do jogo guardada no aparelho.
+- Abas do hangar no celular se ajustam ao texto: "Workshop" não aparece mais cortado em inglês.
+
 ## 2.6.0 (setembro de 2026): Oficina completa, Loja só com baús
 - **Oficina** agora tem duas seções: **Foguete** (upgrades de atributos) e **Astronauta** (pelagens, capacetes e rastros, que antes ficavam na Loja).
 - **Loja** mostra só os baús DOG.

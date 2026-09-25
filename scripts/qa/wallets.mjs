@@ -110,6 +110,7 @@ const SCENARIOS = {
 const browser = await puppeteer.launch({
   executablePath: process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe',
   headless: 'new',
+  protocolTimeout: 900000,
   args: ['--no-sandbox'],
   defaultViewport: { width: 1280, height: 900 },
 });

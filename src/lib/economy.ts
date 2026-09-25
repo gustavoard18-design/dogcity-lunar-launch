@@ -87,6 +87,11 @@ export function getTier(dogBalance: number): Tier {
   return 'Stray';
 }
 
+/** Patente que vai para o ranking público: só saldo DOG real conta (convidado/simulado = Stray). */
+export function rankingTier(profile: Pick<PlayerProfile, 'dogBalanceSource' | 'tier'>): Tier {
+  return profile.dogBalanceSource === 'real' ? profile.tier : 'Stray';
+}
+
 export function getTierColor(tier: Tier): string {
   switch (tier) {
     case 'Legend': return 'text-yellow-400';
@@ -148,12 +153,18 @@ export function applyXp(dog: DogAstronaut, xp: number): { dog: DogAstronaut; lev
   return { dog: next, levelsGained };
 }
 
-/** Segunda-feira 00:00 (horário local) da semana de `date`, em ISO. Não altera `date`. */
+/** Brasília (UTC−3, sem horário de verão): o fuso do servidor para semanas, ranking e pódio. */
+export const BRT_OFFSET_MS = 3 * 60 * 60 * 1000;
+
+/**
+ * Segunda-feira 00:00 de Brasília da semana de `date`, em ISO. Não altera `date`.
+ * Vale para qualquer fuso do jogador, igual ao corte de semana do servidor.
+ */
 export function getWeekStart(date: Date = new Date()): string {
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const day = d.getDay();
-  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
-  return d.toISOString();
+  const brt = new Date(date.getTime() - BRT_OFFSET_MS); // campos UTC = relógio de Brasília
+  const day = brt.getUTCDay();
+  const monday = Date.UTC(brt.getUTCFullYear(), brt.getUTCMonth(), brt.getUTCDate() - (day === 0 ? 6 : day - 1));
+  return new Date(monday + BRT_OFFSET_MS).toISOString();
 }
 
 /** Chave do dia local no formato YYYY-MM-DD. */

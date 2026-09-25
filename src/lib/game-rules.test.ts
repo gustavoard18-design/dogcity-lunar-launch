@@ -8,6 +8,7 @@ import {
   getDayKey,
   getRouteCost,
   getWeekStart,
+  rankingTier,
   getXpForLevel,
 } from './economy';
 import { MISSION_POOL, REROLL_COST, applyLaunchToMissions, claimMission, ensureDailyMissions, pickDailyMissions, rerollMissions } from './missions';
@@ -20,7 +21,7 @@ import { L, LANGUAGES, lang } from './i18n';
 import { flightRandom, mulberry32 } from './rng';
 import { challengeOutcome, challengeUrl, decodeChallenge, encodeChallenge } from './challenge';
 import { STREAK_REWARDS, applyDailyStreak } from './streak';
-import { SEASON_TIERS, applySeasonPoints, isSeasonId, seasonId, seasonPoints } from './seasons';
+import { SEASON_TIERS, applySeasonPoints, isSeasonId, msUntilNextSeason, seasonId, seasonPoints } from './seasons';
 import { DISTRICT_PRIZE, applyDistrictPrize, playerDistrict } from './districts';
 import { checkPayment, countsForLimit, roll, windowStarts } from '../../supabase/functions/_shared/chest-rules.ts';
 import { GUEST_ADDRESS_RE, checkSignInMessage, signInMessage } from '../../supabase/functions/_shared/auth-rules.ts';
@@ -64,6 +65,10 @@ beforeEach(() => {
   profile = createProfile('bc1qtest', 'Convidado', 1234);
 });
 
+
+/** Data/hora no relógio de Brasília (UTC−3), independente do fuso da máquina. */
+const brt = (y: number, m: number, d: number, h = 0, min = 0) => new Date(Date.UTC(y, m, d, h + 3, min));
+
 describe('economia', () => {
   it('um voo mediano de sucesso dá lucro em todas as rotas', () => {
     for (const route of ROUTES) {
@@ -94,13 +99,19 @@ describe('economia', () => {
     expect(before.level).toBe(1);
   });
 
-  it('getWeekStart não altera a data recebida e cai numa segunda-feira', () => {
-    const sunday = new Date(2026, 8, 20, 15, 0);
+  it('getWeekStart não altera a data recebida e cai na segunda-feira 00:00 de Brasília', () => {
+    const sunday = brt(2026, 8, 20, 15);
     const copy = sunday.getTime();
-    const monday = new Date(getWeekStart(sunday));
+    expect(getWeekStart(sunday)).toBe('2026-09-14T03:00:00.000Z');
     expect(sunday.getTime()).toBe(copy);
-    expect(monday.getDay()).toBe(1);
-    expect(monday.getDate()).toBe(14);
+  });
+
+  it('a semana vira no mesmo instante em qualquer fuso (segunda 00:00 de Brasília)', () => {
+    // Segunda 08:00 em Tóquio = domingo 20:00 em Brasília: ainda é a semana anterior.
+    const tokyoMonday = new Date('2026-09-20T23:00:00Z');
+    expect(getWeekStart(tokyoMonday)).toBe('2026-09-14T03:00:00.000Z');
+    expect(getWeekStart(brt(2026, 8, 20, 23, 59))).toBe('2026-09-14T03:00:00.000Z');
+    expect(getWeekStart(brt(2026, 8, 21, 0, 0))).toBe('2026-09-21T03:00:00.000Z');
   });
 });
 
@@ -300,19 +311,19 @@ describe('evolução dos avatares', () => {
 
 describe('evento semanal', () => {
   it('troca toda segunda-feira em rodízio e é o mesmo durante a semana', () => {
-    const mon = new Date(2026, 8, 21, 0, 30);
-    const sun = new Date(2026, 8, 27, 23, 30);
-    const nextMon = new Date(2026, 8, 28, 0, 30);
+    const mon = brt(2026, 8, 21, 0, 30);
+    const sun = brt(2026, 8, 27, 23, 30);
+    const nextMon = brt(2026, 8, 28, 0, 30);
     expect(getCurrentEvent(mon).id).toBe(getCurrentEvent(sun).id);
     expect(getWeekIndex(nextMon)).toBe(getWeekIndex(mon) + 1);
     expect(getCurrentEvent(nextMon).id).not.toBe(getCurrentEvent(mon).id);
-    const ids = new Set(Array.from({ length: EVENTS.length }, (_, i) => getCurrentEvent(new Date(2026, 8, 21 + 7 * i)).id));
+    const ids = new Set(Array.from({ length: EVENTS.length }, (_, i) => getCurrentEvent(brt(2026, 8, 21 + 7 * i, 12)).id));
     expect(ids.size).toBe(EVENTS.length);
     expect(msUntilNextEvent(sun)).toBe(30 * 60 * 1000);
   });
 
   it('dá o bônus uma vez por semana, só na rota do evento e com qualidade mínima', () => {
-    const now = new Date(2026, 8, 23, 12);
+    const now = brt(2026, 8, 23, 12);
     const event = getCurrentEvent(now);
     const good = Math.ceil(event.route.maxScore * event.minQuality);
     expect(getEventBonus(profile, LOW, 100, true, now)).toBeNull();
@@ -413,11 +424,11 @@ describe('títulos, secretas e ranking do evento', () => {
   it('evento de Saturno tem anéis mais frequentes e o rodízio mantém o evento desta semana', () => {
     const saturn = EVENTS.find(e => e.route.destination === 'gas')!;
     expect(saturn.route.ringRateMult).toBeGreaterThan(1);
-    expect(getCurrentEvent(new Date(2026, 8, 23)).id).toBe('solar-storm');
+    expect(getCurrentEvent(brt(2026, 8, 23, 12)).id).toBe('solar-storm');
   });
 
   it('ranking local do evento só conta voos concluídos na rota, nesta semana', () => {
-    const now = new Date(2026, 8, 23, 12);
+    const now = brt(2026, 8, 23, 12);
     const event = getCurrentEvent(now);
     const { profile: a } = applyLaunchResult(profile, event.route, outcome({ score: 120 }), event.route.cost, now);
     const { profile: b } = applyLaunchResult(a, LOW, outcome({ score: 90 }), LOW.cost, now);
@@ -425,7 +436,7 @@ describe('títulos, secretas e ranking do evento', () => {
     const board = getEventLeaderboard(event.route.id, now);
     expect(board).toHaveLength(1);
     expect(board[0]).toMatchObject({ weekScore: 120, totalLaunches: 1 });
-    expect(getEventLeaderboard(event.route.id, new Date(2026, 8, 30, 12))).toHaveLength(0);
+    expect(getEventLeaderboard(event.route.id, brt(2026, 8, 30, 12))).toHaveLength(0);
   });
 });
 
@@ -437,6 +448,14 @@ describe('tutorial do primeiro voo', () => {
     const other = createProfile('bc1qoutro', 'Convidado', 10);
     const { profile: flown } = applyLaunchResult(other, LOW, outcome(), LOW.cost);
     expect(isTutorialPending(flown)).toBe(false);
+  });
+});
+
+describe('patente no ranking público', () => {
+  it('só saldo DOG real vale patente; convidado com saldo simulado entra como Stray', () => {
+    expect(rankingTier({ dogBalanceSource: 'simulated', tier: 'Legend' })).toBe('Stray');
+    expect(rankingTier({ dogBalanceSource: undefined, tier: 'Commander' })).toBe('Stray');
+    expect(rankingTier({ dogBalanceSource: 'real', tier: 'Legend' })).toBe('Legend');
   });
 });
 
@@ -458,15 +477,15 @@ describe('molduras de nome e pódio do evento', () => {
   });
 
   it('semanas a conferir são as encerradas, com o evento de cada uma', () => {
-    const weeks = pastEventWeeks(new Date(2026, 8, 30, 10));
+    const weeks = pastEventWeeks(brt(2026, 8, 30, 10));
     expect(weeks[0].weeksAgo).toBe(1);
     expect(weeks[0].event.id).toBe('solar-storm');
-    expect(new Date(weeks[0].weekStart).getDate()).toBe(21);
+    expect(weeks[0].weekStart).toBe('2026-09-21T03:00:00.000Z');
     expect(new Set(weeks.map(w => w.weekStart)).size).toBe(weeks.length);
   });
 
   it('prêmio do pódio sai uma vez por semana e libera moldura e conquista', () => {
-    const [week] = pastEventWeeks(new Date(2026, 8, 30, 10));
+    const [week] = pastEventWeeks(brt(2026, 8, 30, 10));
     const r = applyPodiumPrize(profile, week, 1)!;
     expect(r.profile.stardust).toBe(profile.stardust + PODIUM_PRIZES[1].stardust);
     expect(r.profile.lunarDust).toBe(profile.lunarDust + PODIUM_PRIZES[1].lunarDust);
@@ -622,6 +641,14 @@ describe('temporadas', () => {
     expect(last.tiers).toEqual([10]);
     expect(last.frame).toBe('season_2026_10');
     expect(last.profile.seasonFrames).toContain('season_2026_10');
+  });
+
+  it('o mês da temporada vira à meia-noite de Brasília, como no servidor', () => {
+    expect(seasonId(brt(2026, 8, 30, 23, 59))).toBe('season_2026_09');
+    expect(seasonId(brt(2026, 9, 1, 0, 0))).toBe('season_2026_10');
+    // 1º de outubro 09:00 em Tóquio ainda é 30 de setembro em Brasília.
+    expect(seasonId(new Date('2026-10-01T00:00:00Z'))).toBe('season_2026_09');
+    expect(msUntilNextSeason(brt(2026, 8, 30, 23, 30))).toBe(30 * 60 * 1000);
   });
 
   it('o mês novo zera pontos e níveis', () => {

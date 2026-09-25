@@ -28,7 +28,7 @@ import {
   payWithXverse,
 } from './lib/chests';
 import { loadProfile, createProfile, saveProfile } from './lib/storage';
-import { getRouteCost, getTier, isRouteUnlocked } from './lib/economy';
+import { getRouteCost, getTier, isRouteUnlocked, rankingTier } from './lib/economy';
 import { fetchDistrictLeaderboard, fetchDogInfo, fetchEventLeaderboard, onlineEnabled, submitEnabled, submitScore } from './lib/online';
 import { authErrorText, dropSession, getSession, sessionToken, verifyWallet } from './lib/auth';
 import { pullCloud, startCloudSync } from './lib/cloud';
@@ -298,7 +298,13 @@ export default function App() {
       setProfile(p => {
         if (!p) return p;
         const next = applyChestReward(p, order.id, order.reward!);
-        if (!next) return p;
+        if (!next) {
+          // Já creditado (em outro aparelho, por exemplo): só encerra o pedido pendente.
+          if (p.chestPending?.orderId !== order.id) return p;
+          const cleared = { ...p, chestPending: undefined };
+          saveProfile(cleared);
+          return cleared;
+        }
         saveProfile(next);
         track('chest_open', { chest: order.chest_id, stardust: order.reward!.stardust, lunarDust: order.reward!.lunarDust });
         window.setTimeout(() => {
@@ -407,7 +413,8 @@ export default function App() {
     const existing = loadProfile(wallet.address);
     const base = existing
       ? { ...existing, provider: wallet.provider }
-      : createProfile(wallet.address, wallet.provider, getMockDogBalance(wallet.address));
+      : // Saldo simulado só para convidados; carteira real espera o saldo on-chain do DogData.
+        createProfile(wallet.address, wallet.provider, wallet.provider === GUEST_PROVIDER ? getMockDogBalance(wallet.address) : 0);
     // Primeira entrada do dia: conta a sequência e paga a recompensa.
     const streak = applyDailyStreak(base);
     const next = streak?.profile ?? base;
@@ -523,7 +530,7 @@ export default function App() {
     });
     commit(next);
     if (outcome.success && submitEnabled) {
-      void sessionToken(next.address, next.provider).then(token => submitScore({ token, address: next.address, dogName: next.dog.name, tier: next.tier, routeId: session.route.id, score: outcome.score, title: next.title, style: next.nameStyle }));
+      void sessionToken(next.address, next.provider).then(token => submitScore({ token, address: next.address, dogName: next.dog.name, tier: rankingTier(next), routeId: session.route.id, score: outcome.score, title: next.title, style: next.nameStyle }));
     }
     setSession({ ...session, summary });
     if (summary.levelsGained > 0) {
@@ -857,14 +864,14 @@ export default function App() {
                 {pendingChallenge && (
                   <ChallengeCard challenge={pendingChallenge} profile={profile} onAccept={acceptChallenge} onDismiss={() => setPendingChallenge(null)} />
                 )}
-                <nav className="grid grid-cols-6 gap-1.5 mb-4 sm:flex sm:gap-2 sm:overflow-x-auto sm:pb-2 sm:-mx-1 sm:px-1">
+                <nav className="flex gap-1 mb-4 sm:gap-2 sm:overflow-x-auto sm:pb-2 sm:-mx-1 sm:px-1">
                   {TABS.map(tab => {
                     const badge = tab.id === 'missions' && (profile.dailyMissions.some(m => m.completed && !m.claimed) || hasClaimableAchievement(profile));
                     return (
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`relative flex flex-col items-center justify-center gap-0.5 px-1 py-1.5 rounded-xl text-[10px] leading-tight font-semibold transition-all whitespace-nowrap sm:inline-flex sm:flex-row sm:gap-0 sm:px-4 sm:py-2 sm:text-sm ${
+                        className={`relative flex-1 min-w-max sm:flex-none flex flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 rounded-xl text-[10px] leading-tight tracking-tight font-semibold transition-all whitespace-nowrap sm:inline-flex sm:flex-row sm:gap-0 sm:px-4 sm:py-2 sm:text-sm sm:tracking-normal ${
                           activeTab === tab.id
                             ? 'tab-active'
                             : 'bg-[#0b1733]/70 backdrop-blur text-slate-300 hover:text-white hover:bg-[#10224a]/80 border border-sky-400/15'

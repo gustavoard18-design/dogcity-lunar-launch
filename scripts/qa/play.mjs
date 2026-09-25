@@ -9,7 +9,7 @@ const [W, H] = (process.env.QA_VIEWPORT ?? '1280x720').split('x').map(Number);
 const FLIGHT_MS = Number(process.env.QA_FLIGHT_SECONDS ?? 170) * 1000;
 const browser = await puppeteer.launch({
   executablePath: process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  headless: 'new',
+  headless: 'new', protocolTimeout: 900000,
   args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', `--window-size=${W},${H}`, '--autoplay-policy=no-user-gesture-required'],
   defaultViewport: { width: W, height: H },
 });
@@ -21,7 +21,7 @@ page.on('console', m => m.type() === 'error' && errors.push(m.text()));
 page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const clickText = async (text, sel = 'button') => {
-  await page.waitForFunction((t, s) => [...document.querySelectorAll(s)].some(b => b.textContent.includes(t)), { timeout: 30000 }, text, sel);
+  await page.waitForFunction((t, s) => [...document.querySelectorAll(s)].some(b => b.textContent.includes(t)), { timeout: 120000 }, text, sel);
   await page.evaluate((t, s) => [...document.querySelectorAll(s)].find(b => b.textContent.includes(t)).click(), text, sel);
 };
 const shot = name => page.screenshot({ path: `${OUT}/${name}.png` });

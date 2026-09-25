@@ -1,5 +1,6 @@
 import type { PlayerProfile } from '../types';
 import { L, type Tr } from './i18n';
+import { BRT_OFFSET_MS } from './economy';
 
 /**
  * Temporadas mensais: cada mês tem um tema, um passe de 10 níveis e um ranking
@@ -51,9 +52,13 @@ export const SEASON_TIERS: SeasonTierDef[] = [
   { points: 3000, stardust: 300, lunarDust: 8, frame: true },
 ];
 
-/** Id da temporada do mês (season_YYYY_MM), no horário local. */
+/** Relógio de Brasília (campos UTC), o mesmo corte de mês do ranking da temporada no servidor. */
+const brtClock = (now: Date) => new Date(now.getTime() - BRT_OFFSET_MS);
+
+/** Id da temporada do mês (season_YYYY_MM), no horário de Brasília. */
 export function seasonId(now: Date = new Date()): string {
-  return `season_${now.getFullYear()}_${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const b = brtClock(now);
+  return `season_${b.getUTCFullYear()}_${String(b.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
 const SEASON_RE = /^season_(\d{4})_(0[1-9]|1[0-2])$/;
@@ -71,9 +76,10 @@ export function seasonName(id: string): string {
   return theme && m ? `${L(theme.name)} ${m[1]}` : id;
 }
 
-/** Milissegundos até a próxima temporada (dia 1 do mês seguinte, 00:00 local). */
+/** Milissegundos até a próxima temporada (dia 1 do mês seguinte, 00:00 de Brasília). */
 export function msUntilNextSeason(now: Date = new Date()): number {
-  return Math.max(0, new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime() - now.getTime());
+  const b = brtClock(now);
+  return Math.max(0, Date.UTC(b.getUTCFullYear(), b.getUTCMonth() + 1, 1) + BRT_OFFSET_MS - now.getTime());
 }
 
 /** Pontos de temporada de um voo (só voo concluído pontua). */

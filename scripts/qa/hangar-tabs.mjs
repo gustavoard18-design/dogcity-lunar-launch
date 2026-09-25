@@ -1,7 +1,7 @@
 import puppeteer from 'puppeteer-core';
 const OUT = process.argv[2] ?? 'ev';
 const mobile = process.argv[3] === 'mobile';
-const b = await puppeteer.launch({ executablePath: process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: 'new', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'], defaultViewport: mobile ? { width: 390, height: 844, isMobile: true, hasTouch: true } : { width: 1280, height: 900 } });
+const b = await puppeteer.launch({ executablePath: process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: 'new', protocolTimeout: 900000, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'], defaultViewport: mobile ? { width: 390, height: 844, isMobile: true, hasTouch: true } : { width: 1280, height: 900 } });
 const page = await b.newPage();
 // Os scripts clicam nos botões pelo texto em português.
 await page.evaluateOnNewDocument(() => localStorage.setItem('dogcity_lang', 'pt'));
