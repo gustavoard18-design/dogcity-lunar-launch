@@ -40,6 +40,7 @@ Usam `puppeteer-core` com o Chrome instalado (`npm i --no-save puppeteer-core`) 
 | `card.mjs` | Gera cartões de compartilhamento de exemplo. |
 | `musiccheck.mjs` | Mede o volume da trilha em cada clima (intercepta a saída de áudio). |
 | `wallets.mjs` | Conexão das carteiras com provedores simulados (Kray, Xverse, OKX): aprovar, recusar, endereço Ordinals e a volta da OKX para a API própria. Sai com erro se algum cenário falhar. |
+| `dogcoin.mjs` | Moeda de DOG no voo com o servidor simulado: pega a moeda e conclui (resultado "conferindo" → "registrados", com um 425 no meio) e pega e aborta (volta ao prêmio). Roda contra `npx vite --mode qa --port 5174` (o modo `qa` aponta para um servidor inexistente; nada vai para o Supabase de verdade). |
 | `pwacheck.mjs` | Confere manifesto, instalabilidade, service worker e modo offline (rodar com `npm run preview -- --port 4173`). |
 
 Os scripts fixam o idioma em português (clicam nos botões pelo texto). Em `npm run dev` o jogo não envia scores ao ranking online, então esses testes não sujam o ranking real.

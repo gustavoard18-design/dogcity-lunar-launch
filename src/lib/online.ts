@@ -136,14 +136,10 @@ export async function fetchEventLeaderboard(routeId: string, limit = 20, weeksAg
   return rows.map(toEntry);
 }
 
-/**
- * Saldo real da Rune DOG, ranking de holder e lote no DogCity (Edge Function
- * dog-balance, que consulta o DogData). `null` se indisponível.
- */
-export async function fetchDogInfo(address: string): Promise<DogOnchainInfo | null> {
-  if (!onlineEnabled) return null;
+/** Uma consulta à Edge Function dog-balance. `null` se indisponível. */
+async function fetchDogInfoOnce(address: string): Promise<DogOnchainInfo | null> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 10000);
+  const timer = setTimeout(() => ctrl.abort(), 25000);
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/dog-balance?address=${encodeURIComponent(address)}`, {
       headers: { apikey: SUPABASE_KEY },
@@ -164,6 +160,17 @@ export async function fetchDogInfo(address: string): Promise<DogOnchainInfo | nu
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Saldo real da Rune DOG, ranking de holder e lote no DogCity (Edge Function
+ * dog-balance, que consulta o DogData). O DogData às vezes leva mais de 20 s na
+ * primeira consulta; a segunda costuma vir do cache do servidor, então tenta
+ * mais uma vez antes de desistir. `null` se indisponível.
+ */
+export async function fetchDogInfo(address: string): Promise<DogOnchainInfo | null> {
+  if (!onlineEnabled) return null;
+  return (await fetchDogInfoOnce(address)) ?? (await fetchDogInfoOnce(address));
 }
 
 /**

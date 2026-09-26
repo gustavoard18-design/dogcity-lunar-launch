@@ -6,7 +6,7 @@ import { DROP_RULES } from '../lib/drops';
 
 /** Canal de suporte: issues do repositório (qualquer conta do GitHub abre um chamado). */
 export const SUPPORT_URL = 'https://github.com/gustavoard18-design/dogcity-lunar-launch/issues/new';
-export const LEGAL_UPDATED = '2026-09-25';
+export const LEGAL_UPDATED = '2026-09-26';
 
 /** Link do suporte já com o título preenchido (ex.: o pedido de baú). */
 export function supportUrl(subject?: string): string {
@@ -210,9 +210,9 @@ const privacySections = (): Section[] => [
     title: { en: 'What we store', pt: 'O que guardamos', es: 'Qué guardamos' },
     body: [
       {
-        en: 'In your browser: your pilot and progress (localStorage). On the server, only for the game to work: your public wallet address, pilot name, scores, chest orders with their transaction ids, and, for verified wallets, a copy of your progress so you can play on another device.',
-        pt: 'No seu navegador: seu piloto e progresso (localStorage). No servidor, só para o jogo funcionar: o endereço público da carteira, o nome do piloto, as pontuações, os pedidos de baú com o id das transações e, para carteiras verificadas, uma cópia do progresso para você jogar em outro aparelho.',
-        es: 'En tu navegador: tu piloto y progreso (localStorage). En el servidor, solo para que el juego funcione: la dirección pública de la billetera, el nombre del piloto, las puntuaciones, los pedidos de cofres con el id de las transacciones y, para billeteras verificadas, una copia del progreso para que juegues en otro dispositivo.',
+        en: 'In your browser: your pilot and progress (localStorage). On the server, only for the game to work: your public wallet address, pilot name, scores, chest orders with their transaction ids, a record of each flight of verified wallets (route and time, for the DOG coin draw), the DOG prizes won, a copy of on-chain data read from DogData (balance and DogCity plot) and, for verified wallets, a copy of your progress so you can play on another device.',
+        pt: 'No seu navegador: seu piloto e progresso (localStorage). No servidor, só para o jogo funcionar: o endereço público da carteira, o nome do piloto, as pontuações, os pedidos de baú com o id das transações, um registro de cada voo das carteiras verificadas (rota e horário, para o sorteio da moeda de DOG), os prêmios em DOG ganhos, uma cópia dos dados on-chain lidos do DogData (saldo e lote no DogCity) e, para carteiras verificadas, uma cópia do progresso para você jogar em outro aparelho.',
+        es: 'En tu navegador: tu piloto y progreso (localStorage). En el servidor, solo para que el juego funcione: la dirección pública de la billetera, el nombre del piloto, las puntuaciones, los pedidos de cofres con el id de las transacciones, un registro de cada vuelo de las billeteras verificadas (ruta y hora, para el sorteo de la moneda de DOG), los premios en DOG ganados, una copia de los datos on-chain leídos de DogData (saldo y parcela en DogCity) y, para billeteras verificadas, una copia del progreso para que juegues en otro dispositivo.',
       },
       {
         en: 'Wallet addresses and pilot names appear publicly in the rankings. Blockchain transactions are public by nature.',
@@ -250,9 +250,9 @@ const privacySections = (): Section[] => [
     title: { en: 'Your choices', pt: 'Suas escolhas', es: 'Tus opciones' },
     body: [
       {
-        en: 'Clearing the site data in your browser erases the local copy. To delete your server data (scores, cloud progress), open a support ticket from the connected address, and we remove it. Chest orders are kept as payment records.',
-        pt: 'Limpar os dados do site no navegador apaga a cópia local. Para apagar seus dados no servidor (pontuações, progresso na nuvem), abra um chamado no suporte a partir do endereço conectado, e nós removemos. Pedidos de baú ficam guardados como registro de pagamento.',
-        es: 'Borrar los datos del sitio en tu navegador elimina la copia local. Para borrar tus datos del servidor (puntuaciones, progreso en la nube), abre un ticket de soporte desde la dirección conectada y los eliminamos. Los pedidos de cofres se guardan como registro de pago.',
+        en: 'Clearing the site data in your browser erases the local copy. To delete your server data (scores, cloud progress), open a support ticket from the connected address, and we remove it. Chest orders and DOG prizes are kept as payment records.',
+        pt: 'Limpar os dados do site no navegador apaga a cópia local. Para apagar seus dados no servidor (pontuações, progresso na nuvem), abra um chamado no suporte a partir do endereço conectado, e nós removemos. Pedidos de baú e prêmios em DOG ficam guardados como registro de pagamento.',
+        es: 'Borrar los datos del sitio en tu navegador elimina la copia local. Para borrar tus datos del servidor (puntuaciones, progreso en la nube), abre un ticket de soporte desde la dirección conectada y los eliminamos. Los pedidos de cofres y los premios en DOG se guardan como registro de pago.',
       },
     ],
   },

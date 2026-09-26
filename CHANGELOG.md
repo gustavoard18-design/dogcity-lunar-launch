@@ -1,5 +1,15 @@
 # Novidades
 
+## 2.7.1 (setembro de 2026): revisão geral
+- **Moeda de DOG mais clara**: o resultado do voo mostra o que aconteceu com a moeda (conferindo, registrada, ou por que não valeu: voo não concluído ou abaixo de 20% dos pontos). O aviso no voo, a Loja e os Termos dizem a mesma regra. Os avisos em balão agora aparecem também na tela da missão (antes sumiam sem ser vistos).
+- **Temporada**: o resultado mostra a recompensa dos níveis do passe alcançados no voo.
+- **Trocar missões não descarta as concluídas**: antes, uma missão concluída e ainda não resgatada sumia na troca.
+- **Saldo DOG da carteira**: enquanto o DogData não responde aparece "aguardando o DogData" (antes: "simulado 0"). O jogo espera mais e tenta de novo, porque o DogData às vezes demora mais de 20 s. No perfil, a patente de holder explica de onde vem e avisa quando é simulada (convidado).
+- **Números coerentes**: a taxa de sucesso do perfil usa a carreira toda; o recorde de cada rota só conta voos concluídos; no ranking geral, o número de voos aparece como "na carreira"; a conquista "Aprendendo a Cair" não conta missões abortadas.
+- **Textos sem ambiguidade**: "Temporada Completa" virou "Veterano de Eventos" (era sobre bônus de eventos, não a temporada do mês); "Campeão Semanal" diz que é o 1º lugar no ranking do evento; o Diário fala em "bônus de evento"; "Cofre Cheio" explica que é ter 5.000 Stardust ao mesmo tempo; os rankings dizem que viram à 0h de Brasília; o Mar da Tranquilidade fica na Lua (não do outro lado dela); o card do evento mostra o multiplicador de anéis; o texto de compartilhar missão abortada não fala em nave perdida; "Cancelar antes da decolagem devolve o custo" no lugar de "custo debitado na decolagem".
+- **Privacidade**: a política lista também os registros de voo das carteiras verificadas, os prêmios em DOG e a cópia dos dados do DogData.
+- Monitoramento: uma segunda tentativa antes de acusar falha (evita alarme falso quando o DogData demora).
+
 ## 2.7.0 (setembro de 2026): prêmio acumulado em DOG
 - **50% do DOG dos baús volta para os jogadores**: forma um prêmio acumulado, mostrado na Loja com os últimos ganhadores.
 - **Moeda de DOG no voo**: raramente (cerca de 1 em 150 voos de carteiras verificadas) aparece uma moeda com o símbolo do DOG. Quem pega ganha de 2% a 8% do prêmio acumulado (de 50 a 5.000 DOG), enviado pela tesouraria. O sorteio é feito no servidor na decolagem; no máximo 1 moeda por carteira por semana e só os 20 primeiros voos do dia concorrem. Não precisa comprar nada para participar.

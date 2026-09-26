@@ -31,6 +31,7 @@ export default function JackpotPanel({ address, verified, refreshKey }: { addres
 
   const share = Math.round(DROP_RULES.poolShare * 100);
   const odds = Math.round(1 / DROP_RULES.dropChance);
+  const pct = Math.round(DROP_RULES.minQuality * 100);
 
   return (
     <div className="panel mb-4 border-amber-300/40">
@@ -40,9 +41,9 @@ export default function JackpotPanel({ address, verified, refreshKey }: { addres
       </div>
       <p className="mt-1 text-[11px] text-slate-400">
         {L({
-          en: `${share}% of every chest sold goes into the jackpot. During flights, a DOG coin can show up (about 1 in ${odds} flights, verified wallets only). Grab it and the DOG is yours: it is sent from the treasury to your wallet.`,
-          pt: `${share}% de cada baú vendido vai para o prêmio acumulado. Durante o voo pode aparecer uma moeda de DOG (cerca de 1 em ${odds} voos, só carteiras verificadas). Pegue a moeda e o DOG é seu: ele é enviado da tesouraria para a sua carteira.`,
-          es: `El ${share}% de cada cofre vendido va al bote. Durante el vuelo puede aparecer una moneda de DOG (cerca de 1 de cada ${odds} vuelos, solo billeteras verificadas). Atrápala y el DOG es tuyo: se envía desde la tesorería a tu billetera.`,
+          en: `${share}% of every chest sold goes into the jackpot. During flights, a DOG coin can show up (about 1 in ${odds} flights, verified wallets only). Grab it and finish the flight with ${pct}% of the points or more: the DOG is sent from the treasury to your wallet, usually within 7 days.`,
+          pt: `${share}% de cada baú vendido vai para o prêmio acumulado. Durante o voo pode aparecer uma moeda de DOG (cerca de 1 em ${odds} voos, só carteiras verificadas). Pegue a moeda e conclua o voo com ${pct}% dos pontos ou mais: o DOG é enviado da tesouraria para a sua carteira, em geral em até 7 dias.`,
+          es: `El ${share}% de cada cofre vendido va al bote. Durante el vuelo puede aparecer una moneda de DOG (cerca de 1 de cada ${odds} vuelos, solo billeteras verificadas). Atrápala y completa el vuelo con el ${pct}% de los puntos o más: el DOG se envía desde la tesorería a tu billetera, normalmente en 7 días.`,
         })}{' '}
         {L({
           en: `Max ${DROP_RULES.dropsPerWalletPerWeek} coin per wallet per week; only the first ${DROP_RULES.eligibleFlightsPerDay} flights of the day count. No purchase needed.`,

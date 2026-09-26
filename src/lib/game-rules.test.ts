@@ -27,6 +27,7 @@ import { checkPayment, countsForLimit, roll, windowStarts } from '../../supabase
 import { GUEST_ADDRESS_RE, checkSignInMessage, signInMessage } from '../../supabase/functions/_shared/auth-rules.ts';
 import { getSession } from './auth';
 import { DROPS, dropPoint, minFlightSecondsFor, rollDrop } from '../../supabase/functions/_shared/drop-rules.ts';
+import { minDropScore } from './drops';
 import { storedProfile } from './storage';
 import { CHESTS, CHEST_LIMITS, CHEST_TREASURY, applyChestReward, chestOdds, isTxid } from './chests';
 import { dogDataProfileUrl, inscriptionImageUrls, prestigeStars, sanitizeIdentity } from './dogdata';
@@ -229,6 +230,18 @@ describe('missões diárias', () => {
     expect(once.dailyMissions.map(m => m.missionId)).not.toEqual(p.dailyMissions.map(m => m.missionId));
     expect(rerollMissions(once, now)).toBeNull();
   });
+
+  it('a troca mantém as missões concluídas que ainda não foram resgatadas', () => {
+    const now = new Date(2026, 8, 22, 12);
+    const p = ensureDailyMissions({ ...profile, missionDay: '' }, now);
+    const done = { ...p, dailyMissions: p.dailyMissions.map((m, i) => (i === 0 ? { ...m, progress: 999, completed: true } : m)) };
+    const swapped = rerollMissions(done, now)!;
+    expect(swapped.dailyMissions[0]).toEqual(done.dailyMissions[0]);
+    expect(swapped.dailyMissions).toHaveLength(3);
+    // Tudo concluído: não há o que trocar (e não cobra).
+    const allDone = { ...p, dailyMissions: p.dailyMissions.map(m => ({ ...m, completed: true })) };
+    expect(rerollMissions(allDone, now)).toBeNull();
+  });
 });
 
 describe('loja', () => {
@@ -414,6 +427,9 @@ describe('títulos, secretas e ranking do evento', () => {
     expect(a.achievements.secret_night).toBeTruthy();
     const { profile: b } = applyLaunchResult(a, LOW, outcome({ success: false, score: 5 }), LOW.cost, new Date(2026, 8, 23, 14));
     expect(b.stats.crashes).toBe(1);
+    // Abortar não é perder a nave.
+    const { profile: c } = applyLaunchResult(b, LOW, outcome({ success: false, aborted: true, score: 3 }), LOW.cost, new Date(2026, 8, 23, 15));
+    expect(c.stats.crashes).toBe(1);
   });
 
   it('perfil com stats antigos (sem os contadores novos) é completado', () => {
@@ -821,6 +837,8 @@ describe('DOG no voo (prêmio acumulado)', () => {
     expect(Object.keys(DROPS.routeSeconds).sort()).toEqual(all.map(r => r.id).sort());
     for (const r of all) expect(minFlightSecondsFor(r.id)).toBe(Math.max(DROPS.minFlightSeconds, r.flightSeconds));
     expect(minFlightSecondsFor('rota-inventada')).toBe(DROPS.minFlightSeconds);
+    // O jogo usa a mesma pontuação mínima que o servidor (ceil(max × minQuality)).
+    for (const r of all) expect(minDropScore(r.maxScore)).toBe(Math.ceil(r.maxScore * DROPS.minQuality));
     expect(DROPS.minQuality).toBeGreaterThan(0);
   });
 

@@ -247,6 +247,12 @@ export async function renderShareCard({ route, summary, pilotName, pilotTitle, p
 
 export function shareText({ route, summary }: ShareInfo): string {
   const o = summary.outcome;
+  if (o.aborted)
+    return L({
+      en: `My DOG astronaut aborted the ${route.name} mission in DogCity Lunar Launch. 🚀 Can you make it?`,
+      pt: `Meu DOG astronauta abortou a missão ${route.name} no DogCity Lunar Launch. 🚀 Você consegue?`,
+      es: `Mi DOG astronauta abortó la misión ${route.name} en DogCity Lunar Launch. 🚀 ¿Tú lo logras?`,
+    });
   return o.success
     ? L({ en: `My DOG astronaut scored ${o.score} pts on ${route.name} in DogCity Lunar Launch! 🚀🐕 Can you beat it?`, pt: `Meu DOG astronauta fez ${o.score} pts em ${route.name} no DogCity Lunar Launch! 🚀🐕 Consegue superar?`, es: `¡Mi DOG astronauta hizo ${o.score} pts en ${route.name} en DogCity Lunar Launch! 🚀🐕 ¿Puedes superarlo?` })
     : L({ en: `My DOG astronaut tried ${route.name} in DogCity Lunar Launch… and the ship didn't make it! 🚀💥 Your turn:`, pt: `Meu DOG astronauta tentou ${route.name} no DogCity Lunar Launch… e a nave não aguentou! 🚀💥 Tenta você:`, es: `Mi DOG astronauta intentó ${route.name} en DogCity Lunar Launch… ¡y la nave no aguantó! 🚀💥 Inténtalo tú:` });

@@ -5,10 +5,12 @@ import { cutoutArt } from '../lib/evolution';
 import { getAchievementDef } from '../lib/achievements';
 import { GAME_URL, shareFlight } from '../lib/shareCard';
 import GameIcon, { IconName, LunarDust, PLANET_ICON, Stardust, StarIcon } from '../components/GameIcon';
-import { L } from '../lib/i18n';
+import { L, fmtNumber } from '../lib/i18n';
 import { track } from '../lib/analytics';
 import { type Challenge, challengeOutcome, challengeUrl } from '../lib/challenge';
 import { sanitizePilotName } from '../lib/storage';
+import { DROP_RULES, type DogCoin } from '../lib/drops';
+import { SEASON_TIERS } from '../lib/seasons';
 
 interface ResultScreenProps {
   route: Route;
@@ -20,6 +22,8 @@ interface ResultScreenProps {
   seed: number;
   /** Desafio aceito, para comparar os resultados. */
   challenge?: Challenge | null;
+  /** Moeda de DOG pega neste voo e a situação do registro. */
+  dogCoin?: DogCoin | null;
   canRetry: boolean;
   onRetry(): void;
   onExit(): void;
@@ -41,7 +45,7 @@ function useCountUp(target: number, ms = 1200) {
   return value;
 }
 
-export default function ResultScreen({ route, summary, pilotName, pilotTitle, pilotStyle, seed, challenge, canRetry, onRetry, onExit }: ResultScreenProps) {
+export default function ResultScreen({ route, summary, pilotName, pilotTitle, pilotStyle, seed, challenge, dogCoin, canRetry, onRetry, onExit }: ResultScreenProps) {
   const [challengeState, setChallengeState] = useState<'idle' | 'shared' | 'copied' | 'error'>('idle');
   const versus = challenge ? challengeOutcome(challenge, summary.outcome.score, summary.outcome.success) : null;
   const sendChallenge = async () => {
@@ -81,6 +85,11 @@ export default function ResultScreen({ route, summary, pilotName, pilotTitle, pi
     }
   };
   const { outcome } = summary;
+  // Recompensas dos níveis da temporada alcançados neste voo (já creditadas).
+  const seasonReward = (summary.seasonTiers ?? []).reduce(
+    (sum, t) => ({ stardust: sum.stardust + (SEASON_TIERS[t - 1]?.stardust ?? 0), lunarDust: sum.lunarDust + (SEASON_TIERS[t - 1]?.lunarDust ?? 0) }),
+    { stardust: 0, lunarDust: 0 }
+  );
   const score = useCountUp(outcome.score);
   const stars = !outcome.success ? 0 : summary.quality >= 0.85 ? 3 : summary.quality >= 0.6 ? 2 : 1;
   const title = outcome.success
@@ -169,7 +178,14 @@ export default function ResultScreen({ route, summary, pilotName, pilotTitle, pi
             🌙 +{summary.seasonPoints} {L({ en: 'season points', pt: 'pontos de temporada', es: 'puntos de temporada' })}
             {summary.seasonTiers?.length ? (
               <b className="ml-1 text-amber-300">
-                · {L({ en: 'tier', pt: 'nível', es: 'nivel' })} {summary.seasonTiers[summary.seasonTiers.length - 1]}!
+                · {L({ en: 'tier', pt: 'nível', es: 'nivel' })} {summary.seasonTiers[summary.seasonTiers.length - 1]}!{' '}
+                <Stardust value={seasonReward.stardust} sign="+" size="1em" />
+                {seasonReward.lunarDust > 0 && (
+                  <>
+                    {' '}
+                    <LunarDust value={seasonReward.lunarDust} sign="+" size="1em" />
+                  </>
+                )}
               </b>
             ) : null}
           </div>
@@ -185,6 +201,8 @@ export default function ResultScreen({ route, summary, pilotName, pilotTitle, pi
             <span className="inline-flex items-center gap-2"><GameIcon name="medal" size={28} className="-my-1" /> {L({ en: 'LEVEL', pt: 'NÍVEL', es: 'NIVEL' })} {summary.newLevel}!</span>
           </motion.div>
         )}
+
+        {dogCoin && <DogCoinResult coin={dogCoin} />}
 
         {summary.eventBonus && (
           <motion.div
@@ -296,5 +314,46 @@ function ShareIcon() {
       <circle cx="18" cy="19" r="3" />
       <path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" />
     </svg>
+  );
+}
+
+/** Moeda de DOG pega no voo: o que aconteceu com ela. */
+function DogCoinResult({ coin }: { coin: DogCoin }) {
+  const amount = `${fmtNumber(coin.amount)} DOG`;
+  const pct = Math.round(DROP_RULES.minQuality * 100);
+  const good = coin.state === 'ok' || coin.state === 'checking';
+  const text = {
+    checking: L({ en: `+${amount} · checking the flight with the server…`, pt: `+${amount} · conferindo o voo com o servidor…`, es: `+${amount} · comprobando el vuelo con el servidor…` }),
+    ok: L({
+      en: `+${amount} recorded! The treasury sends it to your wallet, usually within 7 days. Track it in the Shop.`,
+      pt: `+${amount} registrados! A tesouraria envia para a sua carteira, em geral em até 7 dias. Acompanhe na Loja.`,
+      es: `¡+${amount} registrados! La tesorería los envía a tu billetera, normalmente en 7 días. Síguelo en la Tienda.`,
+    }),
+    lost: L({
+      en: `The ${amount} coin only counts if you finish the flight. It went back to the jackpot.`,
+      pt: `A moeda de ${amount} só vale com o voo concluído. Ela voltou para o prêmio acumulado.`,
+      es: `La moneda de ${amount} solo vale si completas el vuelo. Volvió al bote.`,
+    }),
+    low: L({
+      en: `The ${amount} coin needs a flight with ${pct}% of the points or more. It went back to the jackpot.`,
+      pt: `A moeda de ${amount} precisa de um voo com ${pct}% dos pontos ou mais. Ela voltou para o prêmio acumulado.`,
+      es: `La moneda de ${amount} necesita un vuelo con el ${pct}% de los puntos o más. Volvió al bote.`,
+    }),
+    failed: L({
+      en: `The server did not record the ${amount} coin. If your flight qualified, contact support.`,
+      pt: `O servidor não registrou a moeda de ${amount}. Se o seu voo valia, fale com o suporte.`,
+      es: `El servidor no registró la moneda de ${amount}. Si tu vuelo valía, contacta con soporte.`,
+    }),
+  }[coin.state];
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.7 }}
+      className={`mb-4 rounded-xl border px-3 py-2.5 text-sm ${good ? 'border-amber-300/60 bg-amber-400/10 text-amber-100' : 'border-slate-400/30 bg-white/[0.04] text-slate-300'}`}
+    >
+      <div className="text-[10px] tracking-[0.2em] text-amber-300 mb-1">{L({ en: 'DOG COIN', pt: 'MOEDA DE DOG', es: 'MONEDA DE DOG' })}</div>
+      {text}
+    </motion.div>
   );
 }

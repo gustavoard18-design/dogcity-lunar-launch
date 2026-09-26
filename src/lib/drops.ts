@@ -21,6 +21,19 @@ export interface FlightDrop {
   at: number;
 }
 
+/**
+ * Moeda de DOG pega neste voo, como aparece no resultado: `checking` = conferindo
+ * o voo com o servidor; `ok` = prêmio registrado; `lost` = voo não concluído;
+ * `low` = voo abaixo da qualidade mínima; `failed` = o servidor não registrou.
+ */
+export interface DogCoin {
+  amount: number;
+  state: 'checking' | 'ok' | 'lost' | 'low' | 'failed';
+}
+
+/** Pontuação mínima do voo para a moeda valer (a mesma regra do servidor). */
+export const minDropScore = (maxScore: number) => Math.ceil(maxScore * DROP_RULES.minQuality);
+
 export interface DogDropRecord {
   id: string;
   amount_dog: number;

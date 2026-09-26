@@ -166,8 +166,9 @@ export default function WeeklyLeaderboard({ playerAddress, playerDistrict }: Wee
                         </a>
                       )}
                       {title && <span className="text-amber-300/90">«{title}» · </span>}
-                      {flightsLabel(entry.totalLaunches)}
-                      {board === 'general' && ` · ${L({ en: 'best', pt: 'recorde', es: 'récord' })} ${entry.bestScore}`}
+                      {board === 'general'
+                        ? `${L({ en: 'all-time', pt: 'na carreira', es: 'en total' })}: ${flightsLabel(entry.totalLaunches)} · ${L({ en: 'best', pt: 'recorde', es: 'récord' })} ${entry.bestScore}`
+                        : flightsLabel(entry.totalLaunches)}
                       {board === 'event' && ` · ${L({ en: 'in the event this week', pt: 'no evento esta semana', es: 'en el evento esta semana' })}`}
                       {board === 'season' && ` · ${L({ en: 'this month', pt: 'neste mês', es: 'este mes' })}`}
                     </div>
@@ -198,20 +199,20 @@ export default function WeeklyLeaderboard({ playerAddress, playerDistrict }: Wee
                 })
               : board === 'general'
                 ? L({
-                    en: 'Global leaderboard: every pilot, resets every Monday. Only completed flights count.',
-                    pt: 'Ranking global: todos os pilotos, reinicia toda segunda-feira. Só voos concluídos contam.',
-                    es: 'Clasificación global: todos los pilotos, se reinicia cada lunes. Solo cuentan los vuelos completados.',
+                    en: 'Global leaderboard: every pilot, resets every Monday at 00:00 Brasília time (UTC−3). Only completed flights count.',
+                    pt: 'Ranking global: todos os pilotos, reinicia toda segunda-feira à 0h de Brasília. Só voos concluídos contam.',
+                    es: 'Clasificación global: todos los pilotos, se reinicia cada lunes a las 00:00 de Brasilia (UTC−3). Solo cuentan los vuelos completados.',
                   })
                 : board === 'event'
                   ? L({
-                      en: `Only completed flights on ${event.name} this week. The top 3 win Stardust, Lunar Dust and a name frame when the event changes on Monday.`,
-                      pt: `Só voos concluídos na rota ${event.name} nesta semana. O top 3 ganha Stardust, Pó Lunar e moldura de nome quando o evento troca, na segunda-feira.`,
-                      es: `Solo vuelos completados en ${event.name} esta semana. El top 3 gana Stardust, Polvo Lunar y un marco de nombre cuando el evento cambia, el lunes.`,
+                      en: `Only completed flights on ${event.name} this week. The top 3 win Stardust, Lunar Dust and a name frame when the event changes, on Monday at 00:00 Brasília time (UTC−3).`,
+                      pt: `Só voos concluídos na rota ${event.name} nesta semana. O top 3 ganha Stardust, Pó Lunar e moldura de nome quando o evento troca, na segunda-feira à 0h de Brasília.`,
+                      es: `Solo vuelos completados en ${event.name} esta semana. El top 3 gana Stardust, Polvo Lunar y un marco de nombre cuando el evento cambia, el lunes a las 00:00 de Brasilia (UTC−3).`,
                     })
                   : L({
-                      en: `${seasonName(seasonId())}: every completed flight adds 10 + score/10 points. Resets on the 1st of each month.`,
-                      pt: `${seasonName(seasonId())}: cada voo concluído soma 10 + score/10 pontos. Reinicia no dia 1 de cada mês.`,
-                      es: `${seasonName(seasonId())}: cada vuelo completado suma 10 + puntuación/10 puntos. Se reinicia el día 1 de cada mes.`,
+                      en: `${seasonName(seasonId())}: every completed flight adds 10 + score/10 points. Resets on the 1st of each month at 00:00 Brasília time (UTC−3).`,
+                      pt: `${seasonName(seasonId())}: cada voo concluído soma 10 + score/10 pontos. Reinicia no dia 1 de cada mês, à 0h de Brasília.`,
+                      es: `${seasonName(seasonId())}: cada vuelo completado suma 10 + puntuación/10 puntos. Se reinicia el día 1 de cada mes a las 00:00 de Brasilia (UTC−3).`,
                     })}
           </p>
         </>
@@ -283,9 +284,9 @@ function DistrictBoard({ standings, status, playerDistrict }: { standings: Distr
 
       <p className="text-[11px] text-slate-600 mt-3">
         {L({
-          en: 'Resets every Monday. Pilots of the winning district who flew that week get',
-          pt: 'Reinicia toda segunda-feira. Quem voou pelo distrito campeão na semana ganha',
-          es: 'Se reinicia cada lunes. Quienes volaron por el distrito campeón esa semana ganan',
+          en: 'Resets every Monday at 00:00 Brasília time (UTC−3). Pilots of the winning district who flew that week get',
+          pt: 'Reinicia toda segunda-feira à 0h de Brasília. Quem voou pelo distrito campeão na semana ganha',
+          es: 'Se reinicia cada lunes a las 00:00 de Brasilia (UTC−3). Quienes volaron por el distrito campeón esa semana ganan',
         })}{' '}
         <span className="text-amber-300">
           <Stardust value={DISTRICT_PRIZE.stardust} sign="+" size="1em" />

@@ -19,7 +19,7 @@ function timeToMidnight(): string {
 
 export default function MissionsPanel({ profile, onClaimReward, onReroll }: MissionsPanelProps) {
   const rerollUsed = profile.missionRerollDay === getDayKey();
-  const hasOpen = profile.dailyMissions.some(m => !m.claimed);
+  const hasOpen = profile.dailyMissions.some(m => !m.claimed && !m.completed);
 
   return (
     <div className="panel">
@@ -35,7 +35,7 @@ export default function MissionsPanel({ profile, onClaimReward, onReroll }: Miss
           title={
             rerollUsed
               ? L({ en: 'Swap already used today', pt: 'Troca já usada hoje', es: 'Cambio ya usado hoy' })
-              : L({ en: `Swap unclaimed missions for ${REROLL_COST} Stardust`, pt: `Troca as missões não resgatadas por ${REROLL_COST} Stardust`, es: `Cambia las misiones no reclamadas por ${REROLL_COST} Stardust` })
+              : L({ en: `Swap the unfinished missions for ${REROLL_COST} Stardust (finished ones stay)`, pt: `Troca as missões não concluídas por ${REROLL_COST} Stardust (as concluídas ficam)`, es: `Cambia las misiones sin completar por ${REROLL_COST} Stardust (las completadas se quedan)` })
           }
         >
           <span className="inline-flex items-center gap-1.5"><RefreshIcon />{rerollUsed ? L({ en: 'Swap used', pt: 'Troca usada', es: 'Cambio usado' }) : <>{L({ en: 'Swap', pt: 'Trocar', es: 'Cambiar' })} <Stardust value={REROLL_COST} /></>}</span>

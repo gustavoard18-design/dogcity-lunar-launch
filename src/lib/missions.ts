@@ -75,15 +75,15 @@ export function canReroll(profile: PlayerProfile, now: Date = new Date()): boole
   return profile.missionRerollDay !== getDayKey(now) && profile.stardust >= REROLL_COST;
 }
 
-/** Troca paga (1x por dia) das missões ainda não resgatadas. */
+/** Troca paga (1x por dia) das missões ainda não concluídas. As concluídas ficam (resgatadas ou não). */
 export function rerollMissions(profile: PlayerProfile, now: Date = new Date()): PlayerProfile | null {
   if (!canReroll(profile, now)) return null;
   const today = getDayKey(now);
-  const kept = profile.dailyMissions.filter(s => s.claimed);
+  const kept = profile.dailyMissions.filter(s => s.claimed || s.completed);
   const keptIds = new Set(kept.map(s => s.missionId));
   const fresh = pickDailyMissions(today, profile.address, profile.dog.level, `reroll-${Date.now()}`)
     .concat(pickDailyMissions(today, profile.address, profile.dog.level, 'fallback'))
-    .filter(m => !keptIds.has(m.id) && !profile.dailyMissions.some(s => s.missionId === m.id && !s.claimed));
+    .filter(m => !keptIds.has(m.id) && !profile.dailyMissions.some(s => s.missionId === m.id && !s.claimed && !s.completed));
   const unique = [...new Map(fresh.map(m => [m.id, m])).values()].slice(0, MISSIONS_PER_DAY - kept.length);
   if (unique.length === 0) return null;
   return {

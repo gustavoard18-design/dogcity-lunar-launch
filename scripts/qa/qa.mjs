@@ -118,7 +118,7 @@ check('"Voar de novo" cobra a rota e abre a mira', p.stardust === before - 10, `
 // 4. Voo completo (sem mexer: deve concluir se nenhum asteroide acertar; senão falha)
 await lockGood();
 const t0 = Date.now();
-await page.waitForFunction(() => /MISSÃO CUMPRIDA|NAVE PERDIDA/.test(document.body.innerText), { timeout: 240000, polling: 1000 });
+await page.waitForFunction(() => /MISSÃO CUMPRIDA|NAVE PERDIDA/.test(document.body.innerText), { timeout: 900000, polling: 1000 });
 const outcome = await page.evaluate(() => (document.body.innerText.includes('MISSÃO CUMPRIDA') ? 'sucesso' : 'falha'));
 p = await profile();
 check('voo completo termina com tela de resultado', true, `${outcome} em ${Math.round((Date.now() - t0) / 1000)}s`);

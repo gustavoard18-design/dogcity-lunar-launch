@@ -25,8 +25,8 @@ function CareerStats({ profile }: { profile: PlayerProfile }) {
         <span className="text-[11px] text-slate-500">
           <Stardust value={fmt(s.stardustEarned)} size="1em" /> {L({ en: 'earned in flights', pt: 'ganhos em voos', es: 'ganados en vuelos' })} · {profile.eventWins.length}{' '}
           {profile.eventWins.length === 1
-            ? L({ en: 'event won', pt: 'evento vencido', es: 'evento ganado' })
-            : L({ en: 'events won', pt: 'eventos vencidos', es: 'eventos ganados' })}
+            ? L({ en: 'event bonus', pt: 'bônus de evento', es: 'bono de evento' })
+            : L({ en: 'event bonuses', pt: 'bônus de evento', es: 'bonos de evento' })}
         </span>
       </div>
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">

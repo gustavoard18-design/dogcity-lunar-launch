@@ -71,11 +71,21 @@ const checks = [
 let failed = 0;
 const lines = [];
 for (const [name, run] of checks) {
-  try {
-    lines.push(`✅ ${name}: ${await run()}`);
-  } catch (e) {
+  // Uma segunda tentativa: o DogData e o boot das funções às vezes passam de 20 s
+  // numa chamada isolada, e isso não é o serviço fora do ar.
+  let error = null;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      lines.push(`✅ ${name}: ${await run()}${attempt > 1 ? ' (2ª tentativa)' : ''}`);
+      error = null;
+      break;
+    } catch (e) {
+      error = e;
+    }
+  }
+  if (error) {
     failed++;
-    lines.push(`❌ ${name}: ${e.message}`);
+    lines.push(`❌ ${name}: ${error.message}`);
   }
 }
 const report = lines.join('\n');

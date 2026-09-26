@@ -35,7 +35,7 @@ function EventCard({ profile, onSelectRoute }: RouteSelectorProps) {
   const affordable = profile.stardust >= route.cost;
   const disabled = !unlocked || !affordable;
   const won = hasWonEventThisWeek(profile);
-  const best = profile.launches.filter(l => l.route.id === route.id).reduce((m, l) => Math.max(m, l.score), 0);
+  const best = profile.launches.filter(l => l.route.id === route.id && l.success).reduce((m, l) => Math.max(m, l.score), 0);
 
   return (
     <button
@@ -61,6 +61,7 @@ function EventCard({ profile, onSelectRoute }: RouteSelectorProps) {
               <p className="text-[11px] text-slate-500 mt-0.5">
                 <Difficulty level={route.difficulty} /> · {route.flightSeconds}s · {MAX()} {route.maxScore}
                 {(route.orbRateMult ?? 1) > 1 && <span className="text-amber-300/90"> · {L({ en: 'orbs', pt: 'orbes', es: 'orbes' })} x{route.orbRateMult}</span>}
+                {(route.ringRateMult ?? 1) > 1 && <span className="text-fuchsia-300/90"> · {L({ en: 'rings', pt: 'anéis', es: 'anillos' })} x{route.ringRateMult}</span>}
                 {best > 0 && <span className="text-amber-300/80"> · {BEST()} {best}</span>}
               </p>
             </div>
@@ -98,7 +99,8 @@ interface RouteSelectorProps {
 
 export default function RouteSelector({ profile, onSelectRoute }: RouteSelectorProps) {
   const bestByRoute = (id: string) =>
-    profile.launches.filter(l => l.route.id === id).reduce((m, l) => Math.max(m, l.score), 0);
+    // Recorde só de voo concluído, como no perfil e no ranking.
+    profile.launches.filter(l => l.route.id === id && l.success).reduce((m, l) => Math.max(m, l.score), 0);
 
   return (
     <div className="panel relative space-y-3">
@@ -110,7 +112,7 @@ export default function RouteSelector({ profile, onSelectRoute }: RouteSelectorP
       />
       <div className="flex items-baseline justify-between">
         <h3 className="font-display text-lg text-white">{L({ en: 'Launch routes', pt: 'Rotas de lançamento', es: 'Rutas de lanzamiento' })}</h3>
-        <span className="text-[11px] text-slate-500 sm:mr-24">{L({ en: 'Cost charged at liftoff', pt: 'Custo debitado na decolagem', es: 'Coste cobrado al despegar' })}</span>
+        <span className="text-[11px] text-slate-500 sm:mr-24">{L({ en: 'Cancel before liftoff for a refund', pt: 'Cancelar antes da decolagem devolve o custo', es: 'Cancelar antes del despegue devuelve el coste' })}</span>
       </div>
 
       <EventCard profile={profile} onSelectRoute={onSelectRoute} />

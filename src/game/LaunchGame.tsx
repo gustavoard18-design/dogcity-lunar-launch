@@ -18,6 +18,10 @@ import GameIcon, { Difficulty, EjectIcon, HeartIcon, PLANET_ICON, Stardust } fro
 import { L, fmtNumber } from '../lib/i18n';
 import { track } from '../lib/analytics';
 import type { Challenge } from '../lib/challenge';
+import { DROP_RULES, type DogCoin } from '../lib/drops';
+
+/** Qualidade mínima (em %) para a moeda de DOG valer. */
+const DROP_PCT = Math.round(DROP_RULES.minQuality * 100);
 
 type Phase = PadPhase | 'flight' | 'result';
 
@@ -37,6 +41,8 @@ interface LaunchGameProps {
   challenge?: Challenge | null;
   /** Moeda de DOG sorteada pelo servidor para este voo (pode chegar depois da decolagem). */
   dogDrop?: { at: number; amount: number } | null;
+  /** Moeda de DOG pega neste voo e a situação do registro, para o resultado. */
+  dogCoin?: DogCoin | null;
   /** O piloto pegou a moeda de DOG. */
   onDogDrop?(): void;
 }
@@ -53,7 +59,7 @@ function qualityLabel(q: number, perfect: boolean) {
   return { text: L({ en: 'WEAK', pt: 'FRACO', es: 'DÉBIL' }), cls: 'text-red-400' };
 }
 
-export default function LaunchGame({ route, profile, paidCost, summary, canRetry, onFinish, onCancel, onExit, onRetry, seed, challenge, dogDrop, onDogDrop }: LaunchGameProps) {
+export default function LaunchGame({ route, profile, paidCost, summary, canRetry, onFinish, onCancel, onExit, onRetry, seed, challenge, dogDrop, dogCoin, onDogDrop }: LaunchGameProps) {
   const [dogPopup, setDogPopup] = useState<number | null>(null);
   const dogDropRef = useRef(dogDrop);
   dogDropRef.current = dogDrop;
@@ -520,7 +526,11 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
           >
             <div className="font-display text-4xl sm:text-6xl text-amber-300 drop-shadow-[0_0_24px_rgba(255,170,40,0.9)]">+{fmtNumber(dogPopup)} DOG</div>
             <div className="mt-1 text-xs sm:text-sm text-amber-100/90 bg-black/40 rounded-full px-3 py-1">
-              {L({ en: 'From the game jackpot! Finish the flight to keep it.', pt: 'Do prêmio acumulado do jogo! Conclua o voo para garantir.', es: '¡Del bote del juego! Completa el vuelo para quedártela.' })}
+              {L({
+                en: `From the game jackpot! Finish the flight with ${DROP_PCT}% of the points or more to keep it.`,
+                pt: `Do prêmio acumulado do jogo! Conclua o voo com ${DROP_PCT}% dos pontos ou mais para garantir.`,
+                es: `¡Del bote del juego! Completa el vuelo con el ${DROP_PCT}% de los puntos o más para quedártela.`,
+              })}
             </div>
           </motion.div>
         )}
@@ -653,7 +663,7 @@ export default function LaunchGame({ route, profile, paidCost, summary, canRetry
       </AnimatePresence>
 
       {phase === 'result' && summary && (
-        <ResultScreen route={route} summary={summary} pilotName={profile.dog.name} pilotTitle={titleText(profile.title) || undefined} pilotStyle={profile.nameStyle} seed={seed} challenge={challenge} canRetry={canRetry} onRetry={onRetry} onExit={onExit} />
+        <ResultScreen route={route} summary={summary} pilotName={profile.dog.name} pilotTitle={titleText(profile.title) || undefined} pilotStyle={profile.nameStyle} seed={seed} challenge={challenge} dogCoin={dogCoin} canRetry={canRetry} onRetry={onRetry} onExit={onExit} />
       )}
     </div>
   );

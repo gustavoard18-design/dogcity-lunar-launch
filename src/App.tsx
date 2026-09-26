@@ -10,7 +10,7 @@ import { track } from './lib/analytics';
 import { type Challenge, challengeOutcome, challengeRoute, takeChallengeFromLocation } from './lib/challenge';
 import { newSeed } from './lib/rng';
 import { applyDailyStreak, type StreakReward } from './lib/streak';
-import { SEASON_TIERS, applySeasonPoints, seasonName } from './lib/seasons';
+import { applySeasonPoints, seasonName } from './lib/seasons';
 import { DISTRICT_PRIZE, applyDistrictPrize, playerDistrict } from './lib/districts';
 import ChallengeCard from './components/ChallengeCard';
 import StreakPanel from './components/StreakPanel';
@@ -32,7 +32,7 @@ import { getRouteCost, getTier, isRouteUnlocked, rankingTier } from './lib/econo
 import { fetchDistrictLeaderboard, fetchDogInfo, fetchEventLeaderboard, onlineEnabled, submitEnabled, submitScore } from './lib/online';
 import { authErrorText, dropSession, getSession, sessionToken, verifyWallet } from './lib/auth';
 import { pullCloud, startCloudSync } from './lib/cloud';
-import { type FlightDrop, claimFlightDrop, startFlightTicket } from './lib/drops';
+import { type DogCoin, type FlightDrop, claimFlightDrop, minDropScore, startFlightTicket } from './lib/drops';
 import VerifyBanner from './components/VerifyBanner';
 import LegalLinks from './components/LegalLinks';
 import JackpotPanel from './components/JackpotPanel';
@@ -78,6 +78,8 @@ interface Session {
   challenge: Challenge | null;
   /** Bilhete do voo no servidor, às vezes com uma moeda de DOG (carteira verificada). */
   drop?: FlightDrop | null;
+  /** Moeda de DOG pega neste voo e a situação do registro (mostrada no resultado). */
+  coin?: DogCoin | null;
 }
 
 const LUNAR_DUST = () => L({ en: 'Lunar Dust', pt: 'Pó Lunar', es: 'Polvo Lunar' });
@@ -498,21 +500,47 @@ export default function App() {
   /** Bilhete cuja moeda de DOG o piloto pegou neste voo (só vale se o voo for concluído). */
   const dropCaught = useRef<string | null>(null);
 
+  /** Atualiza a situação da moeda de DOG no resultado do voo do bilhete `ticketId`. */
+  const setCoinState = useCallback((ticketId: string, state: DogCoin['state']) => {
+    setSession(s => (s && s.drop?.ticketId === ticketId && s.coin ? { ...s, coin: { ...s.coin, state } } : s));
+  }, []);
+
   /**
    * Registra a moeda de DOG no fim de um voo concluído, depois do score: o servidor
    * confere que houve voo concluído na rota. Tenta de novo enquanto o score chega.
    */
-  const claimDrop = useCallback(async (address: string, ticketId: string, attempt = 0) => {
-    const token = getSession(address)?.token;
-    if (!token) return;
-    const r = await claimFlightDrop(token, ticketId);
-    if (r.kind === 'ok') {
-      track('dog_drop', { amount: Number(r.drop.amount_dog) });
-      setDropsTick(t => t + 1);
-    } else if (r.kind === 'retry' && attempt < 5) {
-      window.setTimeout(() => void claimDrop(address, ticketId, attempt + 1), 6000);
-    }
-  }, []);
+  const claimDrop = useCallback(
+    async (address: string, ticketId: string, amount: number, attempt = 0) => {
+      const token = getSession(address)?.token;
+      const r = token ? await claimFlightDrop(token, ticketId) : ({ kind: 'error' } as const);
+      if (r.kind === 'ok') {
+        track('dog_drop', { amount: Number(r.drop.amount_dog) });
+        setDropsTick(t => t + 1);
+        setCoinState(ticketId, 'ok');
+        notify(
+          L({
+            en: `+${amount} DOG recorded! The treasury sends it to your wallet.`,
+            pt: `+${amount} DOG registrados! A tesouraria envia para a sua carteira.`,
+            es: `¡+${amount} DOG registrados! La tesorería los envía a tu billetera.`,
+          }),
+          'orb'
+        );
+      } else if (r.kind === 'retry' && attempt < 5) {
+        window.setTimeout(() => void claimDrop(address, ticketId, amount, attempt + 1), 6000);
+      } else {
+        setCoinState(ticketId, 'failed');
+        notify(
+          L({
+            en: 'The server did not record your DOG coin. If your flight qualified, contact support.',
+            pt: 'O servidor não registrou a sua moeda de DOG. Se o voo valia, fale com o suporte.',
+            es: 'El servidor no registró tu moneda de DOG. Si el vuelo valía, contacta con soporte.',
+          }),
+          'escudo'
+        );
+      }
+    },
+    [notify, setCoinState]
+  );
 
   const acceptChallenge = () => {
     if (!pendingChallenge) return;
@@ -537,18 +565,17 @@ export default function App() {
     const next = season.profile;
     const summary = { ...result.summary, seasonPoints: season.points, seasonTiers: season.tiers };
     for (const tier of season.tiers) track('season_tier', { tier });
-    if (season.tiers.length) {
-      const last = SEASON_TIERS[season.tiers[season.tiers.length - 1] - 1];
+    // O resultado mostra os níveis e as recompensas; o aviso fica para a moldura do mês.
+    if (season.frame) {
+      const frame = season.frame;
       window.setTimeout(
         () =>
           notify(
-            season.frame
-              ? L({
-                  en: `Season pass complete! «${seasonName(season.frame)}» frame unlocked`,
-                  pt: `Passe da temporada completo! Moldura «${seasonName(season.frame)}» liberada`,
-                  es: `¡Pase de temporada completo! Marco «${seasonName(season.frame)}» desbloqueado`,
-                })
-              : `${L({ en: 'Season tier', pt: 'Nível da temporada', es: 'Nivel de temporada' })} ${season.tiers[season.tiers.length - 1]}: +${last.stardust} Stardust${last.lunarDust ? ` · +${last.lunarDust} ${LUNAR_DUST()}` : ''}`,
+            L({
+              en: `Season pass complete! «${seasonName(frame)}» frame unlocked`,
+              pt: `Passe da temporada completo! Moldura «${seasonName(frame)}» liberada`,
+              es: `¡Pase de temporada completo! Marco «${seasonName(frame)}» desbloqueado`,
+            }),
             'medal'
           ),
         2400
@@ -562,30 +589,20 @@ export default function App() {
       hits: outcome.hits,
     });
     commit(next);
+    // Moeda de DOG pega: só vale com voo concluído e a qualidade mínima (a mesma regra do servidor).
+    const caught = session.drop?.amount && dropCaught.current === session.drop.ticketId ? session.drop : null;
+    const coin: DogCoin | null = caught
+      ? { amount: caught.amount ?? 0, state: !outcome.success ? 'lost' : outcome.score < minDropScore(session.route.maxScore) ? 'low' : 'checking' }
+      : null;
     if (outcome.success && submitEnabled) {
-      const caughtTicket = session.drop && dropCaught.current === session.drop.ticketId ? session.drop.ticketId : null;
       void sessionToken(next.address, next.provider)
         .then(token => submitScore({ token, address: next.address, dogName: next.dog.name, tier: rankingTier(next), routeId: session.route.id, score: outcome.score, title: next.title, style: next.nameStyle }))
         .then(() => {
-          if (caughtTicket) void claimDrop(next.address, caughtTicket);
+          if (caught && coin?.state === 'checking') void claimDrop(next.address, caught.ticketId, coin.amount);
         });
-    } else if (session.drop && dropCaught.current === session.drop.ticketId) {
-      // Moeda pega, mas o voo não foi concluído: o DOG volta para o prêmio acumulado.
-      window.setTimeout(
-        () =>
-          notify(
-            L({
-              en: 'The DOG coin only counts if you finish the flight. It went back to the jackpot.',
-              pt: 'A moeda de DOG só vale com o voo concluído. Ela voltou para o prêmio acumulado.',
-              es: 'La moneda de DOG solo vale si completas el vuelo. Volvió al bote.',
-            }),
-            'escudo'
-          ),
-        1800
-      );
     }
     dropCaught.current = null;
-    setSession({ ...session, summary });
+    setSession({ ...session, summary, coin });
     if (summary.levelsGained > 0) {
       window.setTimeout(() => {
         sfx.levelUp();
@@ -735,8 +752,30 @@ export default function App() {
     setMutedState(!muted);
   };
 
+  // Aviso em balão, no hangar e também na missão (moeda de DOG, moldura da temporada…).
+  const toast = (
+    <AnimatePresence>
+      {notification && (
+        <motion.div
+          key={notification.key}
+          initial={{ opacity: 0, y: 40, x: '-50%' }}
+          animate={{ opacity: 1, y: 0, x: '-50%' }}
+          exit={{ opacity: 0, y: 40, x: '-50%' }}
+          className="fixed bottom-6 left-1/2 z-50 max-w-[90vw] pointer-events-none"
+        >
+          <div className="hud-panel flex items-center gap-2.5 px-5 py-3 text-white text-sm">
+            {notification.icon && <GameIcon name={notification.icon} size={26} />}
+            {notification.text}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
   if (profile && session) {
     return (
+      <>
+      {toast}
       <ErrorBoundary
         fallback={() => (
           <SceneCrash
@@ -764,12 +803,14 @@ export default function App() {
           seed={session.seed}
           challenge={session.challenge}
           dogDrop={session.drop?.amount ? { at: session.drop.at, amount: session.drop.amount } : null}
+          dogCoin={session.coin}
           onDogDrop={() => {
             if (session.drop) dropCaught.current = session.drop.ticketId;
           }}
         />
       </Suspense>
       </ErrorBoundary>
+      </>
     );
   }
 
@@ -779,22 +820,7 @@ export default function App() {
         <SpaceBackdrop />
       </div>
 
-      <AnimatePresence>
-        {notification && (
-          <motion.div
-            key={notification.key}
-            initial={{ opacity: 0, y: 40, x: '-50%' }}
-            animate={{ opacity: 1, y: 0, x: '-50%' }}
-            exit={{ opacity: 0, y: 40, x: '-50%' }}
-            className="fixed bottom-6 left-1/2 z-50 max-w-[90vw]"
-          >
-            <div className="hud-panel flex items-center gap-2.5 px-5 py-3 text-white text-sm">
-              {notification.icon && <GameIcon name={notification.icon} size={26} />}
-              {notification.text}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {toast}
 
       <AnimatePresence>
         {podiumWin && (
@@ -1013,7 +1039,9 @@ export default function App() {
             {L({ en: 'DogCity Lunar Base', pt: 'Base Lunar DogCity', es: 'Base Lunar DogCity' })} · {providerLabel(profile.provider)} ·{' '}
             {profile.dogBalanceSource === 'real'
               ? L({ en: 'DOG balance read from the blockchain', pt: 'saldo DOG lido da blockchain', es: 'saldo DOG leído de la blockchain' })
-              : L({ en: 'simulated DOG balance', pt: 'saldo DOG simulado', es: 'saldo DOG simulado' })}
+              : realWallet
+                ? L({ en: 'waiting for the DOG balance from DogData', pt: 'aguardando o saldo DOG do DogData', es: 'esperando el saldo DOG de DogData' })
+                : L({ en: 'simulated DOG balance', pt: 'saldo DOG simulado', es: 'saldo DOG simulado' })}
             <LegalLinks className="mt-2" />
           </footer>
         </>

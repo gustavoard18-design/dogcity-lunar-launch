@@ -6,7 +6,7 @@ import { astronautArt, astronautTier } from '../lib/evolution';
 import GameIcon, { LunarDust, Stardust, TIER_INFO, statIcon } from './GameIcon';
 import { titleText } from '../lib/achievements';
 import PilotName from './PilotName';
-import { PILOT_NAME_MAX, PILOT_NAME_MIN, breedLabel, sanitizePilotName } from '../lib/storage';
+import { GUEST_PROVIDER, PILOT_NAME_MAX, PILOT_NAME_MIN, breedLabel, sanitizePilotName } from '../lib/storage';
 import { L, locale } from '../lib/i18n';
 import { dogDataProfileUrl, prestigeStars, sanitizeIdentity } from '../lib/dogdata';
 import OrdinalAvatar from './OrdinalAvatar';
@@ -104,9 +104,11 @@ export default function PlayerProfileCard({ profile, onRename }: PlayerProfilePr
   const identity = sanitizeIdentity(onchain?.identity);
   const stars = prestigeStars(lot?.prestige);
   const xpPercent = Math.min(100, (dog.xp / dog.xpToNext) * 100);
-  const successRate = profile.launches.length
-    ? Math.round((profile.launches.filter(l => l.success).length / profile.launches.length) * 100)
-    : 0;
+  // Taxa da carreira inteira (o diário guarda só os últimos voos).
+  const successRate = profile.stats.launches ? Math.round((profile.stats.successes / profile.stats.launches) * 100) : 0;
+  const realBalance = profile.dogBalanceSource === 'real';
+  // Carteira real esperando o DogData: não mostra saldo inventado.
+  const balancePending = !realBalance && profile.provider !== GUEST_PROVIDER;
 
   return (
     <div className="panel">
@@ -126,10 +128,20 @@ export default function PlayerProfileCard({ profile, onRename }: PlayerProfilePr
           ) : (
             <p className="text-xs text-slate-400">{breedLabel(dog.breed)}</p>
           )}
-          <div className={`text-sm font-bold mt-1 ${getTierColor(profile.tier)}`}>
-            <GameIcon name={TIER_INFO[profile.tier].icon} size={18} className="mr-1" />
-            {TIER_INFO[profile.tier].label}
-          </div>
+          {!balancePending && (
+            <div
+              className={`text-sm font-bold mt-1 ${getTierColor(profile.tier)}`}
+              title={L({
+                en: 'DOG holder rank, from the DOG balance (100 · 1,000 · 5,000 · 10,000)',
+                pt: 'Patente de holder DOG, pelo saldo DOG (100 · 1.000 · 5.000 · 10.000)',
+                es: 'Rango de holder DOG, según el saldo DOG (100 · 1.000 · 5.000 · 10.000)',
+              })}
+            >
+              <GameIcon name={TIER_INFO[profile.tier].icon} size={18} className="mr-1" />
+              {TIER_INFO[profile.tier].label}
+              {!realBalance && <span className="ml-1 text-[10px] font-normal text-slate-500">({L({ en: 'simulated', pt: 'simulada', es: 'simulado' })})</span>}
+            </div>
+          )}
           <p className="text-[10px] text-slate-500 font-mono" title={profile.address}>
             {profile.address.slice(0, 8)}…{profile.address.slice(-5)}
           </p>
@@ -164,7 +176,7 @@ export default function PlayerProfileCard({ profile, onRename }: PlayerProfilePr
 
       <div className="grid grid-cols-3 gap-2 my-4 text-center">
         <div className="rounded-xl bg-white/5 py-2">
-          <div className="text-white font-bold">{dog.missions}</div>
+          <div className="text-white font-bold">{profile.stats.launches}</div>
           <div className="text-[10px] text-slate-400">{L({ en: 'Flights', pt: 'Voos', es: 'Vuelos' })}</div>
         </div>
         <div className="rounded-xl bg-white/5 py-2">
@@ -207,9 +219,11 @@ export default function PlayerProfileCard({ profile, onRename }: PlayerProfilePr
         <div className="flex items-center justify-between">
           <span className="text-slate-300">
             {L({ en: 'DOG balance', pt: 'Saldo DOG', es: 'Saldo DOG' })}{' '}
-            <span className="text-slate-500">({profile.dogBalanceSource === 'real' ? 'on-chain' : L({ en: 'simulated', pt: 'simulado', es: 'simulado' })})</span>
+            <span className="text-slate-500">
+              ({realBalance ? 'on-chain' : balancePending ? L({ en: 'waiting for DogData', pt: 'aguardando o DogData', es: 'esperando DogData' }) : L({ en: 'simulated', pt: 'simulado', es: 'simulado' })})
+            </span>
           </span>
-          <span className="text-orange-300 font-bold">{profile.dogBalance.toLocaleString(locale)}</span>
+          <span className="text-orange-300 font-bold">{balancePending ? '—' : profile.dogBalance.toLocaleString(locale)}</span>
         </div>
         {onchain && (
           <div className="flex flex-wrap items-center gap-1.5 mt-1.5">

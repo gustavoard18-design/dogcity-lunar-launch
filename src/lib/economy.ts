@@ -19,7 +19,7 @@ export const ROUTES: Route[] = [
   {
     id: 'sea-of-tranquility',
     name: L({ en: 'Sea of Tranquility', pt: 'Mar da Tranquilidade', es: 'Mar de la Tranquilidad' }),
-    description: L({ en: 'A leap to the Sea of Tranquility on the Moon.', pt: 'Salto até o Mar da Tranquilidade, do outro lado da Lua.', es: 'Un salto hasta el Mar de la Tranquilidad, en la Luna.' }),
+    description: L({ en: 'A leap to the Sea of Tranquility on the Moon.', pt: 'Salto até o Mar da Tranquilidade, na Lua.', es: 'Un salto hasta el Mar de la Tranquilidad, en la Luna.' }),
     cost: 25,
     difficulty: 2,
     maxScore: 250,
