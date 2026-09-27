@@ -19,7 +19,7 @@ import { gaugeQuality, getGameTuning } from './stats';
 import { breedLabel, createProfile, renamePilot, sanitizePilotName, getEventLeaderboard, loadProfile, migrateProfile, providerLabel, saveProfile } from './storage';
 import { L, LANGUAGES, lang } from './i18n';
 import { flightRandom, mulberry32 } from './rng';
-import { challengeOutcome, challengeUrl, decodeChallenge, encodeChallenge } from './challenge';
+import { challengeBlock, challengeOutcome, challengeRoute, challengeUrl, decodeChallenge, encodeChallenge } from './challenge';
 import { STREAK_REWARDS, applyDailyStreak } from './streak';
 import { SEASON_TIERS, applySeasonPoints, isSeasonId, msUntilNextSeason, seasonId, seasonPoints } from './seasons';
 import { DISTRICT_PRIZE, applyDistrictPrize, playerDistrict } from './districts';
@@ -617,6 +617,20 @@ describe('voo com semente e desafio', () => {
     expect(challengeOutcome(c, 50, true)).toBe('tied');
     expect(challengeOutcome(c, 40, true)).toBe('lost');
     expect(challengeOutcome(c, 90, false)).toBe('lost');
+  });
+
+  it('só aceita desafio em rota já liberada pelo nível e, se for evento, na semana dele', () => {
+    const week = brt(2026, 8, 23, 12); // semana da Tempestade Solar
+    const mars = challengeRoute('mars-colony')!;
+    expect(challengeBlock(mars, 1, week)).toEqual({ reason: 'level', level: 7 });
+    expect(challengeBlock(mars, 7, week)).toBeNull();
+    const storm = challengeRoute('event-solar-storm')!;
+    expect(challengeBlock(storm, 1, week)).toEqual({ reason: 'level', level: storm.unlockLevel });
+    expect(challengeBlock(storm, 5, week)).toBeNull();
+    // Evento de outra semana: fica bloqueado mesmo com nível de sobra.
+    const saturn = challengeRoute('event-saturn-rings')!;
+    expect(challengeBlock(saturn, 20, week)).toMatchObject({ reason: 'event' });
+    expect(challengeBlock(challengeRoute('low-orbit')!, 1, week)).toBeNull();
   });
 });
 

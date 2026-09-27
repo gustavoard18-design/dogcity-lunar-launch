@@ -7,7 +7,7 @@ import { GUEST_PROVIDER, providerLabel, renamePilot } from './lib/storage';
 import { getEventByRoute } from './lib/events';
 import LanguageSwitcher, { takeResume } from './components/LanguageSwitcher';
 import { track } from './lib/analytics';
-import { type Challenge, challengeOutcome, challengeRoute, takeChallengeFromLocation } from './lib/challenge';
+import { type Challenge, challengeBlock, challengeOutcome, challengeRoute, takeChallengeFromLocation } from './lib/challenge';
 import { newSeed } from './lib/rng';
 import { applyDailyStreak, type StreakReward } from './lib/streak';
 import { applySeasonPoints, seasonName } from './lib/seasons';
@@ -470,8 +470,8 @@ export default function App() {
   }, []);
 
   const startRoute = (route: Route, challenge: Challenge | null = null) => {
-    // Desafio vale em qualquer rota, mesmo ainda bloqueada, e sai de graça para quem não pode pagar.
-    if (!profile || (!challenge && !isRouteUnlocked(route, profile.dog.level))) return;
+    // Desafio só nas rotas que o piloto já pode voar (nível e evento da semana); sai de graça para quem não pode pagar.
+    if (!profile || (challenge ? challengeBlock(route, profile.dog.level) : !isRouteUnlocked(route, profile.dog.level))) return;
     const fullCost = getRouteCost(route, profile);
     const cost = challenge && profile.stardust < fullCost ? 0 : fullCost;
     if (profile.stardust < cost) return;
@@ -543,9 +543,9 @@ export default function App() {
   );
 
   const acceptChallenge = () => {
-    if (!pendingChallenge) return;
+    if (!pendingChallenge || !profile) return;
     const route = challengeRoute(pendingChallenge.routeId);
-    if (!route) return;
+    if (!route || challengeBlock(route, profile.dog.level)) return;
     track('challenge_accepted', { route: route.id });
     startRoute(route, pendingChallenge);
     setPendingChallenge(null);

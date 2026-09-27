@@ -1,5 +1,5 @@
 import type { PlayerProfile } from '../types';
-import { type Challenge, challengeRoute } from '../lib/challenge';
+import { type Challenge, challengeBlock, challengeRoute } from '../lib/challenge';
 import { getRouteCost } from '../lib/economy';
 import { L } from '../lib/i18n';
 import GameIcon, { PLANET_ICON, Stardust } from './GameIcon';
@@ -10,6 +10,7 @@ export default function ChallengeCard({ challenge, profile, onAccept, onDismiss 
   if (!route) return null;
   const cost = getRouteCost(route, profile);
   const free = profile.stardust < cost;
+  const block = challengeBlock(route, profile.dog.level);
   return (
     <div className="mb-4 rounded-2xl p-[1.5px] bg-gradient-to-r from-fuchsia-400 via-sky-400 to-amber-300">
       <div className="rounded-[15px] bg-[#0a1430]/95 p-4">
@@ -37,13 +38,28 @@ export default function ChallengeCard({ challenge, profile, onAccept, onDismiss 
               })}
             </p>
           </div>
-          <button onClick={onAccept} className="btn-primary shrink-0 px-4 py-2.5 text-sm">
+          <button onClick={onAccept} disabled={!!block} className="btn-primary shrink-0 px-4 py-2.5 text-sm disabled:opacity-40 disabled:cursor-not-allowed">
             <span className="block">{L({ en: 'Accept', pt: 'Aceitar', es: 'Aceptar' })}</span>
             <span className="block text-[10px] font-normal opacity-90">
-              {free || cost === 0 ? L({ en: 'free', pt: 'grátis', es: 'gratis' }) : <Stardust value={cost} size="1em" />}
+              {block ? '🔒' : free || cost === 0 ? L({ en: 'free', pt: 'grátis', es: 'gratis' }) : <Stardust value={cost} size="1em" />}
             </span>
           </button>
         </div>
+        {block && (
+          <p className="mt-2 text-xs text-amber-200/90">
+            {block.reason === 'level'
+              ? L({
+                  en: `${route.name} unlocks at level ${block.level}. Keep the link: the challenge works once you get there.`,
+                  pt: `${route.name} libera no nível ${block.level}. Guarde o link: o desafio vale quando você chegar lá.`,
+                  es: `${route.name} se desbloquea en el nivel ${block.level}. Guarda el enlace: el desafío vale cuando llegues.`,
+                })
+              : L({
+                  en: `This challenge is from the ${block.eventName} event, which is not running this week. Keep the link: it works again when the event comes back.`,
+                  pt: `Este desafio é do evento ${block.eventName}, que não está no ar esta semana. Guarde o link: ele vale de novo quando o evento voltar.`,
+                  es: `Este desafío es del evento ${block.eventName}, que no está activo esta semana. Guarda el enlace: vuelve a valer cuando regrese el evento.`,
+                })}
+          </p>
+        )}
       </div>
     </div>
   );

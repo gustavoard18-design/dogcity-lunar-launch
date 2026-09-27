@@ -1,5 +1,8 @@
 # Novidades
 
+## 2.7.2 (setembro de 2026): desafio só em rota liberada
+- **Desafio entre amigos só vale nas rotas que você já pode voar**: rotas liberadas pelo seu nível e, se for rota de evento, só na semana daquele evento. Antes, o link abria qualquer rota (até Marte no nível 1). O cartão do desafio explica o que falta ("libera no nível 7" ou "o evento não está no ar esta semana") e o link continua valendo quando a rota ficar disponível. Quem está sem Stardust continua aceitando de graça.
+
 ## 2.7.1 (setembro de 2026): revisão geral
 - **Moeda de DOG mais clara**: o resultado do voo mostra o que aconteceu com a moeda (conferindo, registrada, ou por que não valeu: voo não concluído ou abaixo de 20% dos pontos). O aviso no voo, a Loja e os Termos dizem a mesma regra. Os avisos em balão agora aparecem também na tela da missão (antes sumiam sem ser vistos).
 - **Temporada**: o resultado mostra a recompensa dos níveis do passe alcançados no voo.

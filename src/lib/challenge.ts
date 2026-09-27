@@ -1,12 +1,13 @@
 import type { Route } from '../types';
-import { getRoute } from './economy';
-import { getEventByRoute } from './events';
+import { getRoute, isRouteUnlocked } from './economy';
+import { getCurrentEvent, getEventByRoute } from './events';
 import { sanitizePilotName } from './storage';
 
 /**
  * Desafio entre amigos: um link com a rota, a semente do voo, o score e o nome
  * de quem desafiou. Quem abre voa a mesma rota com os mesmos asteroides, orbes e
- * anéis, e no fim vê quem ganhou. Tudo que vem pelo link é validado.
+ * anéis, e no fim vê quem ganhou. Tudo que vem pelo link é validado, e o desafio
+ * só pode ser aceito numa rota que o piloto já pode voar (challengeBlock).
  */
 
 export interface Challenge {
@@ -24,6 +25,20 @@ const fromBase64Url = (s: string) => decodeURIComponent(escape(atob(s.replace(/-
 /** Rota do jogo (fixa ou de evento) pelo id. */
 export function challengeRoute(routeId: string): Route | undefined {
   return getRoute(routeId) ?? getEventByRoute(routeId)?.route;
+}
+
+/** Por que o piloto ainda não pode aceitar o desafio: nível baixo ou evento fora da semana. */
+export type ChallengeBlock = { reason: 'level'; level: number } | { reason: 'event'; eventName: string };
+
+/**
+ * O desafio só vale numa rota que o piloto já pode voar: liberada pelo nível e,
+ * se for rota de evento, só na semana daquele evento. `null` = pode aceitar.
+ */
+export function challengeBlock(route: Route, level: number, now: Date = new Date()): ChallengeBlock | null {
+  const event = getEventByRoute(route.id);
+  if (event && getCurrentEvent(now).id !== event.id) return { reason: 'event', eventName: event.name };
+  if (!isRouteUnlocked(route, level)) return { reason: 'level', level: route.unlockLevel };
+  return null;
 }
 
 export function encodeChallenge(c: Challenge): string {

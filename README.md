@@ -65,7 +65,7 @@ Toda segunda-feira entra uma rota especial, em rodízio: **Chuva de Meteoros**, 
 - **Nome do astronauta**: editável pelo lápis no perfil.
 - **Sequência de dias**: recompensa diária num ciclo de 7 dias; 30 dias seguidos liberam a moldura 🔥 Chama Eterna.
 - **Temporada do mês**: passe de 10 níveis (10 + score/10 pontos por voo concluído), ranking próprio e moldura exclusiva.
-- **Desafio**: no fim do voo, "Desafiar um amigo" gera um link com a mesma sequência de asteroides, orbes e anéis.
+- **Desafio**: no fim do voo, "Desafiar um amigo" gera um link com a mesma sequência de asteroides, orbes e anéis. Quem recebe só aceita numa rota que já pode voar (liberada pelo nível; rota de evento só na semana dele).
 - **Guerra de distritos**: carteiras com lote no DogCity somam pontos para o distrito (melhor voo de cada rota por piloto, por semana).
 - **Baús DOG** (aba Loja): pagos em DOG, com conteúdo sorteado (chances na tela), limite de 1 por dia e 5 por semana.
 
