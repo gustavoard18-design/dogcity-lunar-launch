@@ -101,10 +101,22 @@ O repositório já tem `vercel.json` (build do Vite, pasta `dist`, cache do serv
 2. Importe `gustavoard18-design/dogcity-lunar-launch` (se não aparecer, clique em **Adjust GitHub App Permissions** e libere o repositório).
 3. Não mude nada nas configurações (Framework: Vite; o resto vem do `vercel.json`) e clique em **Deploy**.
 4. Em **Settings → Domains**, escolha o nome (ex.: `dogcity-lunar-launch.vercel.app`) ou ligue um domínio próprio.
-5. Feito: o jogo está em **https://dogcity-lunar-launch.vercel.app/** (endereço principal, também no monitoramento). No GitHub Pages, quem chega sem progresso salvo vai direto para a Vercel; quem já jogava lá vê um aviso com o link (o progresso de carteira verificada volta pela nuvem).
+5. Feito: o jogo está em **https://dogcity-lunar-launch.vercel.app/** (endereço principal, também no monitoramento).
 
 Atenção:
 - **Plano:** o plano grátis (Hobby) da Vercel é só para uso não comercial. Como o jogo vende baús, o certo é o plano **Pro**.
 - **Progresso de convidados** fica no navegador e é preso ao endereço: quem jogava como convidado no GitHub Pages começa do zero no endereço novo. Carteiras verificadas recuperam tudo pela nuvem.
 - Com a Vercel, o repositório pode ficar **privado** sem tirar o jogo do ar.
 - Cada push na `main` publica na Vercel; cada PR ganha um endereço de prévia.
+
+### Desligar o GitHub Pages
+
+O endereço antigo (`gustavoard18-design.github.io/dogcity-lunar-launch/`) agora só tem a **página de mudança** (`pages-moved/`, publicada pelo workflow *Página de mudança*):
+- quem chega sem progresso salvo vai direto para a Vercel (o link de desafio `?c=` vai junto);
+- quem tem progresso salvo naquele navegador clica em **Levar meu progresso**: os dados vão no link para a Vercel e entram no jogo sem apagar nada que já exista lá (`src/lib/transfer.ts`);
+- quem instalou o app pelo endereço antigo recebe um `sw.js` que apaga a cópia guardada no aparelho e mostra a página de mudança.
+
+Quando quiser desligar de vez (recomendo esperar umas 4 semanas, para os jogadores levarem o progresso):
+1. **Settings → Pages → Build and deployment → Source: None** (ou **Unpublish site**). O endereço antigo passa a dar 404.
+2. Apague a branch `gh-pages` e o arquivo `.github/workflows/pages-moved.yml` (e a pasta `pages-moved/`).
+3. Para deixar o repositório **privado**: **Settings → General → Danger Zone → Change visibility → Private**. Antes, troque o link de **Suporte** (`SUPPORT_URL` em `src/components/LegalLinks.tsx`): num repositório privado, o público não consegue abrir chamados no GitHub Issues.

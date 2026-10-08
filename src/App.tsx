@@ -35,7 +35,6 @@ import { pullCloud, startCloudSync } from './lib/cloud';
 import { type DogCoin, type FlightDrop, claimFlightDrop, minDropScore, startFlightTicket } from './lib/drops';
 import VerifyBanner from './components/VerifyBanner';
 import LegalLinks from './components/LegalLinks';
-import MovedBanner from './components/MovedBanner';
 import JackpotPanel from './components/JackpotPanel';
 import { claimMission, ensureDailyMissions, rerollMissions } from './lib/missions';
 import { applyLaunchResult, equipCosmetic, purchaseCosmetic, purchaseUpgrade } from './lib/progress';
@@ -817,7 +816,6 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen">
-      <MovedBanner />
       <div className="fixed inset-0 z-0">
         <SpaceBackdrop />
       </div>

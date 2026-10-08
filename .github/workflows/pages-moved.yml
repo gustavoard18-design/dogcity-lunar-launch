@@ -1,0 +1,27 @@
+name: Página de mudança (GitHub Pages)
+
+# O jogo mudou para a Vercel. No endereço antigo fica só pages-moved/: leva o
+# progresso salvo no navegador para o endereço novo e desliga o app antigo
+# instalado (service worker). Depois de desligar o Pages em Settings → Pages,
+# este workflow pode ser apagado.
+on:
+  push:
+    branches: [main]
+    paths: ['pages-moved/**', '.github/workflows/pages-moved.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Publicar a página de mudança
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./pages-moved
+          force_orphan: true
+          commit_message: 'Página de mudança para a Vercel'

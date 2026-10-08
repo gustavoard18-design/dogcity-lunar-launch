@@ -94,7 +94,7 @@ Requer Node 20+ e um navegador com WebGL.
 
 ## 🌐 Publicação
 
-Cada push na branch `main` roda typecheck, testes e build no GitHub Actions (Node 22 e 24) e publica o jogo no GitHub Pages (branch `gh-pages`) em cerca de um minuto. O endereço principal é a **Vercel** (https://dogcity-lunar-launch.vercel.app/), que publica sozinha a cada push na `main` (`vercel.json`); o GitHub Pages fica para a mudança (redireciona quem chega sem progresso). Passo a passo em [docs/LAUNCH.md](docs/LAUNCH.md#6-hospedagem-na-vercel).
+Cada push na branch `main` roda typecheck, testes e build no GitHub Actions (Node 22 e 24) e a **Vercel** publica o jogo em https://dogcity-lunar-launch.vercel.app/ (`vercel.json`). O GitHub Pages antigo só tem a página de mudança (`pages-moved/`), que leva o progresso salvo no navegador para o endereço novo. Passo a passo em [docs/LAUNCH.md](docs/LAUNCH.md#6-hospedagem-na-vercel).
 
 ## 🌍 Online (Supabase)
 
