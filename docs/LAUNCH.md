@@ -92,3 +92,19 @@ Onde postar: X (marcando o DogData e a comunidade $DOG), grupos de Telegram/Disc
 4. Faça push. Em **Settings → Pages**, confirme o domínio e marque **Enforce HTTPS**.
 
 O jogo usa caminhos relativos, então funciona no domínio novo sem outra mudança. O progresso salvo só no navegador fica preso ao endereço antigo: por isso vale fazer a troca **antes** do lançamento. Quem tiver carteira verificada recupera o progresso pela nuvem.
+
+## 6. Hospedagem na Vercel
+
+O repositório já tem `vercel.json` (build do Vite, pasta `dist`, cache do service worker e dos arquivos). Na Vercel, os links do jogo (compartilhar, desafio, prévia do link) usam sozinhos o domínio de produção do projeto (`VERCEL_PROJECT_PRODUCTION_URL`). Para forçar outro endereço, crie a variável `VITE_SITE_URL` no projeto.
+
+1. Em vercel.com, entre com o GitHub e clique em **Add New → Project**.
+2. Importe `gustavoard18-design/dogcity-lunar-launch` (se não aparecer, clique em **Adjust GitHub App Permissions** e libere o repositório).
+3. Não mude nada nas configurações (Framework: Vite; o resto vem do `vercel.json`) e clique em **Deploy**.
+4. Em **Settings → Domains**, escolha o nome (ex.: `dogcity-lunar-launch.vercel.app`) ou ligue um domínio próprio.
+5. Passe o endereço final para atualizar o monitoramento e fazer o GitHub Pages mandar os jogadores para a Vercel.
+
+Atenção:
+- **Plano:** o plano grátis (Hobby) da Vercel é só para uso não comercial. Como o jogo vende baús, o certo é o plano **Pro**.
+- **Progresso de convidados** fica no navegador e é preso ao endereço: quem jogava como convidado no GitHub Pages começa do zero no endereço novo. Carteiras verificadas recuperam tudo pela nuvem.
+- Com a Vercel, o repositório pode ficar **privado** sem tirar o jogo do ar.
+- Cada push na `main` publica na Vercel; cada PR ganha um endereço de prévia.

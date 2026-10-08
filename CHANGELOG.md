@@ -1,5 +1,8 @@
 # Novidades
 
+## 2.7.3 (outubro de 2026)
+- Pronto para hospedar na **Vercel** (`vercel.json`). Os links de compartilhar, de desafio e a prévia do link usam o endereço de onde o jogo está publicado.
+
 ## 2.7.2 (setembro de 2026): desafio só em rota liberada
 - **Desafio entre amigos só vale nas rotas que você já pode voar**: rotas liberadas pelo seu nível e, se for rota de evento, só na semana daquele evento. Antes, o link abria qualquer rota (até Marte no nível 1). O cartão do desafio explica o que falta ("libera no nível 7" ou "o evento não está no ar esta semana") e o link continua valendo quando a rota ficar disponível. Quem está sem Stardust continua aceitando de graça.
 

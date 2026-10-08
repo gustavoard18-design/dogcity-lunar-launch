@@ -9,7 +9,8 @@ import { L } from './i18n';
  * artes e as fontes do jogo. Compartilha pelo menu nativo (celular) ou baixa.
  */
 
-export const GAME_URL = 'https://gustavoard18-design.github.io/dogcity-lunar-launch/';
+/** Endereço público do jogo (definido no build: vite.config.js). */
+export const GAME_URL: string = import.meta.env.VITE_SITE_URL ?? 'https://gustavoard18-design.github.io/dogcity-lunar-launch/';
 const S = 1080;
 
 export interface ShareInfo {
