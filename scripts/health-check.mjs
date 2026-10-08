@@ -2,7 +2,7 @@
 // erro se algo estiver fora do ar. Roda a cada hora pelo GitHub Actions
 // (.github/workflows/health.yml), que abre um chamado quando falha.
 // Uso local: node scripts/health-check.mjs
-const SITE = process.env.SITE_URL ?? 'https://gustavoard18-design.github.io/dogcity-lunar-launch/';
+const SITE = process.env.SITE_URL ?? 'https://dogcity-lunar-launch.vercel.app/';
 const SUPABASE = process.env.SUPABASE_URL ?? 'https://uknupldacjxbuoiaucfc.supabase.co';
 const KEY = process.env.SUPABASE_KEY ?? 'sb_publishable_Mf-IQjrI81gzUgBZsodOyg_TmnTaWDR';
 const TREASURY = 'bc1qv4q4j8mjxhjxwjuc7vy6sq7c57z6rdvteql4xy';

@@ -2,7 +2,7 @@
 
 **Da Base Lunar DogCity, mire, lance e pilote o DOG astronauta até a Terra, a Lua, Ceres, Marte e Saturno.**
 
-🎮 **Jogue agora:** https://gustavoard18-design.github.io/dogcity-lunar-launch/
+🎮 **Jogue agora:** https://dogcity-lunar-launch.vercel.app/
 Grátis, no navegador (computador ou celular) e instalável como app, em **inglês** (padrão), **português** e **espanhol**. Integrado ao ecossistema DogCity e aos dados on-chain do DOG.
 
 ![React](https://img.shields.io/badge/React-18-blue?style=flat-square&logo=react)
@@ -94,7 +94,7 @@ Requer Node 20+ e um navegador com WebGL.
 
 ## 🌐 Publicação
 
-Cada push na branch `main` roda typecheck, testes e build no GitHub Actions (Node 22 e 24) e publica o jogo no GitHub Pages (branch `gh-pages`) em cerca de um minuto. O projeto também está pronto para a Vercel (`vercel.json`); o passo a passo está em [docs/LAUNCH.md](docs/LAUNCH.md#6-hospedagem-na-vercel).
+Cada push na branch `main` roda typecheck, testes e build no GitHub Actions (Node 22 e 24) e publica o jogo no GitHub Pages (branch `gh-pages`) em cerca de um minuto. O endereço principal é a **Vercel** (https://dogcity-lunar-launch.vercel.app/), que publica sozinha a cada push na `main` (`vercel.json`); o GitHub Pages fica para a mudança (redireciona quem chega sem progresso). Passo a passo em [docs/LAUNCH.md](docs/LAUNCH.md#6-hospedagem-na-vercel).
 
 ## 🌍 Online (Supabase)
 
