@@ -1,0 +1,8 @@
+{
+  "name": "DogCity Lunar Launch",
+  "short_name": "DogCity",
+  "start_url": "https://dogcity-lunar-launch.vercel.app/",
+  "display": "standalone",
+  "background_color": "#05050f",
+  "theme_color": "#05050f"
+}

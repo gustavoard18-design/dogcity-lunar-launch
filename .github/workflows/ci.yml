@@ -43,31 +43,5 @@ jobs:
           path: dist/
           retention-days: 7
 
-  deploy:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    permissions:
-      contents: write
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v7
-
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22.x
-          cache: npm
-
-      - name: 📦 Install dependencies
-        run: npm ci
-
-      - name: 🏗️ Build project
-        run: npm run build
-
-      - name: 🚀 Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+  # O jogo é publicado pela Vercel (vercel.json). O GitHub Pages só tem a
+  # página de mudança (workflow pages-moved.yml).

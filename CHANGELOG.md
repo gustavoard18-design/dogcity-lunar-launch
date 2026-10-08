@@ -1,5 +1,10 @@
 # Novidades
 
+## 2.8.1 (outubro de 2026): saída do GitHub Pages
+- O endereço antigo vira só uma página de mudança: **Levar meu progresso** leva o piloto salvo no navegador (convidado ou carteira) para https://dogcity-lunar-launch.vercel.app/, sem apagar o que já existir lá.
+- Quem instalou o app pelo endereço antigo tem a cópia do aparelho desligada e é levado ao endereço novo.
+- O build do jogo deixa de ir para o GitHub Pages; a Vercel é o único endereço do jogo.
+
 ## 2.8.0 (outubro de 2026): novo endereço
 - O jogo agora está em **https://dogcity-lunar-launch.vercel.app/**. Links de compartilhar, de desafio e a prévia do link usam o endereço novo.
 - No endereço antigo (GitHub Pages), quem chega pela primeira vez vai direto para o novo; quem já jogava lá vê um aviso com o link. Com carteira verificada, o progresso volta pela nuvem.
