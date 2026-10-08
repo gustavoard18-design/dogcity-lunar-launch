@@ -52,7 +52,7 @@ Uma vez por semana (ou quando chegar o aviso de ganhador), abra `dog_drops` no S
 
 ## 4. Posts de divulgação
 
-Link: https://gustavoard18-design.github.io/dogcity-lunar-launch/
+Link: https://dogcity-lunar-launch.vercel.app/
 Imagem: `public/og-image.jpg` (já aparece sozinha na prévia do link).
 
 **EN**
@@ -62,7 +62,7 @@ Imagem: `public/og-image.jpg` (já aparece sozinha na prévia do link).
 > • Connect Xverse, OKX or Kray: your real DOG balance sets your rank
 > • Weekly events, monthly seasons and the DogCity district war
 > • Challenge a friend with the exact same flight
-> Play: https://gustavoard18-design.github.io/dogcity-lunar-launch/
+> Play: https://dogcity-lunar-launch.vercel.app/
 
 **PT**
 > 🚀 O DogCity Lunar Launch está no ar!
@@ -71,7 +71,7 @@ Imagem: `public/og-image.jpg` (já aparece sozinha na prévia do link).
 > • Conecte a Xverse, a OKX ou a Kray: seu saldo real de DOG define sua patente
 > • Eventos semanais, temporadas mensais e a guerra de distritos do DogCity
 > • Desafie um amigo no mesmo voo, com os mesmos asteroides
-> Jogue: https://gustavoard18-design.github.io/dogcity-lunar-launch/
+> Jogue: https://dogcity-lunar-launch.vercel.app/
 
 **ES**
 > 🚀 ¡DogCity Lunar Launch ya está en vivo!
@@ -80,7 +80,7 @@ Imagem: `public/og-image.jpg` (já aparece sozinha na prévia do link).
 > • Conecta Xverse, OKX o Kray: tu saldo real de DOG define tu rango
 > • Eventos semanales, temporadas mensuales y la guerra de distritos de DogCity
 > • Desafía a un amigo en el mismo vuelo
-> Juega: https://gustavoard18-design.github.io/dogcity-lunar-launch/
+> Juega: https://dogcity-lunar-launch.vercel.app/
 
 Onde postar: X (marcando o DogData e a comunidade $DOG), grupos de Telegram/Discord do DOG, e um pedido ao DogData para colocar o jogo no site. Nos primeiros dias, repostar os melhores voos: o cartão de compartilhamento e o link de desafio foram feitos para isso.
 
@@ -101,7 +101,7 @@ O repositório já tem `vercel.json` (build do Vite, pasta `dist`, cache do serv
 2. Importe `gustavoard18-design/dogcity-lunar-launch` (se não aparecer, clique em **Adjust GitHub App Permissions** e libere o repositório).
 3. Não mude nada nas configurações (Framework: Vite; o resto vem do `vercel.json`) e clique em **Deploy**.
 4. Em **Settings → Domains**, escolha o nome (ex.: `dogcity-lunar-launch.vercel.app`) ou ligue um domínio próprio.
-5. Passe o endereço final para atualizar o monitoramento e fazer o GitHub Pages mandar os jogadores para a Vercel.
+5. Feito: o jogo está em **https://dogcity-lunar-launch.vercel.app/** (endereço principal, também no monitoramento). No GitHub Pages, quem chega sem progresso salvo vai direto para a Vercel; quem já jogava lá vê um aviso com o link (o progresso de carteira verificada volta pela nuvem).
 
 Atenção:
 - **Plano:** o plano grátis (Hobby) da Vercel é só para uso não comercial. Como o jogo vende baús, o certo é o plano **Pro**.

@@ -1,5 +1,9 @@
 # Novidades
 
+## 2.8.0 (outubro de 2026): novo endereço
+- O jogo agora está em **https://dogcity-lunar-launch.vercel.app/**. Links de compartilhar, de desafio e a prévia do link usam o endereço novo.
+- No endereço antigo (GitHub Pages), quem chega pela primeira vez vai direto para o novo; quem já jogava lá vê um aviso com o link. Com carteira verificada, o progresso volta pela nuvem.
+
 ## 2.7.3 (outubro de 2026)
 - Pronto para hospedar na **Vercel** (`vercel.json`). Os links de compartilhar, de desafio e a prévia do link usam o endereço de onde o jogo está publicado.
 

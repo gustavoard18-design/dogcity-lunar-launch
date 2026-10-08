@@ -1,3 +1,4 @@
+import { PRIMARY_SITE_URL } from './hosting';
 import type { LaunchSummary, Route } from '../types';
 import { cutoutArt, spaceBackgroundArt } from './evolution';
 import { iconUrl, PLANET_ICON } from '../components/GameIcon';
@@ -10,7 +11,7 @@ import { L } from './i18n';
  */
 
 /** Endereço público do jogo (definido no build: vite.config.js). */
-export const GAME_URL: string = import.meta.env.VITE_SITE_URL ?? 'https://gustavoard18-design.github.io/dogcity-lunar-launch/';
+export const GAME_URL: string = import.meta.env.VITE_SITE_URL ?? PRIMARY_SITE_URL;
 const S = 1080;
 
 export interface ShareInfo {
