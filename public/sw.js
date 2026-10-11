@@ -31,7 +31,9 @@ self.addEventListener('fetch', event => {
       fetch(req)
         .then(res => {
           // Só a página do jogo vira a cópia offline (um 404 do GitHub Pages não).
-          if (res.ok) {
+          // (outras páginas do site, como o painel de métricas, não substituem a cópia).
+          const isGamePage = url.pathname.endsWith('/') || url.pathname.endsWith('/index.html');
+          if (res.ok && isGamePage) {
             const copy = res.clone();
             caches.open(CACHE).then(c => c.put('./index.html', copy));
           }

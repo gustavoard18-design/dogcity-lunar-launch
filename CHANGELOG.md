@@ -1,5 +1,9 @@
 # Novidades
 
+## 2.9.0 (outubro de 2026): painel de métricas
+- **Painel privado** em `/metrics.html`: jogadores e voos por dia, funil, retorno D1/D7, rotas, idiomas, carteiras, crescimento, baús, receita, prêmio acumulado, moedas a pagar e top da semana, atualizado a cada minuto e protegido por senha (`METRICS_KEY`).
+- O app instalado não troca mais a cópia offline do jogo por outras páginas do site.
+
 ## 2.8.1 (outubro de 2026): saída do GitHub Pages
 - O endereço antigo vira só uma página de mudança: **Levar meu progresso** leva o piloto salvo no navegador (convidado ou carteira) para https://dogcity-lunar-launch.vercel.app/, sem apagar o que já existir lá.
 - Quem instalou o app pelo endereço antigo tem a cópia do aparelho desligada e é levado ao endereço novo.

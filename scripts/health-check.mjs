@@ -60,6 +60,13 @@ const checks = [
     if (r.status !== 200 || typeof r.body?.poolDog !== 'number') throw new Error(`HTTP ${r.status} ${JSON.stringify(r.body).slice(0, 200)}`);
     return `${r.ms} ms · ${Math.floor(r.body.poolDog)} DOG`;
   }],
+  ['painel de métricas (metrics)', async () => {
+    // Sem a senha a função responde 401; 503 = senha METRICS_KEY ainda não configurada.
+    const r = await req(`${SUPABASE}/functions/v1/metrics`, { headers });
+    if (r.status === 503) return `${r.ms} ms · senha METRICS_KEY não configurada`;
+    if (r.status !== 401) throw new Error(`HTTP ${r.status} ${JSON.stringify(r.body).slice(0, 200)}`);
+    return `${r.ms} ms`;
+  }],
   ['login (auth)', async () => {
     // Pedido inválido de propósito: a função no ar responde 400 sem gravar nada.
     const r = await req(`${SUPABASE}/functions/v1/auth`, { method: 'POST', headers, body: '{}' });

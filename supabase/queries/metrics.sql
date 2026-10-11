@@ -1,4 +1,6 @@
 -- Consultas das métricas do jogo (cole no SQL Editor do Supabase).
+-- O mesmo resumo, sempre atualizado: painel https://dogcity-lunar-launch.vercel.app/metrics.html
+-- (função metrics_report + Edge Function metrics; ver docs/LAUNCH.md, seção 7).
 -- Eventos: app_open, first_flight, flight_start, flight_complete, flight_lost,
 -- flight_aborted, tutorial_skip, share, challenge_created, challenge_opened,
 -- challenge_accepted, challenge_result, wallet_connect, streak_claim,

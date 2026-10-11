@@ -120,3 +120,17 @@ Quando quiser desligar de vez (recomendo esperar umas 4 semanas, para os jogador
 1. **Settings → Pages → Build and deployment → Source: None** (ou **Unpublish site**). O endereço antigo passa a dar 404.
 2. Apague a branch `gh-pages` e o arquivo `.github/workflows/pages-moved.yml` (e a pasta `pages-moved/`).
 3. Para deixar o repositório **privado**: **Settings → General → Danger Zone → Change visibility → Private**. Antes, troque o link de **Suporte** (`SUPPORT_URL` em `src/components/LegalLinks.tsx`): num repositório privado, o público não consegue abrir chamados no GitHub Issues.
+
+## 7. Painel de métricas
+
+Endereço: **https://dogcity-lunar-launch.vercel.app/metrics.html** (não aparece no jogo nem em buscadores).
+
+Mostra, sempre atualizado (a cada minuto), para 7, 30 ou 90 dias: jogadores por dia e voos concluídos, funil (abriu → voou → concluiu → conectou carteira → verificou), retorno D1 e D7, rotas (onde perdem a nave), idiomas, carteiras, compartilhamentos e desafios, baús vendidos, receita em DOG, prêmio acumulado, moedas de DOG a pagar e o top da semana.
+
+Para ligar (uma vez):
+1. **SQL Editor** do Supabase: rode `supabase/migrations/20261011000000_metrics_report.sql`.
+2. **Edge Functions → Secrets → Add new secret**: nome `METRICS_KEY`, valor = uma senha longa só sua (pelo menos 12 caracteres; ex.: gerada por um gerenciador de senhas).
+3. **Edge Functions**: crie a função **`metrics`** com o conteúdo de `supabase/functions/metrics/index.ts` (sem verificação de JWT, como as outras).
+4. Abra o painel e digite a senha. Ela fica salva só naquele aparelho (botão **Sair** apaga).
+
+A senha nunca vai para o código nem para o repositório; sem ela a função recusa tudo, e os eventos continuam inacessíveis pela chave pública.
