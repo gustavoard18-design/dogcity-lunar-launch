@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>DogCity Métricas</title>
+  <link rel="icon" type="image/png" href="./favicon-64.png" />
+  <style>
+    /* Painel privado de métricas do DogCity Lunar Launch. Os números vêm da
+       Edge Function `metrics` (senha METRICS_KEY); nada fica salvo aqui além
+       da senha neste aparelho. */
+    .viz-root {
+      color-scheme: light;
+      --surface-0: #f3f2ef;
+      --surface-1: #fcfcfb;
+      --border: #e2e0da;
+      --grid: #ebe9e4;
+      --text-primary: #0b0b0b;
+      --text-secondary: #52514e;
+      --text-muted: #7a7974;
+      --series-1: #2a78d6;
+      --series-2: #eb6834;
+      --seq-1: #86b6ef;
+      --seq-2: #5598e7;
+      --seq-3: #2a78d6;
+      --seq-4: #1c5cab;
+      --seq-5: #104281;
+      --critical: #c62f2f;
+      --good: #1a7f45;
+      --tip-bg: #0b0b0b;
+      --tip-text: #f5f5f3;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:where(:not([data-theme="light"])) .viz-root {
+        color-scheme: dark;
+        --surface-0: #111110;
+        --surface-1: #1a1a19;
+        --border: #2e2e2c;
+        --grid: #2a2a28;
+        --text-primary: #f0efec;
+        --text-secondary: #c3c2b7;
+        --text-muted: #8f8e86;
+        --series-1: #3987e5;
+        --series-2: #d95926;
+        --seq-1: #184f95;
+        --seq-2: #1c5cab;
+        --seq-3: #2a78d6;
+        --seq-4: #5598e7;
+        --seq-5: #86b6ef;
+        --critical: #ef6b6b;
+        --good: #4cc483;
+        --tip-bg: #f0efec;
+        --tip-text: #111110;
+      }
+    }
+    :root[data-theme="dark"] .viz-root {
+      color-scheme: dark;
+      --surface-0: #111110; --surface-1: #1a1a19; --border: #2e2e2c; --grid: #2a2a28;
+      --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #8f8e86;
+      --series-1: #3987e5; --series-2: #d95926;
+      --seq-1: #184f95; --seq-2: #1c5cab; --seq-3: #2a78d6; --seq-4: #5598e7; --seq-5: #86b6ef;
+      --critical: #ef6b6b; --good: #4cc483; --tip-bg: #f0efec; --tip-text: #111110;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body.viz-root { background: var(--surface-0); color: var(--text-primary); font: 14px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 14px; }
+    header h1 { font-size: 18px; margin: 0; flex: 1; min-width: 12rem; }
+    .muted { color: var(--text-muted); }
+    .sec { color: var(--text-secondary); }
+    .controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .seg button { background: var(--surface-1); color: var(--text-secondary); border: 0; padding: 6px 12px; font: inherit; cursor: pointer; }
+    .seg button[aria-pressed="true"] { background: var(--text-primary); color: var(--surface-1); }
+    .btn { background: var(--surface-1); color: var(--text-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font: inherit; cursor: pointer; }
+    .grid { display: grid; gap: 12px; }
+    .tiles { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); margin-bottom: 12px; }
+    .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 14px; min-width: 0; }
+    .tile .label { font-size: 12px; color: var(--text-secondary); }
+    .tile .value { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+    .tile .hint { font-size: 11px; color: var(--text-muted); }
+    .two { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); margin-bottom: 12px; }
+    h2 { font-size: 14px; margin: 0 0 2px; }
+    .sub { font-size: 12px; color: var(--text-muted); margin: 0 0 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+    th, td { text-align: left; padding: 6px 6px; border-bottom: 1px solid var(--grid); }
+    th { color: var(--text-secondary); font-weight: 600; font-size: 12px; }
+    td.n, th.n { text-align: right; }
+    .chart { position: relative; }
+    svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+    .key { display: inline-flex; align-items: center; gap: 6px; }
+    .key i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+    .tip { position: absolute; pointer-events: none; background: var(--tip-bg); color: var(--tip-text); border-radius: 8px; padding: 6px 9px; font-size: 12px; white-space: nowrap; transform: translate(-50%, -110%); opacity: 0; transition: opacity .1s; z-index: 2; }
+    .tip b { font-weight: 700; }
+    .tip .sw { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+    .fbar { display: grid; grid-template-columns: 9.5rem 1fr 4.5rem; align-items: center; gap: 8px; margin: 6px 0; font-size: 13px; }
+    .fbar .track { height: 18px; background: var(--grid); border-radius: 4px; overflow: hidden; }
+    .fbar .fill { height: 100%; border-radius: 0 4px 4px 0; }
+    .fbar .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .login { max-width: 380px; margin: 12vh auto 0; }
+    .login input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-0); color: var(--text-primary); font: inherit; margin: 10px 0; }
+    .login .btn { width: 100%; padding: 10px; background: var(--text-primary); color: var(--surface-1); border: 0; font-weight: 600; }
+    .err { color: var(--critical); font-size: 13px; min-height: 1.2em; }
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--good); margin-right: 6px; vertical-align: middle; }
+    .empty { color: var(--text-muted); font-size: 13px; padding: 8px 0; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body class="viz-root">
+  <div class="wrap">
+    <section id="login" class="card login" hidden>
+      <h1 style="font-size:18px;margin:0 0 4px">DogCity · Métricas</h1>
+      <p class="sec" style="margin:0">Digite a senha <code>METRICS_KEY</code> configurada no Supabase. Ela fica salva só neste aparelho.</p>
+      <form id="loginForm">
+        <input id="key" type="password" autocomplete="current-password" placeholder="Senha das métricas" required minlength="12" />
+        <button class="btn" type="submit">Entrar</button>
+      </form>
+      <p id="loginErr" class="err" role="alert"></p>
+    </section>
+
+    <section id="app" hidden>
+      <header>
+        <h1>DogCity · Métricas</h1>
+        <div class="controls">
+          <div class="seg" role="group" aria-label="Período">
+            <button data-days="7">7 dias</button>
+            <button data-days="30">30 dias</button>
+            <button data-days="90">90 dias</button>
+          </div>
+          <button class="btn" id="refresh">Atualizar</button>
+          <button class="btn" id="logout">Sair</button>
+        </div>
+        <div style="width:100%" class="muted" id="updated" aria-live="polite"></div>
+      </header>
+
+      <div class="grid tiles" id="tiles"></div>
+
+      <div class="card" style="margin-bottom:12px">
+        <h2>Jogadores e voos por dia</h2>
+        <p class="sub">Navegadores distintos que abriram o jogo e voos concluídos (horário de Brasília). Passe o dedo ou o mouse para ver cada dia.</p>
+        <div class="legend"><span class="key"><i style="background:var(--series-1)"></i>Jogadores</span><span class="key"><i style="background:var(--series-2)"></i>Voos concluídos</span></div>
+        <div class="chart" id="daily"></div>
+      </div>
+
+      <div class="grid two">
+        <div class="card">
+          <h2>Funil</h2>
+          <p class="sub">Jogadores (navegadores) que chegaram a cada etapa no período.</p>
+          <div id="funnel"></div>
+        </div>
+        <div class="card">
+          <h2>Retorno</h2>
+          <p class="sub">De quem apareceu pela primeira vez no dia, quantos voltaram no dia seguinte (D1) e na semana (D7).</p>
+          <div id="retention"></div>
+        </div>
+      </div>
+
+      <div class="grid two">
+        <div class="card">
+          <h2>Rotas</h2>
+          <p class="sub">Voos começados, concluídos e naves perdidas por rota.</p>
+          <div id="routes"></div>
+        </div>
+        <div class="card">
+          <h2>Economia</h2>
+          <p class="sub">Baús, receita em DOG e prêmio acumulado.</p>
+          <div id="economy"></div>
+        </div>
+      </div>
+
+      <div class="grid two">
+        <div class="card">
+          <h2>Idiomas, carteiras e crescimento</h2>
+          <p class="sub">Jogadores por idioma e por carteira conectada; compartilhamentos e desafios.</p>
+          <div id="breakdown"></div>
+        </div>
+        <div class="card">
+          <h2>Top da semana</h2>
+          <p class="sub">Ranking geral (melhor voo da semana).</p>
+          <div id="top"></div>
+        </div>
+      </div>
+      <p class="muted" style="font-size:12px">Atualiza sozinho a cada minuto. Os eventos são anônimos (um id por navegador, sem endereço de carteira).</p>
+    </section>
+  </div>
+
+  <script>
+  (function () {
+    var SUPABASE_URL = 'https://uknupldacjxbuoiaucfc.supabase.co';
+    var SUPABASE_KEY = 'sb_publishable_Mf-IQjrI81gzUgBZsodOyg_TmnTaWDR';
+    var KEY_STORE = 'dogcity_metrics_key';
+    var DAYS_STORE = 'dogcity_metrics_days';
+    var ROUTES = { 'low-orbit': 'Órbita Baixa', 'sea-of-tranquility': 'Mar da Tranquilidade', 'asteroid-belt': 'Cinturão de Asteroides', 'mars-colony': 'Colônia de Marte', 'event-meteor-shower': 'Chuva de Meteoros', 'event-saturn-rings': 'Anéis de Saturno', 'event-solar-storm': 'Tempestade Solar', 'event-comet-hunt': 'Caça ao Cometa', 'event-mars-marathon': 'Maratona de Marte' };
+    var CHESTS = { supply: 'Suprimentos', orbital: 'Orbital', legendary: 'Lendário' };
+    var GROWTH = { share: 'Compartilhamentos', challenge_created: 'Desafios criados', challenge_opened: 'Desafios abertos', challenge_accepted: 'Desafios aceitos', streak_claim: 'Sequências resgatadas', season_tier: 'Níveis de temporada', chest_open: 'Baús abertos', dog_drop: 'Moedas de DOG' };
+    var STATUS = { pending: 'pendente', paid: 'pago', cancelled: 'cancelado' };
+
+    var store = {
+      get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+      set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+      del: function (k) { try { localStorage.removeItem(k); } catch (e) {} }
+    };
+    var key = store.get(KEY_STORE) || '';
+    var days = Number(store.get(DAYS_STORE)) || 30;
+    var timer = null;
+    var lastData = null;
+    var $ = function (id) { return document.getElementById(id); };
+    var nf = new Intl.NumberFormat('pt-BR');
+    var fmt = function (n) { return nf.format(Math.round(Number(n) || 0)); };
+    var pct = function (a, b) { return b ? Math.round((100 * a) / b) + '%' : '—'; };
+    var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+    var dayLabel = function (iso) { var p = String(iso).split('-'); return p[2] + '/' + p[1]; };
+
+    function show(view) { $('login').hidden = view !== 'login'; $('app').hidden = view !== 'app'; }
+
+    function load() {
+      if (!key) { show('login'); return; }
+      $('updated').textContent = 'Carregando…';
+      fetch(SUPABASE_URL + '/functions/v1/metrics?days=' + days, { headers: { apikey: SUPABASE_KEY, 'x-metrics-key': key } })
+        .then(function (r) { return r.json().then(function (b) { return { status: r.status, body: b }; }); })
+        .then(function (r) {
+          if (r.status === 401) { store.del(KEY_STORE); key = ''; $('loginErr').textContent = 'Senha inválida.'; show('login'); return; }
+          if (r.status !== 200) { $('updated').textContent = 'Erro: ' + (r.body && r.body.error || r.status); show('app'); return; }
+          show('app');
+          lastData = r.body;
+          render(r.body);
+          var t = new Date(r.body.generatedAt);
+          $('updated').innerHTML = '<span class="status-dot"></span>Atualizado às ' + t.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + ' · últimos ' + r.body.days + ' dias';
+        })
+        .catch(function () { $('updated').textContent = 'Sem conexão com o servidor. Tentando de novo em 1 minuto.'; show(key ? 'app' : 'login'); });
+    }
+
+    function tile(label, value, hint) {
+      return '<div class="card tile"><div class="label">' + esc(label) + '</div><div class="value">' + value + '</div>' + (hint ? '<div class="hint">' + esc(hint) + '</div>' : '') + '</div>';
+    }
+
+    function table(head, rows, numericFrom) {
+      if (!rows.length) return '<p class="empty">Ainda sem dados no período.</p>';
+      var h = '<table><thead><tr>' + head.map(function (c, i) { return '<th' + (i >= numericFrom ? ' class="n"' : '') + '>' + esc(c) + '</th>'; }).join('') + '</tr></thead><tbody>';
+      rows.forEach(function (r) { h += '<tr>' + r.map(function (c, i) { return '<td' + (i >= numericFrom ? ' class="n"' : '') + '>' + c + '</td>'; }).join('') + '</tr>'; });
+      return h + '</tbody></table>';
+    }
+
+    function render(m) {
+      var t = m.totals, f = m.funnel, e = m.economy, j = e.jackpot || {};
+      $('tiles').innerHTML = [
+        tile('Jogadores hoje', fmt(t.playersToday)),
+        tile('Jogadores em 7 dias', fmt(t.players7d)),
+        tile('Jogadores no período', fmt(t.playersPeriod), 'desde o início: ' + fmt(t.playersAllTime)),
+        tile('Voos concluídos', fmt(t.flightsCompletedPeriod), 'no período'),
+        tile('Carteiras verificadas', fmt(t.verifiedWallets), 'progresso na nuvem: ' + fmt(t.cloudSaves)),
+        tile('Pilotos no ranking', fmt(t.rankedPilots), fmt(t.rankedFlights) + ' voos enviados'),
+        tile('Receita em baús', fmt(e.dogRevenue) + ' <span style="font-size:14px" class="sec">DOG</span>'),
+        tile('Prêmio acumulado', fmt(j.pool_dog) + ' <span style="font-size:14px" class="sec">DOG</span>', 'pago: ' + fmt(j.paid_dog) + ' DOG')
+      ].join('');
+
+      drawDaily(m.daily);
+
+      var steps = [
+        ['Abriu o jogo', f.opened], ['Começou um voo', f.startedFlight], ['Concluiu um voo', f.completedFlight],
+        ['Conectou carteira', f.connectedWallet], ['Verificou carteira', f.verifiedWallet]
+      ];
+      var top = Math.max(1, f.opened);
+      var shades = ['var(--seq-5)', 'var(--seq-4)', 'var(--seq-3)', 'var(--seq-2)', 'var(--seq-1)'];
+      $('funnel').innerHTML = steps.map(function (s, i) {
+        var w = Math.max(s[1] ? 2 : 0, Math.round((100 * s[1]) / top));
+        return '<div class="fbar" title="' + esc(s[0]) + ': ' + fmt(s[1]) + ' (' + pct(s[1], f.opened) + ' de quem abriu)"><span class="sec">' + esc(s[0]) + '</span><span class="track"><span class="fill" style="display:block;width:' + w + '%;background:' + shades[i] + '"></span></span><span class="num">' + fmt(s[1]) + ' <span class="muted">' + pct(s[1], f.opened) + '</span></span></div>';
+      }).join('') + '<p class="muted" style="font-size:12px;margin:8px 0 0">Pularam o tutorial: ' + fmt(f.skippedTutorial) + '</p>';
+
+      $('retention').innerHTML = table(['Primeiro dia', 'Novos', 'Voltaram D1', 'Voltaram em 7 dias'],
+        m.retention.slice(0, 14).map(function (r) { return [dayLabel(r.cohort), fmt(r.new), fmt(r.d1) + ' <span class="muted">' + pct(r.d1, r.new) + '</span>', fmt(r.d7) + ' <span class="muted">' + pct(r.d7, r.new) + '</span>']; }), 1);
+
+      $('routes').innerHTML = table(['Rota', 'Começados', 'Concluídos', 'Perdidos', 'Score ao perder'],
+        m.routes.map(function (r) { return [esc(ROUTES[r.route] || r.route), fmt(r.starts), fmt(r.completes) + ' <span class="muted">' + pct(r.completes, r.starts) + '</span>', fmt(r.lost), r.avgLostScore == null ? '—' : fmt(r.avgLostScore)]; }), 1);
+
+      var orders = e.chestOrders || {}, byType = e.chestsPaidByType || {}, drops = e.dogDrops || {};
+      var econRows = [
+        ['Baús pagos', fmt(orders.paid || 0)],
+        ['Pedidos abertos', fmt(orders.pending || 0)],
+        ['Pedidos cancelados', fmt(orders.cancelled || 0)]
+      ];
+      Object.keys(byType).forEach(function (k) { econRows.push(['· ' + esc(CHESTS[k] || k), fmt(byType[k])]); });
+      econRows.push(['Receita (DOG)', fmt(e.dogRevenue)]);
+      econRows.push(['Prêmio: entrou (50%)', fmt(j.income_dog)]);
+      econRows.push(['Prêmio: reservado em voos', fmt(j.reserved_dog)]);
+      ['pending', 'paid', 'cancelled'].forEach(function (s) { if (drops[s]) econRows.push(['Moedas de DOG ' + STATUS[s], fmt(drops[s].count) + ' · ' + fmt(drops[s].dog) + ' DOG']); });
+      $('economy').innerHTML = table(['Item', 'Valor'], econRows, 1) + (drops.pending ? '<p class="err" style="margin-top:8px">Há moedas de DOG a pagar: tabela dog_drops no Supabase.</p>' : '');
+
+      var b = m.breakdown;
+      var kv = function (obj, labels) { return Object.keys(obj || {}).sort(function (x, y) { return obj[y] - obj[x]; }).map(function (k) { return [esc((labels && labels[k]) || k), fmt(obj[k])]; }); };
+      $('breakdown').innerHTML =
+        table(['Idioma', 'Jogadores'], kv(b.languages, { en: 'Inglês', pt: 'Português', es: 'Espanhol' }), 1) +
+        '<div style="height:10px"></div>' + table(['Carteira', 'Jogadores'], kv(b.wallets, { guest: 'Convidado' }), 1) +
+        '<div style="height:10px"></div>' + table(['Crescimento', 'Total'], kv(b.growth, GROWTH), 1) +
+        '<p class="muted" style="font-size:12px;margin:8px 0 0">Abriram pelo app instalado: ' + fmt(b.installedApp) + '</p>';
+
+      $('top').innerHTML = table(['#', 'Piloto', 'Tipo', 'Melhor', 'Voos'],
+        m.topWeek.map(function (r, i) { return [String(i + 1), esc(r.name), r.wallet ? 'carteira verificada' : 'convidado / sem assinatura', fmt(r.score), fmt(r.flights)]; }), 3);
+    }
+
+    // Gráfico de linhas: jogadores e voos concluídos por dia (um eixo, mesma unidade: contagem).
+    function drawDaily(rows) {
+      var box = $('daily');
+      if (!rows.length) { box.innerHTML = '<p class="empty">Ainda sem dados.</p>'; return; }
+      var W = Math.max(320, box.clientWidth || 600), H = 220, L = 34, R = 16, T = 12, B = 26;
+      var series = [{ k: 'players', name: 'Jogadores', c: 'var(--series-1)' }, { k: 'completes', name: 'Voos concluídos', c: 'var(--series-2)' }];
+      var max = Math.max(1, Math.max.apply(null, rows.map(function (r) { return Math.max(r.players, r.completes); })));
+      var step = max <= 5 ? 1 : Math.pow(10, Math.floor(Math.log10(max / 4)));
+      var nice = Math.ceil(max / step / 4) * step * 4 || 4;
+      var x = function (i) { return L + (rows.length === 1 ? (W - L - R) / 2 : (i * (W - L - R)) / (rows.length - 1)); };
+      var y = function (v) { return T + (H - T - B) * (1 - v / nice); };
+      var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Jogadores e voos concluídos por dia">';
+      for (var g = 0; g <= 4; g++) {
+        var gv = (nice / 4) * g, gy = y(gv);
+        svg += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + gy + '" y2="' + gy + '" stroke="var(--grid)" stroke-width="1"/>';
+        svg += '<text x="' + (L - 6) + '" y="' + (gy + 4) + '" text-anchor="end" font-size="11" fill="var(--text-muted)">' + fmt(gv) + '</text>';
+      }
+      var every = Math.ceil(rows.length / 7);
+      rows.forEach(function (r, i) { if (i % every === 0 || i === rows.length - 1) svg += '<text x="' + x(i) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="11" fill="var(--text-muted)">' + dayLabel(r.day) + '</text>'; });
+      series.forEach(function (s) {
+        var d = rows.map(function (r, i) { return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(r[s.k]).toFixed(1); }).join(' ');
+        svg += '<path d="' + d + '" fill="none" stroke="' + s.c + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+      });
+      svg += '<line id="xh" x1="0" x2="0" y1="' + T + '" y2="' + (H - B) + '" stroke="var(--text-muted)" stroke-width="1" opacity="0"/>';
+      series.forEach(function (s, si) { svg += '<circle id="dot' + si + '" r="4.5" fill="' + s.c + '" stroke="var(--surface-1)" stroke-width="2" opacity="0"/>'; });
+      svg += '<rect id="hit" x="' + L + '" y="' + T + '" width="' + (W - L - R) + '" height="' + (H - T - B) + '" fill="transparent"/>';
+      svg += '</svg><div class="tip" id="tip"></div>';
+      box.innerHTML = svg;
+      var el = box.querySelector('svg'), tip = $('tip'), hit = $('hit');
+      function at(ev) {
+        var p = el.getBoundingClientRect(), sx = W / p.width;
+        var px = ((ev.touches ? ev.touches[0].clientX : ev.clientX) - p.left) * sx;
+        var i = rows.length === 1 ? 0 : Math.round(((px - L) / (W - L - R)) * (rows.length - 1));
+        i = Math.max(0, Math.min(rows.length - 1, i));
+        var r = rows[i], cx = x(i);
+        $('xh').setAttribute('x1', cx); $('xh').setAttribute('x2', cx); $('xh').setAttribute('opacity', '0.6');
+        series.forEach(function (s, si) { var c = $('dot' + si); c.setAttribute('cx', cx); c.setAttribute('cy', y(r[s.k])); c.setAttribute('opacity', '1'); });
+        tip.innerHTML = '<b>' + dayLabel(r.day) + '</b><br>' + series.map(function (s) { return '<span class="sw" style="background:' + s.c + '"></span>' + s.name + ': <b>' + fmt(r[s.k]) + '</b>'; }).join('<br>') + '<br><span style="opacity:.75">novos: ' + fmt(r.newPlayers) + ' · perdidos: ' + fmt(r.lost) + '</span>';
+        tip.style.left = (cx / sx) + 'px';
+        tip.style.top = (Math.min(y(r.players), y(r.completes)) / sx) + 'px';
+        tip.style.opacity = '1';
+      }
+      function off() { tip.style.opacity = '0'; $('xh').setAttribute('opacity', '0'); series.forEach(function (s, si) { $('dot' + si).setAttribute('opacity', '0'); }); }
+      hit.addEventListener('pointermove', at); hit.addEventListener('pointerdown', at); hit.addEventListener('pointerleave', off);
+    }
+
+    document.querySelectorAll('.seg button').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(Number(b.dataset.days) === days));
+      b.addEventListener('click', function () {
+        days = Number(b.dataset.days); store.set(DAYS_STORE, String(days));
+        document.querySelectorAll('.seg button').forEach(function (o) { o.setAttribute('aria-pressed', String(o === b)); });
+        load();
+      });
+    });
+    $('refresh').onclick = load;
+    $('logout').onclick = function () { store.del(KEY_STORE); key = ''; $('key').value = ''; $('loginErr').textContent = ''; show('login'); };
+    $('loginForm').onsubmit = function (ev) { ev.preventDefault(); key = $('key').value.trim(); store.set(KEY_STORE, key); $('loginErr').textContent = ''; load(); };
+    var lastW = 0;
+    window.addEventListener('resize', function () { if (lastData && Math.abs(window.innerWidth - lastW) > 40) { lastW = window.innerWidth; drawDaily(lastData.daily); } });
+    load();
+    timer = setInterval(function () { if (key && document.visibilityState === 'visible') load(); }, 60000);
+  })();
+  </script>
+</body>
+</html>
