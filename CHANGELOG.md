@@ -1,5 +1,9 @@
 # Novidades
 
+## Backend (outubro de 2026): saldo DOG mais estável
+- A função `dog-balance` responde na hora com o último saldo conhecido quando o DogData demora, e atualiza por trás. Cada consulta ao DogData espera no máximo 5 s, e o ranking responde em até 6 s com o que tiver.
+- Corrigido: quando a consulta de holders do DogData falhava, a carteira aparecia com saldo 0 (Recruta) por 10 minutos. Agora o jogo tenta de novo e o cache só guarda consultas completas.
+
 ## 2.9.0 (outubro de 2026): painel de métricas
 - **Painel privado** em `/metrics.html`: jogadores e voos por dia, funil, retorno D1/D7, rotas, idiomas, carteiras, crescimento, baús, receita, prêmio acumulado, moedas a pagar e top da semana, atualizado a cada minuto e protegido por senha (`METRICS_KEY`).
 - O app instalado não troca mais a cópia offline do jogo por outras páginas do site.
