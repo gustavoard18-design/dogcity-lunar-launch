@@ -7,7 +7,7 @@ Projeto `dogcity-lunar-launch` (ref `uknupldacjxbuoiaucfc`). O jogo chama tudo s
 | Parte | Onde | Estado |
 |---|---|---|
 | Migrações até `20260925010000_chest_orders.sql` | `migrations/` | aplicadas (25/09/2026) |
-| Função `dog-balance` (saldo DOG, lote DogCity, identidade DogData) | `functions/dog-balance/` | publicada (25/09/2026) |
+| Função `dog-balance` (saldo DOG, lote DogCity, identidade DogData) | `functions/dog-balance/` | publicada; versão com cache velho na hora e limites de 5 s em 11/10/2026 |
 | Função `chests` (baús pagos em DOG) | `functions/chests/` + `functions/_shared/` | publicada; versão 2.5.0 (exige sessão) publicada em 26/09/2026 |
 | Migração `20260926000000_wallet_sessions.sql` (sessões, `submit_score_v3`, progresso na nuvem) | `migrations/` | aplicada (26/09/2026) |
 | Migração `20260927000000_dog_drops.sql` (prêmio acumulado e moedas de DOG no voo) | `migrations/` | aplicada (25/09/2026) |
