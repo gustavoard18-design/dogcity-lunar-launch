@@ -45,3 +45,7 @@ Usam `puppeteer-core` com o Chrome instalado (`npm i --no-save puppeteer-core`) 
 | `pwacheck.mjs` | Confere manifesto, instalabilidade, service worker e modo offline (rodar com `npm run preview -- --port 4173`). |
 
 Os scripts fixam o idioma em português (clicam nos botões pelo texto). Em `npm run dev` o jogo não envia scores ao ranking online, então esses testes não sujam o ranking real.
+
+## `social/`: posts automáticos no X
+
+`post-x.mjs` publica o próximo post aprovado da fila `social/x-posts.json` (`--check` confere a fila, `--dry-run` mostra o próximo, `--whoami` testa as chaves sem postar). Roda pelo workflow **Posts do X**; passo a passo em `docs/LAUNCH.md` (seção 4b).

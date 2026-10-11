@@ -1,0 +1,52 @@
+name: Posts do X
+
+# Publica no X, de hora em hora, o próximo post aprovado da fila
+# (social/x-posts.json) cujo horário já passou. Um post por vez, e cada id só
+# uma vez: o que foi publicado (ou falhou) fica em social/x-posted.json.
+# Precisa dos segredos X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN e X_ACCESS_SECRET;
+# sem eles, só mostra o que publicaria.
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'publicar = posta o próximo vencido; simular = só mostra; testar-chaves = confere as chaves sem postar'
+        type: choice
+        options: [publicar, simular, testar-chaves]
+        default: publicar
+
+permissions:
+  contents: write
+
+concurrency:
+  group: x-posts
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.x
+      - name: Conferir a fila
+        run: node scripts/social/post-x.mjs --check
+      - name: Publicar o próximo post
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+        run: node scripts/social/post-x.mjs ${{ inputs.mode == 'simular' && '--dry-run' || inputs.mode == 'testar-chaves' && '--whoami' || '' }}
+      - name: Registrar o que foi publicado
+        if: always()
+        run: |
+          if ! git diff --quiet social/x-posted.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+            git add social/x-posted.json
+            git commit -m "X: registro de post publicado [skip ci]"
+            git push
+          fi

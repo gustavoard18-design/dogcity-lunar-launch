@@ -84,6 +84,21 @@ Imagem: `public/og-image.jpg` (já aparece sozinha na prévia do link).
 
 Onde postar: X (marcando o DogData e a comunidade $DOG), grupos de Telegram/Discord do DOG, e um pedido ao DogData para colocar o jogo no site. Nos primeiros dias, repostar os melhores voos: o cartão de compartilhamento e o link de desafio foram feitos para isso.
 
+## 4b. Posts automáticos no X
+
+O robô **Posts do X** (`.github/workflows/x-posts.yml`) publica, de hora em hora, o próximo post aprovado de `social/x-posts.json` cujo horário já passou: um por vez e nunca o mesmo duas vezes (o registro fica em `social/x-posted.json`). Antes de postar ele confere o limite de 280 caracteres. Sem as chaves, só mostra o que publicaria.
+
+**Ligar (uma vez, pelo dono da conta do X):**
+1. Em [developer.x.com](https://developer.x.com), entre com a conta @GustavoRDOG e crie um projeto e um app no plano **Free**.
+2. No app, em **User authentication settings**, escolha **Read and write** (sem isso o X recusa os posts).
+3. Em **Keys and tokens**, gere a **API Key e Secret** e o **Access Token e Secret** (gere o Access Token *depois* de ligar o Read and write).
+4. No GitHub do repositório: **Settings → Secrets and variables → Actions → New repository secret**, um para cada chave: `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_SECRET`. As chaves nunca vão para o código nem para o chat.
+5. Teste sem postar: **Actions → Posts do X → Run workflow → testar-chaves**. Tem que aparecer "chaves ok: conta @GustavoRDOG".
+
+**Mudar a fila:** editar `social/x-posts.json` (cada post: `id`, `at` em UTC, `approved`, `text`). Post com `"approved": false` fica parado. Conferir com `node scripts/social/post-x.mjs --check`. Horário de Brasília = UTC−3 (19h de Brasília = `22:00:00Z`).
+
+**Parar tudo:** Actions → Posts do X → ⋯ → Disable workflow.
+
 ## 5. Domínio próprio (opcional)
 
 1. Compre o domínio (ex.: `play.dogcity.xyz`) e crie um registro **CNAME** apontando para `gustavoard18-design.github.io`.
