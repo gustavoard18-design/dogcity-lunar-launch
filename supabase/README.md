@@ -13,8 +13,8 @@ Projeto `dogcity-lunar-launch` (ref `uknupldacjxbuoiaucfc`). O jogo chama tudo s
 | Migração `20260927000000_dog_drops.sql` (prêmio acumulado e moedas de DOG no voo) | `migrations/` | aplicada (25/09/2026) |
 | Migração `20260927010000_dog_drops_claim.sql` (resgate só com voo concluído, limite semanal atômico) | `migrations/` | aplicada (25/09/2026) |
 | Função `dog-drops` (sorteio da moeda de DOG na decolagem) | `functions/dog-drops/` + `_shared/drops.json`, `drop-rules.ts`, `auth-rules.ts`, `chest-rules.ts` | publicada (25/09/2026), sem verificação de JWT |
-| Migração `20261011000000_metrics_report.sql` (relatório do painel de métricas) | `migrations/` | **falta aplicar** |
-| Função `metrics` (painel de métricas, senha `METRICS_KEY`) | `functions/metrics/` | **falta publicar** (e criar o segredo `METRICS_KEY`) |
+| Migração `20261011000000_metrics_report.sql` (relatório do painel de métricas) | `migrations/` | aplicada (11/10/2026) |
+| Função `metrics` (painel de métricas, senha `METRICS_KEY`) | `functions/metrics/` | publicada (11/10/2026), sem verificação de JWT; segredo `METRICS_KEY` criado pelo dono |
 | Função `auth` (login com assinatura da carteira) | `functions/auth/` + `functions/_shared/auth-rules.ts` | publicada (26/09/2026) |
 
 Consultas de métricas prontas em `queries/metrics.sql` (rodar no SQL editor).
