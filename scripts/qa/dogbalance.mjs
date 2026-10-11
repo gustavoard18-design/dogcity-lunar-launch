@@ -1,10 +1,12 @@
 // Testa a Edge Function dog-balance em Node, sem Deno: banco falso e DogData
 // simulado (rápido, lento, 404). Uso: node scripts/qa/dogbalance.mjs .
 import fs from 'fs';
+import path from 'path';
 import { createRequire } from 'module';
-const require = createRequire(process.argv[2] + '/package.json');
+const ROOT = path.resolve(process.argv[2] ?? '.');
+const require = createRequire(path.join(ROOT, 'package.json'));
 const esbuild = require('esbuild');
-let src = fs.readFileSync(process.argv[2] + '/supabase/functions/dog-balance/index.ts', 'utf8');
+let src = fs.readFileSync(path.join(ROOT, 'supabase/functions/dog-balance/index.ts'), 'utf8');
 src = src.replace(/^import \{ createClient \} from 'npm:@supabase\/supabase-js@2';$/m, 'const createClient = globalThis.__createClient;');
 const { code } = await esbuild.transform(src, { loader: 'ts', format: 'esm' });
 
