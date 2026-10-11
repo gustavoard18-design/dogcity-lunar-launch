@@ -30,12 +30,12 @@ Conferir: `node scripts/health-check.mjs` deve mostrar só ✅.
 
 ## 2. Checklist do dia do lançamento
 
-- [ ] `node scripts/health-check.mjs`: tudo ✅ (o workflow **Health check** também roda a cada hora).
-- [ ] Conectar com Xverse, OKX e Kray: a carteira pede a assinatura e o aviso "Verifique sua carteira" some.
-- [ ] Comprar 1 baú de verdade e conferir na carteira o valor de **1.500 DOG** antes de assinar.
-- [ ] Abrir o jogo em outro navegador com a mesma carteira: aparece "Progresso recuperado da nuvem".
-- [ ] Celular: botão "Abrir no app" da Xverse e da OKX.
-- [ ] Em **Settings → Notifications** do GitHub, deixar ligados os e-mails de Actions e de Issues (é por eles que chegam os alertas e os chamados de suporte).
+- [x] `node scripts/health-check.mjs`: tudo ✅ (o workflow **Health check** também roda a cada hora).
+- [x] Conectar com Xverse, OKX e Kray: a carteira pede a assinatura e o aviso "Verifique sua carteira" some.
+- [ ] Comprar 1 baú de verdade e conferir na carteira o valor de **1.500 DOG** antes de assinar. **Ainda não testado** (outubro de 2026): o fluxo pago só passou por testes simulados. Na primeira compra, conferir que o baú abre e que o prêmio acumulado sobe metade do valor.
+- [x] Abrir o jogo em outro navegador com a mesma carteira: aparece "Progresso recuperado da nuvem".
+- [x] Celular: botão "Abrir no app" da Xverse e da OKX.
+- [x] Em **Settings → Notifications** do GitHub, deixar ligados os e-mails de Actions e de Issues (é por eles que chegam os alertas e os chamados de suporte).
 - [ ] Depois de 24 h: rodar `supabase/queries/metrics.sql` (jogadores, funil, onde perdem a nave).
 
 ## 3. Suporte

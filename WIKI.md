@@ -162,4 +162,5 @@ Também cobre tutorial, molduras de nome (inclusive o visual no cartão de compa
 
 ## 15. Próximos passos sugeridos
 
-- Xverse testada com a carteira real (setembro de 2026). Falta testar a OKX e a Kray com as extensões reais e o "Abrir no app" no celular (o código segue a documentação de cada uma e passa em `scripts/qa/wallets.mjs` com provedores simulados).
+- Xverse, OKX e Kray testadas com as carteiras reais, além do "Abrir no app" no celular e da volta do progresso pela nuvem (outubro de 2026).
+- **Compra de baú com DOG de verdade ainda não testada**: o fluxo pago (pedido, pagamento, conferência on-chain, baú abrindo) só passou por testes simulados. Fazer uma compra de 1.500 DOG e conferir que o baú abre e que o prêmio acumulado sobe 750 DOG.
