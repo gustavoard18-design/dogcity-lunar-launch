@@ -79,7 +79,7 @@ const profileUrl = (address: string) => `${DOGDATA}/api/profile?address=${encode
 /** Ranking: identidade de vários endereços, do cache ou do DogData (5 por vez). */
 async function identities(db: any, addresses: string[]) {
   const out: Record<string, { handle: string | null; avatarId: string | null }> = {};
-  const { data: rows, error } = await withTimeout(db.from('dogdata_identities').select('address, data, updated_at').in('address', addresses), DB_MS, { data: null, error: 'timeout' });
+  const { data: rows, error } = await withTimeout<any>(db.from('dogdata_identities').select('address, data, updated_at').in('address', addresses), DB_MS, { data: null, error: 'timeout' });
   const fresh = new Map<string, any>();
   if (!error) for (const r of rows ?? []) if (Date.now() - new Date(r.updated_at).getTime() < IDENTITY_CACHE_MS) fresh.set(r.address, r.data);
 
@@ -124,7 +124,7 @@ Deno.serve(async req => {
     return json({ error: 'endereço inválido' }, 400);
   }
 
-  const { data: cached } = await withTimeout(db.from('dog_balances').select('balance, data, updated_at').eq('address', address).maybeSingle(), DB_MS, { data: null });
+  const { data: cached } = await withTimeout<any>(db.from('dog_balances').select('balance, data, updated_at').eq('address', address).maybeSingle(), DB_MS, { data: null });
   const age = cached?.data ? Date.now() - new Date(cached.updated_at).getTime() : Infinity;
   if (age < CACHE_MS) return json({ ...cached.data, cached: true });
   // Cache velho: responde já com ele e atualiza por trás.

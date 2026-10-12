@@ -1,5 +1,9 @@
 # Novidades
 
+## 2.9.1 (outubro de 2026)
+- Robô do X mais seguro: se a `main` mudar durante a rodada, o registro do post é salvo mesmo assim (antes o mesmo post podia sair de novo na hora seguinte); falha passageira do X (limite de uso, fora do ar, rede) tenta de novo nas próximas horas, até 3 vezes, em vez de perder o post.
+- `dog-balance`: correção de tipos (sem mudança de comportamento).
+
 ## Backend (outubro de 2026): saldo DOG mais estável
 - A função `dog-balance` responde na hora com o último saldo conhecido quando o DogData demora, e atualiza por trás. Cada consulta ao DogData espera no máximo 5 s, e o ranking responde em até 6 s com o que tiver.
 - Corrigido: quando a consulta de holders do DogData falhava, a carteira aparecia com saldo 0 (Recruta) por 10 minutos. Agora o jogo tenta de novo e o cache só guarda consultas completas.
