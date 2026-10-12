@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
-import { X_LIMIT, nextPost, validatePost, xLength } from './x-queue.mjs';
+import { X_LIMIT, isTransient, nextPost, validatePost, xLength } from './x-queue.mjs';
 
 describe('fila de posts do X', () => {
   it('conta como o X: link vale 23 e emoji vale 2', () => {
@@ -22,8 +22,18 @@ describe('fila de posts do X', () => {
     ];
     expect(nextPost(posts, {}, now)?.id).toBe('primeiro');
     expect(nextPost(posts, { primeiro: { postedAt: 'x' } }, now)?.id).toBe('segundo');
-    expect(nextPost(posts, { primeiro: {}, segundo: { failedAt: 'x' } }, now)).toBeNull();
+    expect(nextPost(posts, { primeiro: { postedAt: 'x' }, segundo: { failedAt: 'x' } }, now)).toBeNull();
     expect(validatePost(posts[4])).toEqual([expect.stringContaining('máximo 280')]);
+  });
+
+  it('falha passageira volta na próxima rodada; publicado ou falha definitiva não', () => {
+    const now = new Date('2026-10-13T12:00:00Z');
+    const posts = [{ id: 'post-um', at: '2026-10-12T22:00:00Z', approved: true, text: 'a' }];
+    expect(nextPost(posts, { 'post-um': { attempts: 1, status: 503 } }, now)?.id).toBe('post-um');
+    expect(nextPost(posts, { 'post-um': { postedAt: 'x', attempts: 2 } }, now)).toBeNull();
+    expect(nextPost(posts, { 'post-um': { failedAt: 'x', status: 403 } }, now)).toBeNull();
+    expect([0, 429, 500, 503].every(isTransient)).toBe(true);
+    expect([400, 401, 403].some(isTransient)).toBe(false);
   });
 
   it('a fila do repositório é válida', () => {

@@ -41,10 +41,19 @@ export function validatePost(p) {
   return errors;
 }
 
+/** Tentativas para falhas passageiras do X (limite de uso, 5xx, rede) antes de desistir. */
+export const MAX_ATTEMPTS = 3;
+
+/** O post já terminou: publicado, ou falhou de vez. Falha passageira volta na próxima hora. */
+export const isDone = rec => !!rec && (!!rec.postedAt || !!rec.failedAt);
+
+/** Falha que vale tentar de novo na próxima rodada (status 0 = erro de rede). */
+export const isTransient = status => status === 0 || status === 429 || status >= 500;
+
 /** O próximo post a publicar agora, ou null. Um por vez, o mais antigo primeiro. */
 export function nextPost(posts, posted, now = new Date()) {
   const due = posts
-    .filter(p => p.approved === true && !posted[p.id] && Date.parse(p.at) <= now.getTime() && validatePost(p).length === 0)
+    .filter(p => p.approved === true && !isDone(posted[p.id]) && Date.parse(p.at) <= now.getTime() && validatePost(p).length === 0)
     .sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
   return due[0] ?? null;
 }

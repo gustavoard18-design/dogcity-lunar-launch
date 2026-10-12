@@ -10,7 +10,7 @@
 //             node scripts/social/post-x.mjs --whoami   testa as chaves sem postar (mostra a conta)
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import { nextPost, validatePost, xLength } from './x-queue.mjs';
+import { MAX_ATTEMPTS, isTransient, nextPost, validatePost, xLength } from './x-queue.mjs';
 
 const QUEUE = 'social/x-posts.json';
 const STATE = 'social/x-posted.json';
@@ -86,17 +86,31 @@ ${post.text}`);
   process.exit(0);
 }
 
-const res = await fetch(ENDPOINT, {
-  method: 'POST',
-  headers: { Authorization: authHeader('POST', ENDPOINT), 'Content-Type': 'application/json' },
-  body: JSON.stringify({ text: post.text }),
-});
-const body = await res.json().catch(() => ({}));
+let res;
+let body = {};
+try {
+  res = await fetch(ENDPOINT, {
+    method: 'POST',
+    headers: { Authorization: authHeader('POST', ENDPOINT), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: post.text }),
+  });
+  body = await res.json().catch(() => ({}));
+} catch (e) {
+  res = { ok: false, status: 0 };
+  body = { error: String(e) };
+}
 
-// Sucesso ou falha, o id fica registrado: um post com problema não é tentado de hora em hora.
+// O id fica registrado. Publicado ou falha definitiva (texto recusado, chave errada…)
+// não é tentado de novo; falha passageira (limite de uso, X fora do ar, rede) volta
+// na próxima hora, até MAX_ATTEMPTS vezes.
+const attempts = (posted[post.id]?.attempts ?? 0) + 1;
+const now = new Date().toISOString();
+const error = JSON.stringify(body).slice(0, 300);
 posted[post.id] = res.ok
-  ? { postedAt: new Date().toISOString(), tweetId: body?.data?.id ?? null }
-  : { failedAt: new Date().toISOString(), status: res.status, error: JSON.stringify(body).slice(0, 300) };
+  ? { postedAt: now, tweetId: body?.data?.id ?? null, attempts }
+  : isTransient(res.status) && attempts < MAX_ATTEMPTS
+    ? { attempts, lastTryAt: now, status: res.status, error }
+    : { failedAt: now, status: res.status, error, attempts };
 fs.writeFileSync(STATE, JSON.stringify(posted, null, 2) + '\n');
 
 if (!res.ok) {
