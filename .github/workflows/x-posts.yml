@@ -5,9 +5,13 @@ name: Posts do X
 # uma vez: o que foi publicado (ou falhou) fica em social/x-posted.json.
 # Precisa dos segredos X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN e X_ACCESS_SECRET;
 # sem eles, só mostra o que publicaria.
+#
+# DESLIGADO (out/2026): a conta da API do X não tem créditos e os posts são
+# feitos à mão (social/POSTAR.md, gerado por scripts/social/manual-posts.mjs).
+# Para religar a publicação automática, devolva o bloco `schedule` abaixo:
+#   schedule:
+#     - cron: '7 * * * *'
 on:
-  schedule:
-    - cron: '7 * * * *'
   workflow_dispatch:
     inputs:
       mode:
