@@ -1,1 +1,8 @@
-{}
+{
+  "2026-10-12-meteor-event": {
+    "failedAt": "2026-10-13T02:31:32.212Z",
+    "status": 402,
+    "error": "{\"detail\":\"credits depleted\",\"status\":402,\"title\":\"Payment Required\",\"type\":\"https://api.x.com/2/problems/credits-depleted\"}",
+    "attempts": 1
+  }
+}
