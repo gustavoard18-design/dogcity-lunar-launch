@@ -149,3 +149,5 @@ Para ligar (uma vez):
 4. Abra o painel e digite a senha. Ela fica salva só naquele aparelho (botão **Sair** apaga).
 
 A senha nunca vai para o código nem para o repositório; sem ela a função recusa tudo, e os eventos continuam inacessíveis pela chave pública.
+
+> **Posts do X à mão (out/2026):** a publicação automática está desligada (a API do X não tem créditos). Os posts aprovados ficam em `social/POSTAR.md`, com a data e um link **Abrir no X** que já traz o texto. Depois de editar `social/x-posts.json`, rode `node scripts/social/manual-posts.mjs` para atualizar a lista.

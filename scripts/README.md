@@ -49,3 +49,5 @@ Os scripts fixam o idioma em português (clicam nos botões pelo texto). Em `npm
 ## `social/`: posts automáticos no X
 
 `post-x.mjs` publica o próximo post aprovado da fila `social/x-posts.json` (`--check` confere a fila, `--dry-run` mostra o próximo, `--whoami` testa as chaves sem postar). Roda pelo workflow **Posts do X**; passo a passo em `docs/LAUNCH.md` (seção 4b).
+
+> **Posts do X à mão (out/2026):** a publicação automática está desligada (a API do X não tem créditos). Os posts aprovados ficam em `social/POSTAR.md`, com a data e um link **Abrir no X** que já traz o texto. Depois de editar `social/x-posts.json`, rode `node scripts/social/manual-posts.mjs` para atualizar a lista.
