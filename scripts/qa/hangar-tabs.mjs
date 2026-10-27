@@ -17,6 +17,10 @@ await page.goto('http://localhost:5173', { waitUntil: 'networkidle2' });
 await sleep(3000);
 await click('Jogar agora');
 await sleep(1500);
+// Convidado novo: "Jogar agora" cai direto no primeiro voo; cancela para voltar ao hangar.
+await page.waitForFunction(() => [...document.querySelectorAll('button')].some(b => b.textContent.includes('Cancelar')), { timeout: 30000 });
+await page.evaluate(() => [...document.querySelectorAll('button')].find(b => b.textContent.includes('Cancelar')).click());
+await sleep(1500);
 // piloto nível 3 com 12 voos no histórico antigo (testa migração e conquistas)
 await page.evaluate(() => {
   const all = JSON.parse(localStorage.getItem('dogcity_game_state'));

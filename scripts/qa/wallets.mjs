@@ -123,7 +123,15 @@ for (const [name, sc] of Object.entries(SCENARIOS)) {
   page.on('pageerror', e => errors.push(e.message));
   await page.evaluateOnNewDocument(`localStorage.setItem('dogcity_lang', 'en'); (${sc.inject})(${JSON.stringify(TAPROOT)}, ${JSON.stringify(SEGWIT)});`);
   await page.goto(URL, { waitUntil: 'networkidle2' });
-  await page.evaluate(() => [...document.querySelectorAll('button')].find(b => b.textContent.includes('Connect Bitcoin wallet')).click());
+  // A tela inicial só tem "Play now": o convidado novo cai no primeiro voo; cancela e abre a Carteira no hangar.
+  const clickText = async (text, wait) => {
+    await page.waitForFunction(t => [...document.querySelectorAll('button')].some(b => b.textContent.trim().includes(t)), { timeout: 15000 }, text);
+    await page.evaluate(t => [...document.querySelectorAll('button')].find(b => b.textContent.trim().includes(t)).click(), text);
+    await new Promise(r => setTimeout(r, wait));
+  };
+  await clickText('Play now', 1500);
+  await clickText('Cancel', 1500);
+  await page.evaluate(() => [...document.querySelectorAll('header button')].find(b => b.textContent.trim() === 'Wallet').click());
   await new Promise(r => setTimeout(r, 400));
 
   const problems = [];

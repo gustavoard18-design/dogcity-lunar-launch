@@ -46,6 +46,10 @@ await page.goto('http://localhost:5173', { waitUntil: 'networkidle2' });
 await sleep(2500);
 await click('Jogar agora');
 await sleep(3500);
+// Convidado novo: "Jogar agora" cai direto no primeiro voo; cancela para voltar ao hangar.
+await page.waitForFunction(() => [...document.querySelectorAll('button')].some(b => b.textContent.includes('Cancelar')), { timeout: 30000 });
+await page.evaluate(() => [...document.querySelectorAll('button')].find(b => b.textContent.includes('Cancelar')).click());
+await sleep(1500);
 await meter('hangar');
 await click('Órbita Baixa');
 await sleep(6000);

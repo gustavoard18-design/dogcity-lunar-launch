@@ -15,6 +15,37 @@ interface ConnectWalletProps {
   onConnect: (wallet: WalletConnection) => void;
 }
 
+const LAST_PILOT_KEY = 'dogcity_last_pilot';
+
+/** Guarda o último piloto usado: "Jogar agora" reabre nele, sem pedir a carteira de novo. */
+export function rememberPilot(wallet: WalletConnection) {
+  try {
+    localStorage.setItem(LAST_PILOT_KEY, JSON.stringify({ address: wallet.address, provider: wallet.provider }));
+  } catch {
+    /* sem armazenamento: entra como convidado */
+  }
+}
+
+/** Esquece o último piloto (botão Sair): o próximo "Jogar agora" entra como convidado. */
+export function forgetPilot() {
+  try {
+    localStorage.removeItem(LAST_PILOT_KEY);
+  } catch {
+    /* nada a esquecer */
+  }
+}
+
+/** Último piloto usado neste navegador (convidado ou carteira), se houver. */
+function lastPilot(): WalletConnection | null {
+  try {
+    const raw = localStorage.getItem(LAST_PILOT_KEY);
+    const p = raw ? JSON.parse(raw) : null;
+    return p && typeof p.address === 'string' && typeof p.provider === 'string' ? { address: p.address, provider: p.provider, connected: true } : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Astronauta e foguete recortados, flutuando sobre o espaço. */
 function HeroArt() {
   return (
@@ -45,22 +76,93 @@ function HeroArt() {
   );
 }
 
-export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
-  const [connecting, setConnecting] = useState<'guest' | WalletId | null>(null);
+/** Lista de carteiras Bitcoin para conectar (no hangar, pelo botão Carteira). */
+export function WalletPicker({ onConnect }: ConnectWalletProps) {
+  const [connecting, setConnecting] = useState<WalletId | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showWallets, setShowWallets] = useState(false);
 
-  const handle = async (kind: 'guest' | WalletId) => {
+  const handle = async (id: WalletId) => {
     sfx.unlock();
     sfx.click();
-    setConnecting(kind);
+    setConnecting(id);
     setError(null);
     try {
-      onConnect(kind === 'guest' ? await connectGuest() : await connectWallet(kind));
+      onConnect(await connectWallet(id));
     } catch (err) {
       setError(err instanceof Error ? err.message : L({ en: 'Could not connect.', pt: 'Falha ao conectar.', es: 'No se pudo conectar.' }));
     } finally {
       setConnecting(null);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        {WALLETS.map(w => {
+          const installed = isWalletInstalled(w.id);
+          // No celular sem a carteira: abre o jogo dentro do app dela (navegador interno).
+          const appLink = !installed && isMobileBrowser() ? w.appLink?.(GAME_URL) : undefined;
+          return (
+            <div key={w.id} className="flex items-center gap-3 rounded-xl border border-sky-400/15 bg-[#0b1733]/70 px-3 py-2.5">
+              <img src={walletLogo(w.id)} alt={w.name} className="w-9 h-9 shrink-0 rounded-lg object-cover border border-white/10" draggable={false} />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-white">
+                  {w.name} {w.note && <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded border border-orange-400/40 text-orange-300">{w.note}</span>}
+                </div>
+                <div className="text-[11px] text-slate-500">{installed
+                    ? L({ en: 'Detected', pt: 'Detectada', es: 'Detectada' })
+                    : appLink
+                      ? L({ en: 'Open the game in the app', pt: 'Abra o jogo pelo app', es: 'Abre el juego en la app' })
+                      : L({ en: 'Not installed', pt: 'Não instalada', es: 'No instalada' })}</div>
+              </div>
+              {installed ? (
+                <button onClick={() => handle(w.id)} disabled={!!connecting} className="btn-primary px-3 py-1.5 text-xs disabled:opacity-50">
+                  {connecting === w.id ? L({ en: 'Waiting…', pt: 'Aguardando…', es: 'Esperando…' }) : L({ en: 'Connect', pt: 'Conectar', es: 'Conectar' })}
+                </button>
+              ) : appLink ? (
+                <a href={appLink} rel="noreferrer" className="btn-primary px-3 py-1.5 text-xs">
+                  {L({ en: 'Open in app ↗', pt: 'Abrir no app ↗', es: 'Abrir en la app ↗' })}
+                </a>
+              ) : (
+                <a href={w.installUrl} target="_blank" rel="noreferrer" className="btn-ghost px-3 py-1.5 text-xs">
+                  {L({ en: 'Install ↗', pt: 'Instalar ↗', es: 'Instalar ↗' })}
+                </a>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {error && <p className="text-xs text-red-400">{error}</p>}
+      <p className="text-[11px] text-slate-500 leading-relaxed">
+        {L({
+          en: 'With a wallet, your DOG balance, holder rank and DogCity plot are read from the blockchain (data from',
+          pt: 'Com uma carteira, o saldo DOG, seu ranking de holder e seu lote no DogCity são lidos da blockchain (dados do',
+          es: 'Con una billetera, tu saldo DOG, tu ranking de holder y tu parcela en DogCity se leen de la blockchain (datos de',
+        })}{' '}
+        <a href="https://www.dogdata.xyz" target="_blank" rel="noreferrer" className="underline hover:text-slate-300">DogData</a>
+        {L({
+          en: '). The wallet signs a sign-in message once: it is free and moves no funds. It proves the pilot is yours and saves your progress in the cloud. The wallet pilot is a separate pilot: the guest one stays in this browser.',
+          pt: '). A carteira assina uma mensagem de login uma vez: é grátis e não move fundos. Isso prova que o piloto é seu e salva seu progresso na nuvem. O piloto da carteira é outro piloto: o convidado continua neste navegador.',
+          es: '). La billetera firma un mensaje de inicio de sesión una vez: es gratis y no mueve fondos. Demuestra que el piloto es tuyo y guarda tu progreso en la nube. El piloto de la billetera es otro piloto: el invitado sigue en este navegador.',
+        })}
+      </p>
+    </div>
+  );
+}
+
+/** Tela inicial: só "Jogar agora". A carteira fica para depois, no hangar. */
+export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
+  const [connecting, setConnecting] = useState(false);
+
+  const play = async () => {
+    sfx.unlock();
+    sfx.click();
+    setConnecting(true);
+    try {
+      // Reabre o último piloto (inclusive o da carteira, já conectada antes); senão, o convidado deste navegador.
+      onConnect(lastPilot() ?? (await connectGuest()));
+    } finally {
+      setConnecting(false);
     }
   };
 
@@ -86,9 +188,9 @@ export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
           {L({ en: 'From the DogCity Lunar Base, aim, launch and pilot your astronaut dog to Earth orbit, the Sea of Tranquility, Ceres and Mars.', pt: 'Da Base Lunar DogCity, mire, lance e pilote seu cão astronauta até a órbita da Terra, o Mar da Tranquilidade, Ceres e Marte.', es: 'Desde la Base Lunar DogCity, apunta, lanza y pilota a tu perro astronauta hasta la órbita de la Tierra, el Mar de la Tranquilidad, Ceres y Marte.' })}
         </p>
 
-        <div className="panel space-y-3">
-          <button onClick={() => handle('guest')} disabled={!!connecting} className="btn-primary w-full py-4 text-lg disabled:opacity-50">
-            {connecting === 'guest' ? (
+        <div className="space-y-3">
+          <button onClick={() => void play()} disabled={connecting} className="btn-primary w-full py-4 text-lg disabled:opacity-50">
+            {connecting ? (
               L({ en: 'Preparing hangar…', pt: 'Preparando hangar…', es: 'Preparando hangar…' })
             ) : (
               <span className="inline-flex items-center justify-center gap-2">
@@ -96,62 +198,8 @@ export default function ConnectWallet({ onConnect }: ConnectWalletProps) {
               </span>
             )}
           </button>
-          <button onClick={() => setShowWallets(v => !v)} disabled={!!connecting} className="btn-ghost w-full py-3 text-sm disabled:opacity-40">
-            {showWallets ? L({ en: 'Close wallets', pt: 'Fechar carteiras', es: 'Cerrar billeteras' }) : L({ en: 'Connect Bitcoin wallet', pt: 'Conectar carteira Bitcoin', es: 'Conectar billetera Bitcoin' })}
-          </button>
-          {showWallets && (
-            <div className="space-y-2">
-              {WALLETS.map(w => {
-                const installed = isWalletInstalled(w.id);
-                // No celular sem a carteira: abre o jogo dentro do app dela (navegador interno).
-                const appLink = !installed && isMobileBrowser() ? w.appLink?.(GAME_URL) : undefined;
-                return (
-                  <div key={w.id} className="flex items-center gap-3 rounded-xl border border-sky-400/15 bg-[#0b1733]/70 px-3 py-2.5">
-                    <img src={walletLogo(w.id)} alt={w.name} className="w-9 h-9 shrink-0 rounded-lg object-cover border border-white/10" draggable={false} />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-white">
-                        {w.name} {w.note && <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded border border-orange-400/40 text-orange-300">{w.note}</span>}
-                      </div>
-                      <div className="text-[11px] text-slate-500">{installed
-                          ? L({ en: 'Detected', pt: 'Detectada', es: 'Detectada' })
-                          : appLink
-                            ? L({ en: 'Open the game in the app', pt: 'Abra o jogo pelo app', es: 'Abre el juego en la app' })
-                            : L({ en: 'Not installed', pt: 'Não instalada', es: 'No instalada' })}</div>
-                    </div>
-                    {installed ? (
-                      <button onClick={() => handle(w.id)} disabled={!!connecting} className="btn-primary px-3 py-1.5 text-xs disabled:opacity-50">
-                        {connecting === w.id ? L({ en: 'Waiting…', pt: 'Aguardando…', es: 'Esperando…' }) : L({ en: 'Connect', pt: 'Conectar', es: 'Conectar' })}
-                      </button>
-                    ) : appLink ? (
-                      <a href={appLink} rel="noreferrer" className="btn-primary px-3 py-1.5 text-xs">
-                        {L({ en: 'Open in app ↗', pt: 'Abrir no app ↗', es: 'Abrir en la app ↗' })}
-                      </a>
-                    ) : (
-                      <a href={w.installUrl} target="_blank" rel="noreferrer" className="btn-ghost px-3 py-1.5 text-xs">
-                        {L({ en: 'Install ↗', pt: 'Instalar ↗', es: 'Instalar ↗' })}
-                      </a>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {error && <p className="text-xs text-red-400">{error}</p>}
-          <p className="text-[11px] text-slate-500 leading-relaxed">
-            {L({
-              en: '“Play now” creates a guest pilot in this browser, with a simulated DOG balance. With a wallet, your DOG balance, holder rank and DogCity plot are read from the blockchain (data from',
-              pt: '“Jogar agora” cria um piloto convidado neste navegador, com saldo DOG simulado. Com uma carteira, o saldo DOG, seu ranking de holder e seu lote no DogCity são lidos da blockchain (dados do',
-              es: '“Jugar ahora” crea un piloto invitado en este navegador, con saldo DOG simulado. Con una billetera, tu saldo DOG, tu ranking de holder y tu parcela en DogCity se leen de la blockchain (datos de',
-            })}{' '}
-            <a href="https://www.dogdata.xyz" target="_blank" rel="noreferrer" className="underline hover:text-slate-300">DogData</a>
-            {L({
-              en: '). The wallet signs a sign-in message once: it is free and moves no funds. It proves the pilot is yours and saves your progress in the cloud.',
-              pt: '). A carteira assina uma mensagem de login uma vez: é grátis e não move fundos. Isso prova que o piloto é seu e salva seu progresso na nuvem.',
-              es: '). La billetera firma un mensaje de inicio de sesión una vez: es gratis y no mueve fondos. Demuestra que el piloto es tuyo y guarda tu progreso en la nube.',
-            })}
-          </p>
-          <p className="text-[11px] text-slate-500">
-            {L({ en: 'By playing you agree to the', pt: 'Ao jogar, você concorda com os', es: 'Al jugar, aceptas los' })} <LegalLinks inline />
+          <p className="text-[11px] text-slate-500 text-center">
+            {L({ en: 'Free, no sign-up. By playing you agree to the', pt: 'Grátis, sem cadastro. Ao jogar, você concorda com os', es: 'Gratis, sin registro. Al jugar, aceptas los' })} <LegalLinks inline />
           </p>
         </div>
       </motion.div>

@@ -28,7 +28,7 @@ import {
   payWithXverse,
 } from './lib/chests';
 import { loadProfile, createProfile, saveProfile } from './lib/storage';
-import { getRouteCost, getTier, isRouteUnlocked, rankingTier } from './lib/economy';
+import { ROUTES, getRouteCost, getTier, isRouteUnlocked, rankingTier } from './lib/economy';
 import { fetchDistrictLeaderboard, fetchDogInfo, fetchEventLeaderboard, onlineEnabled, submitEnabled, submitScore } from './lib/online';
 import { authErrorText, dropSession, getSession, sessionToken, verifyWallet } from './lib/auth';
 import { pullCloud, startCloudSync } from './lib/cloud';
@@ -48,7 +48,7 @@ import { usePwaInstall } from './lib/pwa';
 import { setNameStyle, getNameFrame } from './lib/frames';
 import { applyPodiumPrize, pastEventWeeks } from './lib/podium';
 import type { PodiumRecord } from './types';
-import ConnectWallet from './components/ConnectWallet';
+import ConnectWallet, { WalletPicker, forgetPilot, rememberPilot } from './components/ConnectWallet';
 import PlayerProfileCard from './components/PlayerProfile';
 import RouteSelector from './components/RouteSelector';
 import MissionsPanel from './components/MissionsPanel';
@@ -107,6 +107,7 @@ export default function App() {
   const [muted, setMutedState] = useState(isMuted());
   const [musicOn, setMusicOn] = useState(isMusicEnabled());
   const [iosHelp, setIosHelp] = useState(false);
+  const [walletOpen, setWalletOpen] = useState(false);
   const pwa = usePwaInstall();
   const [podiumWin, setPodiumWin] = useState<PodiumRecord[] | null>(null);
 
@@ -428,7 +429,12 @@ export default function App() {
     commit(next);
     if (streak) streakNotice(streak.day, streak.reward);
     track('wallet_connect', { wallet: wallet.provider === GUEST_PROVIDER ? 'guest' : wallet.provider });
-    notify(
+    // Piloto que nunca voou e clicou em "Jogar agora": vai direto ao primeiro voo, sem parar no hangar.
+    const firstFlight = fresh && wallet.provider === GUEST_PROVIDER && next.stats.launches === 0 && !pendingChallenge;
+    if (firstFlight) setAutoStart(true);
+    rememberPilot(wallet);
+    // Na entrada direta o aviso cobriria o botão do primeiro voo.
+    if (!firstFlight) notify(
       existing
         ? L({ en: `Welcome back, ${next.dog.name}!`, pt: `Bem-vindo de volta, ${next.dog.name}!`, es: `¡Bienvenido de nuevo, ${next.dog.name}!` })
         : L({ en: `Your pilot ${next.dog.name} is ready!`, pt: `Seu piloto ${next.dog.name} está pronto!`, es: `¡Tu piloto ${next.dog.name} está listo!` }),
@@ -468,6 +474,13 @@ export default function App() {
     const resume = takeResume();
     if (resume) handleConnect({ address: resume.address, provider: resume.provider, connected: true }, false);
   }, []);
+
+  const [autoStart, setAutoStart] = useState(false);
+  useEffect(() => {
+    if (!autoStart || !profile || session) return;
+    setAutoStart(false);
+    startRoute(ROUTES[0]);
+  }, [autoStart, profile]);
 
   const startRoute = (route: Route, challenge: Challenge | null = null) => {
     // Desafio só nas rotas que o piloto já pode voar (nível e evento da semana); sai de graça para quem não pode pagar.
@@ -905,7 +918,7 @@ export default function App() {
                 </div>
                 <h1 className="hidden sm:block font-display text-lg bg-gradient-to-r from-sky-300 via-white to-amber-300 bg-clip-text text-transparent">DOGCITY</h1>
               </div>
-              <div className="flex items-center gap-1.5 sm:gap-3 text-sm">
+              <div className="flex items-center gap-1 sm:gap-3 text-sm">
                 <span className="text-amber-300 font-semibold"><Stardust value={profile.stardust} /></span>
                 <span className="text-violet-300 font-semibold"><LunarDust value={profile.lunarDust} /></span>
                 {(pwa.canPrompt || pwa.showIosHelp) && (
@@ -927,12 +940,56 @@ export default function App() {
                   <SpeakerIcon muted={muted} />
                 </button>
                 <LanguageSwitcher resume={{ address: profile.address, provider: profile.provider }} />
-                <button onClick={() => setProfile(null)} className="btn-ghost px-3 py-1.5 text-xs">
-                  {L({ en: 'Exit', pt: 'Sair', es: 'Salir' })}
+                <button
+                  onClick={() => setWalletOpen(true)}
+                  className={`${realWallet ? 'btn-ghost' : 'btn-primary'} px-2 sm:px-3 py-1.5 text-xs whitespace-nowrap`}
+                  title={L({ en: 'Connect Bitcoin wallet', pt: 'Conectar carteira Bitcoin', es: 'Conectar billetera Bitcoin' })}
+                >
+                  {realWallet ? providerLabel(profile.provider) : L({ en: 'Wallet', pt: 'Carteira', es: 'Billetera' })}
                 </button>
               </div>
             </div>
           </header>
+
+          <AnimatePresence>
+            {walletOpen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4"
+                onClick={() => setWalletOpen(false)}
+              >
+                <div className="panel w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-display text-lg text-white">{L({ en: 'Bitcoin wallet', pt: 'Carteira Bitcoin', es: 'Billetera Bitcoin' })}</h2>
+                    <button onClick={() => setWalletOpen(false)} className="btn-ghost px-2.5 py-1 text-xs" aria-label={L({ en: 'Close', pt: 'Fechar', es: 'Cerrar' })}>✕</button>
+                  </div>
+                  <p className="text-sm text-slate-300 mb-3">
+                    {realWallet
+                      ? L({ en: `Connected: ${providerLabel(profile.provider)}. To use another wallet, pick it below.`, pt: `Conectada: ${providerLabel(profile.provider)}. Para usar outra carteira, escolha abaixo.`, es: `Conectada: ${providerLabel(profile.provider)}. Para usar otra billetera, elígela abajo.` })
+                      : L({ en: 'Connect a wallet to use your real DOG balance, enter the ranking and save your progress in the cloud.', pt: 'Conecte uma carteira para usar seu saldo DOG real, entrar no ranking e salvar seu progresso na nuvem.', es: 'Conecta una billetera para usar tu saldo DOG real, entrar en el ranking y guardar tu progreso en la nube.' })}
+                  </p>
+                  <WalletPicker
+                    onConnect={w => {
+                      setWalletOpen(false);
+                      handleConnect(w);
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      setWalletOpen(false);
+                      forgetPilot();
+                      setProfile(null);
+                    }}
+                    className="btn-ghost w-full mt-4 py-2 text-xs"
+                  >
+                    {L({ en: 'Exit to the start screen', pt: 'Sair para a tela inicial', es: 'Salir a la pantalla inicial' })}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <main className="relative z-10 max-w-6xl mx-auto px-4 py-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

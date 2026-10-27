@@ -80,6 +80,10 @@ await page.goto(URL, { waitUntil: 'networkidle2' });
 await sleep(1500);
 await click('Jogar agora');
 await sleep(1500);
+// Convidado novo: "Jogar agora" cai direto no primeiro voo; cancela para voltar ao hangar.
+await page.waitForFunction(() => [...document.querySelectorAll('button')].some(b => b.textContent.includes('Cancelar')), { timeout: 30000 });
+await page.evaluate(() => [...document.querySelectorAll('button')].find(b => b.textContent.includes('Cancelar')).click());
+await sleep(1500);
 let p = await profile();
 // 150 do perfil novo + 20 do 1º dia da sequência
 const start = p?.stardust;

@@ -59,7 +59,10 @@ async function run(name, { canSign, cloud, xverse = false }) {
     return r.fulfill({ json: { order: { id: '11111111-2222-3333-4444-555555555555', chest_id: 'supply', price_dog: 1500, status: 'pending', txid: null, reward: null, created_at: new Date().toISOString() } } });
   });
   await page.goto(URL, { waitUntil: 'networkidle' });
-  await page.getByRole('button', { name: 'Connect Bitcoin wallet' }).click();
+  // A tela inicial só tem "Play now": o convidado novo cai no primeiro voo; cancela e abre a Carteira no hangar.
+  await page.getByRole('button', { name: 'Play now' }).click();
+  await page.getByRole('button', { name: /Cancel/ }).click();
+  await page.getByRole('button', { name: 'Wallet', exact: true }).click();
   await page.locator('div.flex.items-center.gap-3', { hasText: xverse ? 'Xverse' : 'Kray Wallet' }).getByRole('button', { name: 'Connect' }).click();
   await page.waitForTimeout(3000);
   const banner = await page.getByText('Verify your wallet').count();

@@ -1,5 +1,12 @@
 # Novidades
 
+## 2.10.0 (outubro de 2026): entrada direta no jogo
+- A tela inicial ficou só com **Jogar agora**. Nos últimos 30 dias, só 5 de 34 visitantes chegaram a começar um voo.
+- Piloto novo cai direto no primeiro voo (Órbita Baixa, com o tutorial), sem parar no hangar. Cancelar devolve o custo e leva ao hangar.
+- Conectar carteira foi para o hangar: botão **Carteira** no topo, com a lista de carteiras e o **Sair para a tela inicial** (o antigo Sair do topo).
+- "Jogar agora" reabre o último piloto usado neste navegador, inclusive o da carteira, sem pedir a carteira de novo.
+- Scripts de QA seguem o novo caminho (cancelam o primeiro voo para chegar ao hangar).
+
 ## 2.9.1 (outubro de 2026)
 - Robô do X mais seguro: se a `main` mudar durante a rodada, o registro do post é salvo mesmo assim (antes o mesmo post podia sair de novo na hora seguinte); falha passageira do X (limite de uso, fora do ar, rede) tenta de novo nas próximas horas, até 3 vezes, em vez de perder o post.
 - `dog-balance`: correção de tipos (sem mudança de comportamento).

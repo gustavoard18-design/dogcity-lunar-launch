@@ -31,6 +31,10 @@ await sleep(2500);
 await shot('01-connect');
 await clickText('Jogar agora');
 await sleep(2500);
+// Convidado novo: "Jogar agora" cai direto no primeiro voo; cancela para voltar ao hangar.
+await page.waitForFunction(() => [...document.querySelectorAll('button')].some(b => b.textContent.includes('Cancelar')), { timeout: 30000 });
+await page.evaluate(() => [...document.querySelectorAll('button')].find(b => b.textContent.includes('Cancelar')).click());
+await sleep(1500);
 // QA_LEVEL=7 libera as rotas mais altas (piloto com nível e Stardust de sobra).
 if (process.env.QA_LEVEL) {
   await page.evaluate(level => {
