@@ -27,7 +27,7 @@ import {
   fetchChestStatus,
   payWithXverse,
 } from './lib/chests';
-import { loadProfile, createProfile, saveProfile } from './lib/storage';
+import { adoptGuestProgress, canAdoptGuest, loadProfile, createProfile, saveProfile } from './lib/storage';
 import { ROUTES, getRouteCost, getTier, isRouteUnlocked, rankingTier } from './lib/economy';
 import { fetchDistrictLeaderboard, fetchDogInfo, fetchEventLeaderboard, onlineEnabled, submitEnabled, submitScore } from './lib/online';
 import { authErrorText, dropSession, getSession, sessionToken, verifyWallet } from './lib/auth';
@@ -419,10 +419,14 @@ export default function App() {
   /** `fresh`: o jogador acabou de conectar (pede a assinatura); false ao reabrir depois de trocar o idioma. */
   const handleConnect = (wallet: WalletConnection, fresh = true) => {
     const existing = loadProfile(wallet.address);
-    const base = existing
-      ? { ...existing, provider: wallet.provider }
-      : // Saldo simulado só para convidados; carteira real espera o saldo on-chain do DogData.
-        createProfile(wallet.address, wallet.provider, wallet.provider === GUEST_PROVIDER ? getMockDogBalance(wallet.address) : 0);
+    // Convidado que conecta a carteira no hangar: o progresso dele vai junto (se a carteira ainda não voou aqui).
+    const adopted = wallet.provider !== GUEST_PROVIDER && canAdoptGuest(profile, existing) ? adoptGuestProgress(profile, wallet.address, wallet.provider) : null;
+    const base = adopted
+      ? adopted
+      : existing
+        ? { ...existing, provider: wallet.provider }
+        : // Saldo simulado só para convidados; carteira real espera o saldo on-chain do DogData.
+          createProfile(wallet.address, wallet.provider, wallet.provider === GUEST_PROVIDER ? getMockDogBalance(wallet.address) : 0);
     // Primeira entrada do dia: conta a sequência e paga a recompensa.
     const streak = applyDailyStreak(base);
     const next = streak?.profile ?? base;
@@ -435,7 +439,9 @@ export default function App() {
     rememberPilot(wallet);
     // Na entrada direta o aviso cobriria o botão do primeiro voo.
     if (!firstFlight) notify(
-      existing
+      adopted
+        ? L({ en: `Your guest progress moved to the wallet: ${next.dog.name}, level ${next.dog.level}.`, pt: `Seu progresso de convidado foi para a carteira: ${next.dog.name}, nível ${next.dog.level}.`, es: `Tu progreso de invitado pasó a la billetera: ${next.dog.name}, nivel ${next.dog.level}.` })
+        : existing
         ? L({ en: `Welcome back, ${next.dog.name}!`, pt: `Bem-vindo de volta, ${next.dog.name}!`, es: `¡Bienvenido de nuevo, ${next.dog.name}!` })
         : L({ en: `Your pilot ${next.dog.name} is ready!`, pt: `Seu piloto ${next.dog.name} está pronto!`, es: `¡Tu piloto ${next.dog.name} está listo!` }),
       'astronaut'

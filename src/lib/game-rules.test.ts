@@ -16,7 +16,7 @@ import { applyLaunchResult, equipCosmetic, purchaseCosmetic, purchaseUpgrade } f
 import { computeOutcome, FlightResult } from './scoring';
 import { UPGRADES, getNextUpgrade } from './shop';
 import { gaugeQuality, getGameTuning } from './stats';
-import { breedLabel, createProfile, renamePilot, sanitizePilotName, getEventLeaderboard, loadProfile, migrateProfile, providerLabel, saveProfile } from './storage';
+import { GUEST_PROVIDER, adoptGuestProgress, breedLabel, canAdoptGuest, createProfile, renamePilot, sanitizePilotName, getEventLeaderboard, loadProfile, migrateProfile, providerLabel, saveProfile } from './storage';
 import { L, LANGUAGES, lang } from './i18n';
 import { flightRandom, mulberry32 } from './rng';
 import { challengeBlock, challengeOutcome, challengeRoute, challengeUrl, decodeChallenge, encodeChallenge } from './challenge';
@@ -294,6 +294,37 @@ describe('armazenamento', () => {
     saveProfile(p);
     const loaded = loadProfile('old')!;
     expect(loaded.dailyMissions.every(s => MISSION_POOL.some(m => m.id === s.missionId))).toBe(true);
+  });
+});
+
+describe('progresso do convidado na carteira', () => {
+  const guestWith = (launches: number) => {
+    const g = migrateProfile({ address: 'guest_1', provider: GUEST_PROVIDER, dogBalance: 90000, stardust: 777, revision: 40 });
+    return { ...g, dog: { ...g.dog, level: 4 }, stats: { ...g.stats, launches }, purchasedUpgrades: ['power_2'] };
+  };
+
+  it('só leva quando o convidado voou e a carteira ainda não', () => {
+    const wallet = migrateProfile({ address: 'bc1pw', provider: 'Xverse' });
+    expect(canAdoptGuest(guestWith(3), null)).toBe(true);
+    expect(canAdoptGuest(guestWith(3), wallet)).toBe(true);
+    expect(canAdoptGuest(guestWith(0), null)).toBe(false);
+    expect(canAdoptGuest(guestWith(3), { ...wallet, stats: { ...wallet.stats, launches: 1 } })).toBe(false);
+    expect(canAdoptGuest({ ...guestWith(3), provider: 'Kray' }, null)).toBe(false);
+    expect(canAdoptGuest(null, null)).toBe(false);
+  });
+
+  it('mantém o progresso, troca a identidade e larga o saldo simulado', () => {
+    const p = adoptGuestProgress(guestWith(3), 'bc1pw', 'Xverse');
+    expect(p.address).toBe('bc1pw');
+    expect(p.provider).toBe('Xverse');
+    expect(p.stardust).toBe(777);
+    expect(p.dog.level).toBe(4);
+    expect(p.stats.launches).toBe(3);
+    expect(p.purchasedUpgrades).toEqual(['power_2']);
+    expect(p.dogBalance).toBe(0);
+    expect(p.dogBalanceSource).toBe('simulated');
+    // Revisão zero: a nuvem da carteira (se houver) vence.
+    expect(p.revision).toBe(0);
   });
 });
 

@@ -141,9 +141,9 @@ export function WalletPicker({ onConnect }: ConnectWalletProps) {
         })}{' '}
         <a href="https://www.dogdata.xyz" target="_blank" rel="noreferrer" className="underline hover:text-slate-300">DogData</a>
         {L({
-          en: '). The wallet signs a sign-in message once: it is free and moves no funds. It proves the pilot is yours and saves your progress in the cloud. The wallet pilot is a separate pilot: the guest one stays in this browser.',
-          pt: '). A carteira assina uma mensagem de login uma vez: é grátis e não move fundos. Isso prova que o piloto é seu e salva seu progresso na nuvem. O piloto da carteira é outro piloto: o convidado continua neste navegador.',
-          es: '). La billetera firma un mensaje de inicio de sesión una vez: es gratis y no mueve fondos. Demuestra que el piloto es tuyo y guarda tu progreso en la nube. El piloto de la billetera es otro piloto: el invitado sigue en este navegador.',
+          en: '). The wallet signs a sign-in message once: it is free and moves no funds. It proves the pilot is yours and saves your progress in the cloud. Your guest progress moves to the wallet if it has not flown yet; if the wallet already has progress in the cloud, that one is kept.',
+          pt: '). A carteira assina uma mensagem de login uma vez: é grátis e não move fundos. Isso prova que o piloto é seu e salva seu progresso na nuvem. Seu progresso de convidado vai para a carteira se ela ainda não voou; se a carteira já tiver progresso na nuvem, vale o dela.',
+          es: '). La billetera firma un mensaje de inicio de sesión una vez: es gratis y no mueve fondos. Demuestra que el piloto es tuyo y guarda tu progreso en la nube. Tu progreso de invitado pasa a la billetera si aún no ha volado; si la billetera ya tiene progreso en la nube, se mantiene ese.',
         })}
       </p>
     </div>

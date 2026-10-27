@@ -126,6 +126,35 @@ export function migrateProfile(raw: Partial<PlayerProfile>): PlayerProfile {
   };
 }
 
+/**
+ * O convidado conectou uma carteira: o progresso dele vale para a carteira se ela
+ * ainda não voou neste aparelho.
+ */
+export function canAdoptGuest(guest: PlayerProfile | null, target: PlayerProfile | null): guest is PlayerProfile {
+  return !!guest && guest.provider === GUEST_PROVIDER && guest.stats.launches > 0 && (!target || target.stats.launches === 0);
+}
+
+/**
+ * Cópia do progresso do convidado para a carteira. O saldo DOG simulado fica para
+ * trás (a carteira espera o saldo real do DogData) e a revisão volta a zero: se a
+ * carteira já tiver progresso na nuvem (outro aparelho), vale o da nuvem. O
+ * convidado continua guardado no navegador.
+ */
+export function adoptGuestProgress(guest: PlayerProfile, address: string, provider: string): PlayerProfile {
+  return migrateProfile({
+    ...guest,
+    address,
+    provider,
+    dogBalance: 0,
+    dogBalanceSource: undefined,
+    dogOnchain: undefined,
+    tier: getTier(0),
+    chestPending: undefined,
+    chestClaims: [],
+    revision: 0,
+  });
+}
+
 export function createProfile(address: string, provider: string, dogBalance: number): PlayerProfile {
   const profile = migrateProfile({ address, provider, dogBalance, stardust: STARTING_STARDUST });
   const withMissions = ensureDailyMissions(profile);

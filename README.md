@@ -117,7 +117,7 @@ Passo a passo para publicar o backend, checklist do lançamento, suporte e posts
 ## 🔗 Carteira
 
 - A tela inicial só tem **Jogar agora**: cria um piloto convidado com endereço único, salvo no navegador (saldo DOG simulado), e o piloto novo cai direto no primeiro voo (Órbita Baixa, com o tutorial). Quem já jogou volta ao último piloto usado, inclusive o da carteira.
-- A carteira fica no hangar: o botão **Carteira** no topo abre a lista de carteiras e o **Sair para a tela inicial**.
+- A carteira fica no hangar: o botão **Carteira** no topo abre a lista de carteiras e o **Sair para a tela inicial**. Conectar como convidado leva o progresso dele para a carteira, se ela ainda não voou neste aparelho (se a carteira já tiver progresso na nuvem, vale o dela).
 - **Carteiras**: Kray, Xverse e OKX (via `window.krayWallet` e `@sats-connect/core`). O jogo usa o endereço Taproot/Ordinals e pede uma única assinatura de login (grátis, sem mover fundos). A patente usa o saldo DOG real.
 - **No celular**: sem extensão, Xverse e OKX mostram **Abrir no app**, que abre o jogo no navegador interno da carteira (links universais de cada uma).
 

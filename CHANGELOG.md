@@ -1,5 +1,9 @@
 # Novidades
 
+## 2.10.1 (outubro de 2026)
+- O progresso do convidado vai junto ao conectar a carteira no hangar (nível, Stardust, itens, conquistas, missões e histórico), se a carteira ainda não voou neste aparelho. O saldo DOG simulado fica para trás: vale o saldo real do DogData.
+- Se a carteira já tiver progresso na nuvem (de outro aparelho), vale o da nuvem e nada dela é apagado. O convidado continua guardado no navegador.
+
 ## 2.10.0 (outubro de 2026): entrada direta no jogo
 - A tela inicial ficou só com **Jogar agora**. Nos últimos 30 dias, só 5 de 34 visitantes chegaram a começar um voo.
 - Piloto novo cai direto no primeiro voo (Órbita Baixa, com o tutorial), sem parar no hangar. Cancelar devolve o custo e leva ao hangar.
