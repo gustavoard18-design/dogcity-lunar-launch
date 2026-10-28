@@ -47,10 +47,16 @@ export default defineConfig({
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {
-        manualChunks: {
-          three: ["three"],
-          r3f: ["@react-three/fiber", "@react-three/drei", "@react-three/postprocessing", "postprocessing"],
-          ui: ["react", "react-dom", "framer-motion", "canvas-confetti"],
+        // Por pacote exato: na forma de objeto o Rollup leva junto as dependências
+        // compartilhadas, e a tela inicial acabava baixando o motor 3D inteiro.
+        manualChunks(id) {
+          // Carregador de módulos do Vite: a tela inicial usa, então não pode cair no pacote 3D.
+          if (id.includes("vite/preload-helper")) return "ui";
+          const pkg = id.match(/node_modules[\/]((?:@[^\/]+[\/])?[^\/]+)/)?.[1]?.replace("\\", "/");
+          if (!pkg) return;
+          if (pkg === "three") return "three";
+          if (["@react-three/fiber", "@react-three/drei", "@react-three/postprocessing", "postprocessing"].includes(pkg)) return "r3f";
+          if (["react", "react-dom", "scheduler", "framer-motion", "canvas-confetti", "base64-js", "ieee754", "buffer"].includes(pkg)) return "ui";
         },
       },
     },

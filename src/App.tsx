@@ -64,7 +64,14 @@ import { hasWebGL } from './lib/webgl';
 import GameIcon, { IconName, LunarDust, SpeakerIcon, Stardust, statIcon } from './components/GameIcon';
 import { L } from './lib/i18n';
 
-const LaunchGame = lazy(() => import('./game/LaunchGame'));
+const loadLaunchGame = () => import('./game/LaunchGame');
+const LaunchGame = lazy(loadLaunchGame);
+
+// A tela inicial abre sem o motor 3D; ele vem por trás logo depois, para o primeiro voo não esperar.
+if (typeof window !== 'undefined') {
+  const prefetch = () => void loadLaunchGame().catch(() => {});
+  window.addEventListener('load', () => ('requestIdleCallback' in window ? window.requestIdleCallback(prefetch, { timeout: 3000 }) : setTimeout(prefetch, 1500)), { once: true });
+}
 
 type Tab = 'launch' | 'missions' | 'upgrades' | 'cosmetics' | 'leaderboard' | 'history';
 

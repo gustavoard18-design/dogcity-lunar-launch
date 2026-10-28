@@ -1,5 +1,10 @@
 # Novidades
 
+## 2.10.2 (outubro de 2026): tela inicial mais rápida
+- A tela inicial não baixa mais o motor 3D (three + r3f): 216 KB em vez de 543 KB. No celular com 4G lento, o botão "Jogar agora" aparece em 1,8 s (antes 3,5 s); no 4G, em 1,2 s (antes 2,4 s).
+- O 3D é baixado por trás logo depois que a tela abre, então o primeiro voo continua abrindo em ~1 s depois do toque.
+- Novo `scripts/qa/loadtime.mjs`: mede o carregamento num celular simulado com 4G e 4G lento, sem mandar métricas.
+
 ## 2.10.1 (outubro de 2026)
 - O progresso do convidado vai junto ao conectar a carteira no hangar (nível, Stardust, itens, conquistas, missões e histórico), se a carteira ainda não voou neste aparelho. O saldo DOG simulado fica para trás: vale o saldo real do DogData.
 - Se a carteira já tiver progresso na nuvem (de outro aparelho), vale o da nuvem e nada dela é apagado. O convidado continua guardado no navegador.
